@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Metal Gear Solid · VOSTFR</title>
+<script>
+  // Langue : choix mémorisé (sb.lang) sinon langue du navigateur ; les éléments data-en passent en anglais.
+  (function () {
+    var l = null; try { l = localStorage.getItem('sb.lang'); } catch (_) {}
+    if (l !== 'fr' && l !== 'en') l = /^fr/i.test(navigator.language || '') ? 'fr' : 'en';
+    window.SB_LANG = l; document.documentElement.lang = l;
+    window.SBT = function (fr, en) { return l === 'en' && en != null ? en : fr; };
+    document.addEventListener('DOMContentLoaded', function () {
+      if (l === 'en') document.querySelectorAll('[data-en]').forEach(function (e) { e.innerHTML = e.getAttribute('data-en'); });
+      var b = document.getElementById('lang');
+      b.textContent = l === 'en' ? '🇫🇷 FR' : '🇬🇧 EN';
+      b.onclick = function () { try { localStorage.setItem('sb.lang', l === 'en' ? 'fr' : 'en'); } catch (_) {} location.reload(); };
+    });
+  })();
+</script>
+<meta name="description" content="Metal Gear Solid sur PlayStation avec les voix anglaises d'origine et les textes français : cinématiques, Codec, voix en jeu, deux disques, et l'option Carré qui fait défiler le Codec.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;800&family=Share+Tech+Mono&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #020604; --panel: #06110b; --line: #1d4a32; --green: #7dffb0; --green2: #3ddc84; --dim: #5f8f74;
+    --text: #cfe9da; --teal: #34d1c4; --red: #e0453a; --amber: #ffc857;
+    --mono: "Share Tech Mono", ui-monospace, monospace; --head: "Saira Condensed", "Arial Narrow", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 Barlow, system-ui, sans-serif; overflow-x: hidden; }
+  /* lignes de balayage et grain d'écran cathodique */
+  body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
+    background: repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px); }
+  body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 49;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.65) 100%); }
+  a { color: var(--green); }
+  code { font-family: var(--mono); color: var(--green); background: rgba(125,255,176,.07); padding: 0 4px; border-radius: 3px; }
+  .wrap { width: min(1080px, 100% - 32px); margin: 0 auto; }
+
+  nav { position: sticky; top: 0; z-index: 20; background: rgba(2,6,4,.85); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; gap: 18px; height: 52px; }
+  nav .brand { font: 700 18px var(--head); letter-spacing: .12em; color: var(--teal); text-decoration: none; text-transform: uppercase; margin-right: auto; white-space: nowrap; }
+  nav .links { display: flex; gap: 16px; }
+  nav .links a { font: 13px var(--mono); color: var(--dim); text-decoration: none; text-transform: uppercase; letter-spacing: .08em; }
+  nav .links a:hover { color: var(--green); }
+  #lang, .gh { font: 13px var(--mono); color: var(--green); background: transparent; border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px; cursor: pointer; text-decoration: none; white-space: nowrap; }
+  #lang:hover, .gh:hover { border-color: var(--green); }
+  @media (max-width: 760px) { nav .links { display: none; } }
+
+  /* ── En-tête ── */
+  header { position: relative; padding: 56px 0 40px; }
+  header .wrap { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; }
+  .kicker { font: 13px var(--mono); letter-spacing: .35em; color: var(--dim); text-transform: uppercase; }
+  h1 { margin: 6px 0 0; font: 800 clamp(48px, 9vw, 92px)/.88 var(--head); letter-spacing: .02em; text-transform: uppercase; font-style: italic;
+       color: transparent; -webkit-text-stroke: 2px var(--teal); text-shadow: 0 0 22px rgba(52,209,196,.35); }
+  h1 small { display: block; font-size: .32em; letter-spacing: 1.2em; font-style: normal; -webkit-text-stroke: 1px var(--teal); margin: 6px 0 0 .2em; }
+  .vostfr { display: inline-flex; align-items: center; gap: 12px; margin-top: 22px; padding: 8px 16px; border: 1px solid var(--green2); border-radius: 4px;
+            font: 700 26px var(--mono); color: var(--green); letter-spacing: .1em; box-shadow: 0 0 18px rgba(61,220,132,.2) inset, 0 0 18px rgba(61,220,132,.15); }
+  .vostfr .bars { display: flex; gap: 3px; align-items: flex-end; height: 22px; }
+  .vostfr .bars i { width: 4px; background: var(--green2); animation: vu 1.1s ease-in-out infinite; }
+  .vostfr .bars i:nth-child(2) { animation-delay: -.3s; } .vostfr .bars i:nth-child(3) { animation-delay: -.6s; }
+  .vostfr .bars i:nth-child(4) { animation-delay: -.15s; } .vostfr .bars i:nth-child(5) { animation-delay: -.8s; }
+  @keyframes vu { 0%, 100% { height: 25%; } 50% { height: 100%; } }
+  .lead { font: 20px/1.5 var(--mono); color: var(--green); margin: 22px 0 6px; min-height: 3em; }
+  .lead .cur { display: inline-block; width: .6em; height: 1em; background: var(--green); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .sub { color: var(--text); opacity: .85; max-width: 52ch; }
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 4px; text-decoration: none; font: 700 15px var(--head); letter-spacing: .12em; text-transform: uppercase; }
+  .btn.main { background: var(--green2); color: #021208; box-shadow: 0 0 20px rgba(61,220,132,.35); }
+  .btn.alt { border: 1px solid var(--line); color: var(--green); }
+  .btn:hover { filter: brightness(1.15); }
+
+  /* écran de jeu : 320×256 PAL affiché en 4:3, pixels nets */
+  .screen { position: relative; margin: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #000; cursor: zoom-in;
+            box-shadow: 0 0 0 4px #030a06, 0 0 30px rgba(61,220,132,.12); }
+  .screen img { display: block; width: 100%; aspect-ratio: 4 / 3; image-rendering: pixelated; }
+  .screen::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px); pointer-events: none; }
+  .screen figcaption { position: relative; z-index: 1; padding: 6px 10px; font: 12px var(--mono); color: var(--green); letter-spacing: .05em;
+                       background: var(--panel); border-top: 1px solid var(--line); }
+  .hero-screen { transform: perspective(900px) rotateY(-8deg); }
+  @media (max-width: 860px) { header .wrap { grid-template-columns: 1fr; } .hero-screen { transform: none; } }
+
+  /* ── Sections ── */
+  section { padding: 56px 0; border-top: 1px solid var(--line); }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
+  .freq { font: 22px var(--mono); color: var(--green); padding: 2px 10px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); }
+  h2 { margin: 0; font: 800 clamp(28px, 4.4vw, 40px)/1 var(--head); text-transform: uppercase; letter-spacing: .06em; color: #e9fff3; }
+  .intro { max-width: 70ch; opacity: .9; margin: 10px 0 26px; }
+  .grid { display: grid; gap: 16px; }
+  .g2 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: repeat(3, 1fr); } .g4 { grid-template-columns: repeat(4, 1fr); }
+  @media (max-width: 860px) { .g3, .g4 { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 520px) { .g2, .g3, .g4 { grid-template-columns: 1fr; } }
+
+  /* patchs */
+  .patch { display: grid; grid-template-columns: 1fr 1.15fr; gap: 28px; align-items: center; margin-bottom: 44px; }
+  .patch:nth-of-type(even) .shots { order: -1; }
+  .patch h3 { margin: 0 0 6px; font: 700 26px var(--head); letter-spacing: .06em; text-transform: uppercase; color: var(--green); }
+  .patch .tag { display: inline-block; font: 12px var(--mono); padding: 2px 8px; border-radius: 3px; margin-bottom: 10px; letter-spacing: .08em; }
+  .tag.ok { background: rgba(61,220,132,.14); color: var(--green); border: 1px solid rgba(61,220,132,.35); }
+  .tag.opt { background: rgba(255,200,87,.12); color: var(--amber); border: 1px solid rgba(255,200,87,.35); }
+  .patch p { margin: 0 0 10px; }
+  .patch ul { margin: 0; padding-left: 18px; } .patch li { margin: 3px 0; }
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .shots .wide { grid-column: span 2; }
+  .patch > * { min-width: 0; }
+  @media (max-width: 860px) { .patch { grid-template-columns: 1fr; } .patch:nth-of-type(even) .shots { order: 0; } }
+
+  /* démonstration du bouton Carré */
+  .carre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
+  .carre .stage { position: relative; }
+  .carre .stage img { transition: opacity .25s; }
+  .carre .ctrl { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
+  .pad { width: 46px; height: 46px; border-radius: 50%; border: 2px solid #ff8ad8; color: #ff8ad8; background: #12060e; font: 22px/1 sans-serif; cursor: pointer;
+         display: grid; place-items: center; box-shadow: 0 3px 0 #5a2448; }
+  .pad:active, .pad.hit { transform: translateY(2px); box-shadow: 0 1px 0 #5a2448; background: #2a0c20; }
+  .carre .msg { font: 13px var(--mono); color: var(--dim); }
+
+  /* état */
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font: 13px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: .1em; }
+  td:first-child { width: 2.4em; text-align: center; }
+  .tbl { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+
+  /* installation */
+  .steps { counter-reset: s; display: grid; gap: 14px; }
+  .step { min-width: 0; position: relative; padding: 16px 16px 16px 62px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  .step::before { counter-increment: s; content: "0" counter(s); position: absolute; left: 16px; top: 14px; font: 26px var(--mono); color: var(--green2); }
+  .step h3 { margin: 0 0 6px; font: 700 20px var(--head); letter-spacing: .06em; text-transform: uppercase; color: #e9fff3; }
+  .step p { margin: 0 0 8px; }
+  pre { margin: 8px 0 0; padding: 12px 14px; background: #000; border: 1px solid var(--line); border-radius: 6px; overflow-x: auto;
+        font: 13.5px/1.55 var(--mono); color: var(--green); }
+  pre .c { color: var(--dim); }
+  @media (max-width: 520px) { .step { padding: 46px 14px 14px; } .step::before { top: 10px; } th, td { padding: 8px 8px; } }
+  .discs td:first-child { width: auto; text-align: left; }
+  .discs code { white-space: nowrap; }
+
+  /* comment ça marche */
+  details { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 12px; }
+  summary { cursor: pointer; padding: 14px 16px; font: 700 19px var(--head); letter-spacing: .06em; text-transform: uppercase; color: var(--green); list-style: none; }
+  summary::-webkit-details-marker { display: none; }
+  summary::before { content: "▶"; display: inline-block; margin-right: 10px; font-size: 12px; transition: transform .2s; }
+  details[open] summary::before { transform: rotate(90deg); }
+  details > div { padding: 0 16px 14px; }
+  details ol { padding-left: 20px; } details li { margin: 6px 0; }
+
+  footer { padding: 34px 0 50px; border-top: 1px solid var(--line); font-size: 14px; color: var(--dim); }
+  footer p { margin: 4px 0; }
+
+  /* agrandissement */
+  dialog { padding: 0; border: 1px solid var(--green2); background: #000; max-width: min(96vw, 1000px); width: 100%; border-radius: 6px; }
+  dialog::backdrop { background: rgba(0,0,0,.85); }
+  dialog img { display: block; width: 100%; aspect-ratio: 4 / 3; image-rendering: pixelated; }
+  dialog p { margin: 0; padding: 8px 12px; font: 13px var(--mono); color: var(--green); }
+
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s, transform .6s; }
+  .reveal.on { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    .vostfr .bars i, .lead .cur { animation: none; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <a class="brand" href="#">MGS · VOSTFR</a>
+    <div class="links">
+      <a href="#patchs" data-en="Patches">Patchs</a>
+      <a href="#etat" data-en="Status">État</a>
+      <a href="#installer" data-en="Install">Installer</a>
+      <a href="#technique" data-en="Technical">Technique</a>
+    </div>
+    <a class="gh" href="https://github.com/soaresden/MGS1-VOSTFR">GitHub</a>
+    <button id="lang" type="button" title="Français / English">🇬🇧 EN</button>
+  </div>
+</nav>
+
+<header>
+  <div class="wrap">
+    <div>
+      <div class="kicker">Tactical Espionage Action · PlayStation</div>
+      <h1>Metal Gear<small>Solid</small></h1>
+      <div class="vostfr"><span class="bars"><i></i><i></i><i></i><i></i><i></i></span>VOSTFR · 140.85</div>
+      <p class="lead" id="lead" aria-live="polite"></p>
+      <p class="sub" data-en="The English voices of David Hayter, Jennifer Hale and the original cast, with the French text and subtitles: cutscenes, Codec calls, in-game voices, on both discs. The repository has <b>no game data</b>: the scripts build the images from <b>your own</b> PAL discs.">Les voix anglaises de David Hayter, Jennifer Hale et de toute la distribution d'origine, avec les textes et sous-titres français : cinématiques, appels Codec, voix en jeu, sur les deux disques. Le dépôt ne contient <b>aucune donnée du jeu</b> : les scripts fabriquent les images à partir de <b>tes propres</b> disques PAL.</p>
+      <div class="cta">
+        <a class="btn main" href="#installer" data-en="▶ Build my discs">▶ Fabriquer mes disques</a>
+        <a class="btn alt" href="https://github.com/soaresden/MGS1-VOSTFR" data-en="Source code">Code source</a>
+      </div>
+    </div>
+    <figure class="screen hero-screen"><img src="docs/shots/title.png" alt="Écran titre de Metal Gear Solid" data-en-alt="Metal Gear Solid title screen"></figure>
+  </div>
+</header>
+
+<section id="patchs">
+  <div class="wrap">
+    <div class="sec-head"><span class="freq">140.85</span><h2 data-en="What the patch changes">Ce que change le patch</h2></div>
+    <p class="intro" data-en="Everything you hear is in English, everything you read is in French. Menus, items and text stay those of the French version.">Tout ce qu'on entend est en anglais, tout ce qu'on lit est en français. Les menus, les objets et les textes restent ceux de la version française.</p>
+
+    <article class="patch reveal">
+      <div>
+        <span class="tag ok" data-en="✔ DONE · TESTED">✔ FAIT · TESTÉ</span>
+        <h3 data-en="Cutscenes">Cinématiques</h3>
+        <p data-en="Every cutscene of the game, English voice, French subtitles, timed to the line.">Toutes les cinématiques du jeu, voix anglaise, sous-titres français calés sur la réplique.</p>
+        <ul>
+          <li data-en="Both PAL versions share exactly the same audio blocks: the English sound is copied into the French cutscenes, block by block.">Les deux versions PAL ont exactement les mêmes blocs audio : le son anglais est recopié dans les cinématiques françaises, bloc par bloc.</li>
+          <li data-en="Animations and subtitles are the French ones, untouched.">Animations et sous-titres sont ceux de la version française, intacts.</li>
+        </ul>
+      </div>
+      <div class="shots">
+        <figure class="screen"><img src="docs/shots/demo-foxhound.png" alt="Snake au téléphone avec Campbell, sous-titre : Colonel, j'ai démissionné de Fox-Hound." loading="lazy"><figcaption data-en="Intro · English voice">Intro · voix anglaise</figcaption></figure>
+        <figure class="screen"><img src="docs/shots/demo-ordres.png" alt="Sous-titre : et je n'ai plus d'ordres à recevoir, ni de toi, ni de personne." loading="lazy"><figcaption>« …ni de toi, ni de personne. »</figcaption></figure>
+      </div>
+    </article>
+
+    <article class="patch reveal">
+      <div>
+        <span class="tag ok" data-en="✔ DONE · TESTED">✔ FAIT · TESTÉ</span>
+        <h3 data-en="Codec calls">Appels Codec</h3>
+        <p data-en="The ~1,100 voice banks of each disc are paired with their French counterparts: the English voice plays, the French text follows it line by line.">Les quelque 1 100 banques de voix de chaque disque sont appariées à leur équivalent français : la voix anglaise passe, le texte français la suit réplique par réplique.</p>
+        <ul>
+          <li data-en="Campbell, Naomi, Mei Ling, Otacon, Master Miller… all frequencies.">Campbell, Naomi, Mei Ling, Otacon, Master Miller… toutes les fréquences.</li>
+          <li data-en="Subtitles keep the French font and accents, with the English timing.">Les sous-titres gardent la police et les accents français, avec le rythme de la version anglaise.</li>
+          <li data-en="The Codec memory, saves and choices work as before.">La mémoire du Codec, les sauvegardes et les choix marchent comme avant.</li>
+        </ul>
+      </div>
+      <div class="shots">
+        <figure class="screen wide"><img src="docs/shots/codec-kurdes.png" alt="Codec avec Campbell : Une triste histoire. Si on n'avait pas laissé tomber les Kurdes après la Guerre du Golfe..." loading="lazy"><figcaption>Campbell · 140.85</figcaption></figure>
+        <figure class="screen"><img src="docs/shots/codec-naomi.png" alt="Codec avec Naomi" loading="lazy"><figcaption>Naomi · 140.85</figcaption></figure>
+        <figure class="screen"><img src="docs/shots/codec-memoire.png" alt="Mémoire du Codec : Campbell, Mei Ling, Master, Otacon" loading="lazy"><figcaption>MEMORY</figcaption></figure>
+      </div>
+    </article>
+
+    <article class="patch reveal">
+      <div>
+        <span class="tag ok" data-en="✔ DONE · TESTED">✔ FAIT · TESTÉ</span>
+        <h3 data-en="In-game voices &amp; Briefing">Voix en jeu &amp; Briefing</h3>
+        <p data-en="The lines spoken during the action and the mission Briefing use the same voice banks: English voice, French subtitle drawn on screen.">Les répliques dites pendant l'action et le Briefing de mission passent par les mêmes banques de voix : voix anglaise, sous-titre français affiché à l'écran.</p>
+        <ul>
+          <li data-en="The level scripts are renumbered to point to the English voices, with a check against the English scripts to avoid touching anything else.">Les scripts des niveaux sont renumérotés vers les voix anglaises, avec une vérification sur les scripts anglais pour ne rien toucher d'autre.</li>
+        </ul>
+      </div>
+      <div class="shots">
+        <figure class="screen"><img src="docs/shots/jeu-neige.png" alt="Snake dans la cour enneigée de l'héliport" loading="lazy"><figcaption>Snowfield</figcaption></figure>
+        <figure class="screen"><img src="docs/shots/jeu-heliport.png" alt="Snake contre une porte de l'héliport, de nuit" loading="lazy"><figcaption data-en="Heliport">Héliport</figcaption></figure>
+        <figure class="screen wide"><img src="docs/shots/codec-neige.png" alt="Codec : Snake, magne-toi d'aller à la base souterraine de Metal Gear !" loading="lazy"><figcaption data-en="End of disc 1 · Snowfield">Fin du disque 1 · Snowfield</figcaption></figure>
+      </div>
+    </article>
+
+    <article class="patch reveal">
+      <div>
+        <span class="tag ok" data-en="✔ DONE · TESTED">✔ FAIT · TESTÉ</span>
+        <h3 data-en="Two discs">Deux disques</h3>
+        <p data-en="Both discs are rebuilt, with an <code>.m3u</code> file for disc swapping in emulators (Batocera, DuckStation…). Disc 2 boots and plays in English with French subtitles.">Les deux disques sont reconstruits, avec un fichier <code>.m3u</code> pour l'échange de disque dans l'émulateur (Batocera, DuckStation…). Le disque 2 démarre et passe en anglais avec les sous-titres français.</p>
+        <ul>
+          <li data-en="The bigger voice file shifts the rest of the disc: the ISO 9660 directory, sector headers and error correction are recomputed.">Le fichier de voix, plus gros, décale le reste du disque : répertoires ISO 9660, en-têtes de secteurs et correction d'erreurs sont recalculés.</li>
+          <li data-en="Swapping discs mid-game still has to be confirmed on DuckStation or a console (PCSX-Redux refuses it even with the original discs).">Le changement de disque en cours de partie reste à confirmer sur DuckStation ou console (PCSX-Redux le refuse même avec les disques d'origine).</li>
+        </ul>
+      </div>
+      <div class="shots">
+        <figure class="screen"><img src="docs/shots/disque2.png" alt="Appuyez sur la touche start après insertion du disque 2." loading="lazy"><figcaption data-en="Disc swap">Changement de disque</figcaption></figure>
+        <figure class="screen"><img src="docs/shots/menu.png" alt="Menu du niveau de difficulté, en français" loading="lazy"><figcaption data-en="French menus">Menus en français</figcaption></figure>
+      </div>
+    </article>
+
+    <article class="patch reveal" id="carre">
+      <div>
+        <span class="tag opt" data-en="★ OPTION --carre">★ OPTION --carre</span>
+        <h3 data-en="Square fast-forwards the Codec">Carré fait défiler le Codec</h3>
+        <p data-en="Like in MGS2: during a call, <b>Square</b> cuts the voice and runs through all remaining lines at once. Perfect when you replay the game or call Mei Ling to save.">Comme dans MGS2 : pendant un appel, <b>Carré</b> coupe la voix et fait défiler d'un coup toutes les répliques restantes. Idéal quand on refait le jeu ou qu'on appelle Mei Ling pour sauvegarder.</p>
+        <ul>
+          <li data-en="X keeps its original role: it cuts the voice, then one line per press.">X garde son rôle d'origine : il coupe la voix, puis une réplique par appui.</li>
+          <li data-en="Choices (save, yes/no) are never skipped.">Les choix (sauvegarde, oui/non) ne sont jamais sautés.</li>
+          <li data-en="28 instructions of the game code rewritten in place, original bytes checked first.">28 instructions du code du jeu réécrites en place, octets d'origine vérifiés avant.</li>
+        </ul>
+      </div>
+      <div class="carre">
+        <div class="stage"><figure class="screen"><img id="carreImg" src="docs/shots/codec-kurdes.png" alt="Démonstration du bouton Carré dans le Codec"><figcaption id="carreCap">Campbell · 140.85</figcaption></figure></div>
+        <div class="ctrl">
+          <button class="pad" id="carreBtn" type="button" aria-label="Carré">□</button>
+          <span class="msg" id="carreMsg" data-en="Press Square: a 6-line call goes by in about a second.">Appuie sur Carré : un appel de 6 répliques passe en une seconde environ.</span>
+        </div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section id="etat">
+  <div class="wrap">
+    <div class="sec-head"><span class="freq">141.12</span><h2 data-en="Mission log">Journal de mission</h2></div>
+    <p class="intro" data-en="Everything has been tested in PCSX-Redux with automatic screenshots: first Codec at the dock, Campbell and Naomi at the Snowfield, the Briefing of both discs, Game Over, the attract demo.">Tout a été testé dans PCSX-Redux avec des captures automatiques : premier Codec du quai, Campbell et Naomi au Snowfield, Briefing des deux disques, Game Over, démo d'attraction.</p>
+    <div class="tbl reveal">
+      <table>
+        <tr><th></th><th data-en="Part">Partie</th><th data-en="Status">État</th></tr>
+        <tr><td>✅</td><td data-en="Cutscenes">Cinématiques</td><td data-en="done, tested">fait, testé</td></tr>
+        <tr><td>✅</td><td data-en="Codec calls">Appels Codec</td><td data-en="done, tested">fait, testé</td></tr>
+        <tr><td>✅</td><td data-en="In-game voices, Briefing">Voix en jeu, Briefing</td><td data-en="done, tested on both discs">fait, testé sur les deux disques</td></tr>
+        <tr><td>✅</td><td data-en="Disc 2">Disque 2</td><td data-en="boots, English voices and French subtitles">démarre, voix anglaises et sous-titres français</td></tr>
+        <tr><td>✅</td><td data-en="<code>--carre</code> option">Option <code>--carre</code></td><td data-en="done, tested">fait, testé</td></tr>
+        <tr><td>⚠️</td><td data-en="Disc swap during the game">Changement de disque en cours de partie</td><td data-en="to confirm on DuckStation or console">à confirmer sur DuckStation ou console</td></tr>
+        <tr><td>🔧</td><td data-en="French dub credits in the intro → English cast">Crédits du doublage FR dans l'intro → distribution anglaise</td><td data-en="to do">à faire</td></tr>
+        <tr><td>💡</td><td data-en="&quot;2 discs in 1&quot; version">Version « 2 disques en 1 »</td><td data-en="next phase">prochaine phase</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="installer">
+  <div class="wrap">
+    <div class="sec-head"><span class="freq">140.15</span><h2 data-en="Build your discs">Fabriquer ses disques</h2></div>
+    <p class="intro" data-en="You need the four original discs, French and European (English) PAL versions, as CHD or BIN/CUE.">Il faut les quatre disques d'origine, versions PAL française et européenne (anglaise), en CHD ou en BIN/CUE.</p>
+    <div class="steps">
+      <div class="step reveal">
+        <h3 data-en="Your discs">Tes disques</h3>
+        <div class="tbl"><table class="discs">
+          <tr><th>Version</th><th data-en="Disc 1">Disque 1</th><th data-en="Disc 2">Disque 2</th></tr>
+          <tr><td>France</td><td><code>SLES-01506</code></td><td><code>SLES-11506</code></td></tr>
+          <tr><td data-en="Europe (English)">Europe (anglais)</td><td><code>SLES-01370</code></td><td><code>SLES-11370</code></td></tr>
+        </table></div>
+        <p style="margin-top:10px" data-en="CHD files (like in Batocera) are read directly, no chdman needed, and their SHA-1 is checked.">Les CHD (comme dans Batocera) sont lus directement, sans chdman, et leur SHA-1 est vérifié.</p>
+      </div>
+      <div class="step reveal">
+        <h3 data-en="Python">Python</h3>
+        <p data-en="Python 3.10 or newer, with numpy. About 2 GB of free memory.">Python 3.10 ou plus récent, avec numpy. Environ 2 Go de mémoire libre.</p>
+        <pre>git clone https://github.com/soaresden/MGS1-VOSTFR
+cd MGS1-VOSTFR/tools
+pip install numpy</pre>
+      </div>
+      <div class="step reveal">
+        <h3 data-en="Build">Construire</h3>
+        <p data-en="About a minute and a half. Add <code>--carre</code> for the Square option.">Environ une minute et demie. Ajoute <code>--carre</code> pour l'option Carré.</p>
+        <pre>python build.py --carre \
+  --fr1 "MGS (France) (Disc 1).chd" --uk1 "MGS (Europe) (Disc 1).chd" \
+  --fr2 "MGS (France) (Disc 2).chd" --uk2 "MGS (Europe) (Disc 2).chd" \
+  --out ../work/out</pre>
+      </div>
+      <div class="step reveal">
+        <h3 data-en="Play">Jouer</h3>
+        <p data-en="You get <code>Metal Gear Solid (VOSTFR) (Disc 1).bin/.cue</code>, <code>(Disc 2)</code> and a <code>.m3u</code>: open the <code>.m3u</code> in your emulator so it can swap discs.">Tu obtiens <code>Metal Gear Solid (VOSTFR) (Disc 1).bin/.cue</code>, <code>(Disc 2)</code> et un <code>.m3u</code> : ouvre le <code>.m3u</code> dans l'émulateur pour qu'il puisse changer de disque.</p>
+        <p data-en="Already built your discs? The Square option alone:">Disques déjà construits ? L'option Carré seule :</p>
+        <pre>python carre.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="technique">
+  <div class="wrap">
+    <div class="sec-head"><span class="freq">141.80</span><h2 data-en="How it works">Comment ça marche</h2></div>
+    <p class="intro" data-en="The details for the curious, and for whoever wants to do the same with another game.">Les détails pour les curieux, et pour qui voudrait faire pareil avec un autre jeu.</p>
+    <details class="reveal">
+      <summary data-en="Cutscenes: the same blocks on both sides">Cinématiques : les mêmes blocs des deux côtés</summary>
+      <div><p data-en="In both PAL versions, every cutscene in <code>DEMO.DAT</code> has exactly the same sequence of audio blocks (same count, same size): the French dub was fitted to the length of the scenes. The French <code>DEMO.DAT</code> is kept (subtitles, animations) and the English audio is copied into it block by block. The French subtitles land right on the English lines.">Dans les deux versions PAL, chaque cinématique de <code>DEMO.DAT</code> a exactement la même suite de blocs audio (même nombre, même taille) : le doublage français a été calé sur la durée des scènes. On garde le <code>DEMO.DAT</code> français (sous-titres, animations) et on y recopie l'audio anglais bloc par bloc. Les sous-titres français tombent pile sur les répliques anglaises.</p></div>
+    </details>
+    <details class="reveal">
+      <summary data-en="Codec: pairing 1,100 voices">Codec : apparier 1 100 voix</summary>
+      <div><ol>
+        <li data-en="<b>Pairing</b>: both <code>VOX.DAT</code> files store their banks in the same order, with a few extra on the English side. The game's sound test table (<code>vc000101</code> → bank) has the same names in both languages: exact pairing on disc 2, carried over to disc 1 through the banks both discs share. The rest is aligned by dynamic programming (audio length, subtitle count), then checked against the Codec script.">
+          <b>Appariement</b> : les deux <code>VOX.DAT</code> rangent leurs banques dans le même ordre, avec quelques-unes de plus côté anglais. La table du test sonore du jeu (<code>vc000101</code> → banque) a les mêmes noms dans les deux langues : appariement exact sur le disque 2, reporté sur le disque 1 par les banques communes aux deux disques. Le reste est aligné par programmation dynamique (durée audio, nombre de sous-titres), puis vérifié par le script du Codec.</li>
+        <li data-en="<b>New <code>VOX.DAT</code></b>: each English bank (voice and lip movements) gets the French subtitles (same number of lines as the French bank, French font) with the English timing. In the Codec, each subtitle moves the French <code>RADIO.DAT</code> script to its next line: the text follows the English voice.">
+          <b>Nouveau <code>VOX.DAT</code></b> : chaque banque anglaise (voix et mouvements des lèvres) reçoit les sous-titres français (autant de répliques que la banque française, police française) avec les horaires de la version anglaise. Dans le Codec, chaque sous-titre fait passer le script <code>RADIO.DAT</code> français à la réplique suivante : le texte suit la voix anglaise.</li>
+        <li data-en="<b>Renumbering</b>: the voice codes (position in the file) are rewritten in <code>RADIO.DAT</code> and in the level scripts of <code>STAGE.DIR</code>, only where the matching English stage holds the matching code.">
+          <b>Renumérotation</b> : les codes de voix (position dans le fichier) sont réécrits dans <code>RADIO.DAT</code> et dans les scripts des niveaux de <code>STAGE.DIR</code>, seulement là où le niveau anglais correspondant contient le code correspondant.</li>
+        <li data-en="<b>Disc image</b>: the bigger <code>VOX.DAT</code> shifts <code>ZMOVIE.STR</code> and <code>DUMMY3M.DAT</code>; the ISO 9660 records, volume size and EDC/ECC are rewritten. The game finds its files by name at boot: no other address to fix.">
+          <b>Image disque</b> : le <code>VOX.DAT</code> plus gros décale <code>ZMOVIE.STR</code> et <code>DUMMY3M.DAT</code> ; enregistrements ISO 9660, taille du volume et EDC/ECC sont réécrits. Le jeu retrouve ses fichiers par leur nom au démarrage : aucune autre adresse à corriger.</li>
+      </ol>
+      <p data-en="Two lines of disc 2 only exist in French (one of them left in German on the French disc): they stay dubbed.">Deux répliques du disque 2 n'existent qu'en français (dont une restée en allemand sur le disque français) : elles gardent la VF.</p></div>
+    </details>
+    <details class="reveal">
+      <summary data-en="Square: 28 instructions in the Codec loop">Carré : 28 instructions dans la boucle du Codec</summary>
+      <div><p data-en="In the Codec loop of the French executable, the voice-cut test also accepts Square, and the line-waiting state is rewritten in place: Square held sets a flag that moves to the next line at once, until the end of the call. The flag lives with the call, so the next call is normal. The patch checks the original bytes before writing and can be applied twice without harm.">Dans la boucle du Codec de l'exécutable français, le test de coupure de la voix accepte aussi Carré, et l'état d'attente des répliques est réécrit en place : Carré enfoncé pose un drapeau qui passe aussitôt à la réplique suivante, jusqu'à la fin de l'appel. Le drapeau vit avec l'appel : l'appel suivant est normal. Le patch vérifie les octets d'origine avant d'écrire et peut être appliqué deux fois sans risque.</p></div>
+    </details>
+    <details class="reveal">
+      <summary data-en="The tools">Les outils</summary>
+      <div class="tbl" style="margin:0 16px 14px"><table>
+        <tr><th>Script</th><th data-en="Role">Rôle</th></tr>
+        <tr><td><code>build.py</code></td><td data-en="Builds the VOSTFR images">Construit les images VOSTFR</td></tr>
+        <tr><td><code>chd2bin.py</code></td><td data-en="CHD v5 → BIN/CUE, SHA-1 check">CHD v5 → BIN/CUE, vérification SHA-1</td></tr>
+        <tr><td><code>psxiso.py</code></td><td data-en="List, extract, check a PS1 image">Liste, extraction, vérification d'une image PS1</td></tr>
+        <tr><td><code>cdsector.py</code></td><td data-en="Mode 2 EDC/ECC">EDC/ECC Mode 2</td></tr>
+        <tr><td><code>isorebuild.py</code></td><td data-en="Rebuilds an image with resized files">Reconstruit une image avec des fichiers de taille différente</td></tr>
+        <tr><td><code>vox.py</code> · <code>voxalign.py</code> · <code>vox_vostfr.py</code></td><td data-en="Voice banks: reading, pairing, new <code>VOX.DAT</code>">Banques de voix : lecture, appariement, nouveau <code>VOX.DAT</code></td></tr>
+        <tr><td><code>radio.py</code></td><td data-en="Codec script <code>RADIO.DAT</code>">Script Codec <code>RADIO.DAT</code></td></tr>
+        <tr><td><code>demo_vostfr.py</code></td><td data-en="Cutscene audio">Audio des cinématiques</td></tr>
+        <tr><td><code>carre.py</code></td><td data-en="Square option">Option Carré</td></tr>
+        <tr><td><code>emu.py</code> · <code>emu_drive.lua</code></td><td data-en="Automatic tests in PCSX-Redux">Tests automatiques dans PCSX-Redux</td></tr>
+      </table></div>
+    </details>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p data-en="A fan project by <a href=&quot;https://github.com/soaresden&quot;>soaresden</a>. No game data is distributed: you need your own discs.">Projet de fan par <a href="https://github.com/soaresden">soaresden</a>. Aucune donnée du jeu n'est distribuée : il faut tes propres disques.</p>
+    <p data-en="Metal Gear Solid © 1998 Konami. Screenshots taken from the patched game, for illustration.">Metal Gear Solid © 1998 Konami. Captures d'écran du jeu patché, pour illustration.</p>
+  </div>
+</footer>
+
+<dialog id="zoom"><img alt=""><p></p></dialog>
+
+<script>
+  // Texte d'accroche tapé comme dans le Codec
+  (function () {
+    var el = document.getElementById('lead');
+    var txt = SBT('Voix anglaises. Textes français.\nComme au cinéma.', 'English voices. French text.\nLike at the movies.');
+    var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, i = 0;
+    function draw(n) { el.innerHTML = txt.slice(0, n).replace(/\n/g, '<br>') + '<span class="cur"></span>'; }
+    if (reduce) return draw(txt.length);
+    (function tick() { draw(i); if (i++ < txt.length) setTimeout(tick, txt[i - 1] === '\n' ? 380 : 42); })();
+  })();
+
+  // Textes alternatifs en anglais
+  if (SB_LANG === 'en') document.querySelectorAll('[data-en-alt]').forEach(function (e) { e.alt = e.getAttribute('data-en-alt'); });
+
+  // Agrandissement des captures
+  var zoom = document.getElementById('zoom');
+  document.querySelectorAll('.screen').forEach(function (f) {
+    if (f.closest('.carre')) return;
+    f.addEventListener('click', function () {
+      var img = f.querySelector('img'), cap = f.querySelector('figcaption');
+      zoom.querySelector('img').src = img.src; zoom.querySelector('img').alt = img.alt;
+      zoom.querySelector('p').textContent = cap ? cap.textContent : '';
+      zoom.showModal();
+    });
+  });
+  zoom.addEventListener('click', function () { zoom.close(); });
+
+  // Démonstration du bouton Carré : le Codec défile puis se ferme
+  (function () {
+    var img = document.getElementById('carreImg'), cap = document.getElementById('carreCap'), msg = document.getElementById('carreMsg'), btn = document.getElementById('carreBtn');
+    var frames = [
+      ['docs/shots/codec-kurdes.png', 'Campbell · 140.85'],
+      ['docs/shots/carre-2.png', 'Naomi · 140.85'],
+      ['docs/shots/carre-3.png', SBT('Fin de l’appel', 'Call ended')]
+    ];
+    frames.forEach(function (f) { new Image().src = f[0]; });
+    var busy = false;
+    function show(k) { img.src = frames[k][0]; cap.textContent = frames[k][1]; }
+    btn.addEventListener('click', function () {
+      if (busy) return; busy = true; btn.classList.add('hit');
+      msg.textContent = SBT('□ … les répliques défilent', '□ … lines fly by');
+      setTimeout(function () { show(1); }, 300);
+      setTimeout(function () { show(2); btn.classList.remove('hit'); msg.textContent = SBT('Appel terminé. Rappuie pour recommencer.', 'Call over. Press again to replay.'); }, 1000);
+      setTimeout(function () { show(0); busy = false; }, 3200);
+    });
+  })();
+
+  // Apparition au défilement
+  var io = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) {
+    es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); } });
+  }, { threshold: .12 }) : null;
+  document.querySelectorAll('.reveal').forEach(function (r) { io ? io.observe(r) : r.classList.add('on'); });
+</script>
+</body>
+</html>

@@ -2,6 +2,10 @@
 
 🇬🇧 English · 🇫🇷 [Version française](README.md)
 
+**▶ [The project page, with screenshots](https://soaresden.github.io/MGS1-VOSTFR/)**
+
+<p align="center"><img src="docs/shots/codec-kurdes.png" width="400" alt="Codec: Campbell's English voice, French text"> <img src="docs/shots/demo-foxhound.png" width="400" alt="Intro cutscene with French subtitles"></p>
+
 A "VOSTFR" patch for **Metal Gear Solid** on PlayStation: the original **English voices** with **French text and subtitles**.
 
 This repository contains **no game data**: only the scripts that build the images from **your own** PAL France and PAL Europe (English) discs.

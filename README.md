@@ -2,6 +2,10 @@
 
 🇬🇧 [English version](README.en.md) · 🇫🇷 Français
 
+**▶ [La page du projet, avec les captures](https://soaresden.github.io/MGS1-VOSTFR/)**
+
+<p align="center"><img src="docs/shots/codec-kurdes.png" width="400" alt="Codec : voix anglaise de Campbell, texte français"> <img src="docs/shots/demo-foxhound.png" width="400" alt="Cinématique d'intro sous-titrée en français"></p>
+
 Patch « VOSTFR » pour **Metal Gear Solid** sur PlayStation : les **voix anglaises** d'origine avec les **textes et sous-titres français**.
 
 Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fabriquent les images à partir de **tes propres** disques PAL France et PAL Europe (anglais).
