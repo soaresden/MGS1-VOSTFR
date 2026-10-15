@@ -11,8 +11,10 @@ This repository contains **no game data**: only the scripts that build the image
 | Part | Status |
 |---|---|
 | Cutscenes (`DEMO.DAT`): English voices, French subtitles | ✅ done, tested in PCSX-Redux |
-| Codec calls (`VOX.DAT` + `RADIO.DAT`) | 🔧 phase 2 |
-| In-game voices (dialogue during gameplay) | 🔧 phase 2 |
+| Codec calls (`VOX.DAT` + `RADIO.DAT`): English voices, French text timed to the voice | ✅ done, tested (first Codec call at the dock, Campbell/Naomi at the Snowfield) |
+| In-game voices (dialogue during gameplay, Briefing) | ✅ done, tested on both discs' Briefing (same mechanism) |
+| Disc 2 | ✅ boots, English voices and French subtitles (Briefing) |
+| Disc swap during the game | ⚠️ to be checked on console or DuckStation: PCSX-Redux refuses it, even with the original discs |
 | French dub credits in the intro → English cast | 🔧 to do |
 | "2 discs in 1" version | 💡 phase 3 |
 
@@ -34,12 +36,26 @@ cd tools
 python build.py --fr1 "MGS (France) (Disc 1).chd" --uk1 "MGS (Europe) (Disc 1).chd" --fr2 "MGS (France) (Disc 2).chd" --uk2 "MGS (Europe) (Disc 2).chd" --out ../work/out
 ```
 
-Output: `Metal Gear Solid (VOSTFR) (Disc 1).bin/.cue`, `(Disc 2)` and an `.m3u` for disc swapping in emulators.
+Output: `Metal Gear Solid (VOSTFR) (Disc 1).bin/.cue`, `(Disc 2)` and an `.m3u` for disc swapping in emulators. It takes about a minute and a half and needs 2 GB of free memory.
+
+Give **both discs**: disc 2's sound test table is also used to pair disc 1's voices exactly.
 
 ## How it works
 
-- In both PAL versions, every cutscene in `DEMO.DAT` has **exactly the same sequence of audio blocks** (same count, same size): the French dub was fitted to the length of each scene. We keep the French `DEMO.DAT` (subtitles, animations) and copy the English audio into it block by block. The French subtitles land right on the English lines.
-- The file keeps its size and position on the disc: it is rewritten in place, with EDC/ECC recomputed.
+### Cutscenes
+
+In both PAL versions, every cutscene in `DEMO.DAT` has **exactly the same sequence of audio blocks** (same count, same size): the French dub was fitted to the length of each scene. We keep the French `DEMO.DAT` (subtitles, animations) and copy the English audio into it block by block. The French subtitles land right on the English lines.
+
+### Codec and in-game voices
+
+Here the two dubs have different lengths: the English `VOX.DAT` is 196 MB against 182 MB in French (disc 1).
+
+1. **Pairing the voices**: both `VOX.DAT` files store their ~1100 banks in the same order, with a few extra banks on the English side. The game contains a sound test table (`vc000101` → bank) with the same names in FR and UK: exact pairing on disc 2, carried over to disc 1 through the banks both discs share. The rest is aligned by dynamic programming (audio length, subtitle count), then checked against the Codec calls in the script.
+2. **New `VOX.DAT`**: each English bank (voice and lip movements) gets the French subtitles (same number of lines as the French bank, French font), with the English version's timings. In the Codec, each subtitle moves on to the next line of the French `RADIO.DAT` script, so the text follows the English voice.
+3. **Renumbering**: the VOX codes (position in the file) of the VOICE commands in `RADIO.DAT` and of the `STAGE.DIR` scripts are rewritten. In `STAGE.DIR`, a code is only changed if the same English stage holds the matching code (no false positives in textures).
+4. **Disc image**: `VOX.DAT` grows, so `ZMOVIE.STR` and `DUMMY3M.DAT` are shifted (raw sectors copied), the ISO 9660 directory records and the volume size are rewritten, and EDC/ECC recomputed. The game finds its files by name at boot: no other address to fix.
+
+Two lines on disc 2 only exist in French (one of them a German leftover on the French disc): they stay in French.
 
 ## Tools
 
@@ -49,7 +65,10 @@ Output: `Metal Gear Solid (VOSTFR) (Disc 1).bin/.cue`, `(Disc 2)` and an `.m3u` 
 | `tools/chd2bin.py` | CHD v5 → BIN/CUE (cdlz, cdzl), SHA-1 check |
 | `tools/psxiso.py` | List, extract, EDC-check a PS1 image |
 | `tools/cdsector.py` | Mode 2 Form 1 EDC/ECC (numpy), in-place file rewrite |
+| `tools/isorebuild.py` | Rebuilds an image with files of a different size |
 | `tools/vox.py` | `VOX.DAT` / `DEMO.DAT` banks: blocks, subtitles |
+| `tools/voxalign.py` | Pairs the French and English VOX banks |
+| `tools/vox_vostfr.py` | New `VOX.DAT`, `RADIO.DAT` and `STAGE.DIR` renumbering |
 | `tools/radio.py` | `RADIO.DAT` codec script (TALK / VOICE commands) |
 | `tools/demo_vostfr.py` | Cutscene audio replacement |
-| `tools/emu.py` | Automated testing in PCSX-Redux (screenshots) |
+| `tools/emu.py`, `tools/emu_drive.lua` | Automated testing in PCSX-Redux (screenshots) |
