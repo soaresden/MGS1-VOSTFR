@@ -6,7 +6,9 @@ build.py - Construit les images VOSTFR de MGS1 PS1 à partir des CHD (ou BIN) FR
 - Codec et voix en jeu (VOX.DAT) : banques anglaises avec les sous-titres FR, codes VOX
   renumérotés dans RADIO.DAT et STAGE.DIR, image ISO reconstruite (VOX.DAT grossit).
 
-  python build.py --fr1 FR_D1.chd --uk1 UK_D1.chd --fr2 FR_D2.chd --uk2 UK_D2.chd --out sortie
+  python build.py --fr1 FR_D1.chd --uk1 UK_D1.chd --fr2 FR_D2.chd --uk2 UK_D2.chd --out sortie [--carre]
+
+--carre : patch optionnel, Carré fait défiler les dialogues du Codec (voir carre.py).
 
 Donner les deux disques permet un appariement exact des banques (table de test sonore du
 disque 2, reportée sur le disque 1). Les fichiers intermédiaires vont dans ./work (ignoré).
@@ -15,7 +17,7 @@ disque 2, reportée sur le disque 1). Les fichiers intermédiaires vont dans ./w
 import argparse, sys
 from pathlib import Path
 
-import chd2bin, demo_vostfr, isorebuild, psxiso, vox_vostfr, voxalign
+import carre, chd2bin, demo_vostfr, isorebuild, psxiso, vox_vostfr, voxalign
 
 ROOT = Path(__file__).resolve().parent.parent
 WORK = ROOT / "work"
@@ -45,8 +47,12 @@ def tables(path):
             voxalign.sound_test_table(read(path, "STAGE.DIR")))
 
 
-def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin):
+def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False):
     rep = {}
+    if square:
+        exe = next(f for f in psxiso.Disc(fr).files() if f in ("MGS/MGS1.EXE", "MGS/MGS2.EXE"))
+        rep[exe] = carre.patch(read(fr, exe[4:]))
+        print(f"  {exe[4:]} : Carré fait défiler le Codec")
     demo, nb, swapped = demo_vostfr.patch(read(fr, "DEMO.DAT"), read(uk, "DEMO.DAT"))
     rep["MGS/DEMO.DAT"] = demo
     del demo
@@ -80,6 +86,7 @@ def main():
     for k in ("fr1", "uk1", "fr2", "uk2"):
         ap.add_argument(f"--{k}")
     ap.add_argument("--out", default=str(WORK / "out"))
+    ap.add_argument("--carre", action="store_true", help="Carré fait défiler les dialogues du Codec")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -98,7 +105,7 @@ def main():
     for d, (fr, uk) in imgs.items():
         print(f"Disque {d}")
         out_bin = out / f"Metal Gear Solid (VOSTFR) (Disc {d}).bin"
-        build_disc(fr, uk, anchors[d], tab[d, "F"][0], tab[d, "U"][0], out_bin)
+        build_disc(fr, uk, anchors[d], tab[d, "F"][0], tab[d, "U"][0], out_bin, a.carre)
         names.append(out_bin.with_suffix(".cue").name)
     if len(names) == 2:
         (out / "Metal Gear Solid (VOSTFR).m3u").write_text("\n".join(names) + "\n", encoding="utf-8")

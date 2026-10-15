@@ -15,6 +15,7 @@ This repository contains **no game data**: only the scripts that build the image
 | In-game voices (dialogue during gameplay, Briefing) | ✅ done, tested on both discs' Briefing (same mechanism) |
 | Disc 2 | ✅ boots, English voices and French subtitles (Briefing) |
 | Disc swap during the game | ⚠️ to be checked on console or DuckStation: PCSX-Redux refuses it, even with the original discs |
+| `--carre` option: Square fast-forwards Codec dialogue (like in MGS2) | ✅ done, tested |
 | French dub credits in the intro → English cast | 🔧 to do |
 | "2 discs in 1" version | 💡 phase 3 |
 
@@ -37,6 +38,12 @@ python build.py --fr1 "MGS (France) (Disc 1).chd" --uk1 "MGS (Europe) (Disc 1).c
 ```
 
 Output: `Metal Gear Solid (VOSTFR) (Disc 1).bin/.cue`, `(Disc 2)` and an `.m3u` for disc swapping in emulators. It takes about a minute and a half and needs 2 GB of free memory.
+
+`--carre` option: during a Codec call, **Square** cuts the voice and runs through all remaining lines at once, as if you were mashing the button (X keeps its original role: it cuts the voice, then one line per press). Choices (save, yes/no) are not skipped. The patch also works on its own, on an image you already built:
+
+```bash
+python carre.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
 
 Give **both discs**: disc 2's sound test table is also used to pair disc 1's voices exactly.
 
@@ -71,4 +78,5 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/vox_vostfr.py` | New `VOX.DAT`, `RADIO.DAT` and `STAGE.DIR` renumbering |
 | `tools/radio.py` | `RADIO.DAT` codec script (TALK / VOICE commands) |
 | `tools/demo_vostfr.py` | Cutscene audio replacement |
+| `tools/carre.py` | Optional patch: Square fast-forwards the Codec |
 | `tools/emu.py`, `tools/emu_drive.lua` | Automated testing in PCSX-Redux (screenshots) |

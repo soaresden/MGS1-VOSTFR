@@ -1,0 +1,177 @@
+#!/usr/bin/env python3
+"""
+carre.py - Patch optionnel : Carré fait défiler les dialogues du Codec (comme dans MGS2).
+
+Dans le jeu d'origine, X pendant un appel coupe la voix ; il faut ensuite appuyer pour
+chaque réplique. Avec ce patch, Carré coupe la voix lui aussi, puis toutes les répliques
+restantes de l'appel défilent seules (comme si on martelait le bouton). Les questions
+(sauvegarde, choix oui/non) ne sont pas touchées.
+
+Modifie seulement l'exécutable PAL France (MGS1.EXE / MGS2.EXE, identiques), en place,
+dans la boucle Codec (menu/radio.c de la décompilation) :
+- état 5 « appel en cours » : la coupure de voix réagit aussi à Carré enfoncé ;
+- état 4 « attente d'une touche » : Carré enfoncé pose un drapeau (bits 0x8000 = défilement,
+  0x100 = voix coupée pour la suite) dans les drapeaux de l'appel ; tant qu'il est posé,
+  chaque réplique passe aussitôt. Le drapeau disparaît avec l'appel.
+
+  python carre.py image.bin [image2.bin ...]     patch en place (VOSTFR ou FR d'origine)
+"""
+
+import struct, sys
+
+import psxiso
+from cdsector import write_file_inplace
+
+LOAD = 0x80010000  # adresse de chargement, en-tête PS-X EXE de 0x800 octets
+
+R = dict(zero=0, v0=2, v1=3, a0=4, a1=5, a2=6, t0=8, s0=16, s1=17, s2=18, s3=19, s4=20)
+
+
+def i_type(op, rs, rt, imm):
+    return op << 26 | R[rs] << 21 | R[rt] << 16 | imm & 0xFFFF
+
+
+def r_type(funct, rs="zero", rt="zero", rd="zero", sa=0):
+    return R[rs] << 21 | R[rt] << 16 | R[rd] << 11 | sa << 6 | funct
+
+
+def lw(rt, off, rs): return i_type(0x23, rs, rt, off)
+def lh(rt, off, rs): return i_type(0x21, rs, rt, off)
+def lhu(rt, off, rs): return i_type(0x25, rs, rt, off)
+def sh(rt, off, rs): return i_type(0x29, rs, rt, off)
+def andi(rt, rs, imm): return i_type(0x0C, rs, rt, imm)
+def addiu(rt, rs, imm): return i_type(0x09, rs, rt, imm)
+def sll(rd, rt, sa): return r_type(0x00, rt=rt, rd=rd, sa=sa)
+def srl(rd, rt, sa): return r_type(0x02, rt=rt, rd=rd, sa=sa)
+def or_(rd, rs, rt): return r_type(0x25, rs, rt, rd)
+def and_(rd, rs, rt): return r_type(0x24, rs, rt, rd)
+def move(rd, rs): return r_type(0x21, rs, "zero", rd)
+def jal(target): return 3 << 26 | (target >> 2) & 0x3FFFFFF
+def j(target): return 2 << 26 | (target >> 2) & 0x3FFFFFF
+NOP = 0
+
+
+def branch(op, rs, pc, target):
+    return i_type(op, rs, "zero", (target - pc - 4) >> 2)
+
+
+def assemble(pc, prog):
+    """prog : liste d'instructions ou de (op_branche, reg, cible)."""
+    out = []
+    for k, ins in enumerate(prog):
+        if isinstance(ins, tuple):
+            op, rs, target = ins
+            ins = branch({"beqz": 4, "bnez": 5}[op], rs, pc + 4 * k, target)
+        out.append(ins)
+    return out
+
+
+WAKE_TASK, CLEAR_TEXT, STATE_END = 0x80049420, 0x80042178, 0x800430DC
+
+# État 4 (0x80042bc0-0x80042c2c, 28 instructions)
+STATE4 = 0x80042BC0
+
+
+def state4():
+    pc = STATE4
+    adv, deb = pc + 0x50, pc + 0x64
+    return assemble(pc, [
+        move("a0", "s3"), jal(0x800424BC), move("a1", "s4"),   # trace le repère d'attente
+        lw("v1", 0x218, "s3"),          # v1 = appel en cours
+        lhu("s1", 0, "s0"),             # s1 = touches enfoncées
+        lhu("v0", 0x18, "v1"),          # v0 = drapeaux de l'appel
+        andi("a1", "s1", 0x80),         # Carré enfoncé ?
+        sll("a1", "a1", 8),             # -> 0x8000 (défilement)
+        srl("t0", "a1", 7),             # -> 0x100 (voix coupée)
+        or_("a1", "a1", "t0"),
+        or_("v0", "v0", "a1"),
+        andi("a1", "v0", 0x8000),
+        lh("s2", 0x212, "s3"),          # s2 = touches tenues à l'arrivée (anti-rebond)
+        lhu("a2", 4, "s0"),             # a2 = touches relâchées
+        ("bnez", "a1", adv),            # défilement : réplique suivante
+        sh("v0", 0x18, "v1"),
+        andi("a2", "a2", 0xF0F0),       # comportement d'origine : une touche relâchée...
+        ("beqz", "a2", deb),
+        NOP,
+        ("bnez", "s2", deb),            # ... qui n'était pas déjà tenue
+        addiu("v0", "zero", 3),         # adv :
+        jal(WAKE_TASK),
+        sh("v0", 0x210, "s3"),          # état 3
+        jal(CLEAR_TEXT),
+        move("a0", "s3"),
+        and_("s2", "s2", "s1"),         # deb : anti-rebond
+        j(STATE_END),
+        sh("s2", 0x212, "s3"),
+    ])
+
+
+# État 5 (0x80042d10-0x80042d34, 10 instructions) : coupure de la voix
+STATE5 = 0x80042D10
+SKIP = 0x80042D84
+
+
+def state5():
+    pc = STATE5
+    return assemble(pc, [
+        lhu("v0", 0x18, "s1"),
+        lhu("v1", 0, "s0"),             # touches enfoncées
+        andi("v0", "v0", 1),            # appel impossible à couper ?
+        ("bnez", "v0", SKIP),
+        lhu("a1", 4, "s0"),             # touches relâchées
+        andi("v1", "v1", 0x80),         # Carré enfoncé
+        andi("a1", "a1", 0x40),         # ou X relâché (origine)
+        or_("v0", "v1", "a1"),
+        ("beqz", "v0", SKIP),
+        NOP,
+    ])
+
+
+# Octets d'origine attendus (EXE PAL France), pour ne rien patcher à l'aveugle
+ORIG = {
+    STATE4: "21206002" "2f09010c" "21288002" "04000296" "00000000" "f0f04230" "0b004010"
+            "00000000" "12026286" "00000000" "07004014" "00000000" "0825010c" "00000000"
+            "5e08010c" "21206002" "03000224" "100262a6" "00000596" "12026286" "00000000"
+            "2410a200" "03004014" "00000000" "370c0108" "120260a6" "370c0108" "120265a6",
+    STATE5: "18002296" "00000000" "01004230" "19004014" "00000000" "04000296" "00000000"
+            "40004230" "14004010" "00000000",
+}
+
+
+def words(lst):
+    return b"".join(struct.pack("<I", w) for w in lst)
+
+
+def patch(exe):
+    out = bytearray(exe)
+    for addr, new in ((STATE4, state4()), (STATE5, state5())):
+        off = 0x800 + addr - LOAD
+        orig = bytes.fromhex(ORIG[addr])
+        cur = bytes(out[off:off + len(orig)])
+        if cur == words(new):
+            continue  # déjà patché
+        if cur != orig:
+            raise SystemExit(f"EXE inattendu à {addr:08x} (pas la version PAL France ?)")
+        out[off:off + len(orig)] = words(new)
+    return bytes(out)
+
+
+def patch_image(path):
+    disc = psxiso.Disc(path)
+    files = disc.files()
+    name = next(p for p in files if p in ("MGS/MGS1.EXE", "MGS/MGS2.EXE"))
+    lba, size = files[name]
+    exe = disc.read(lba, size)
+    disc.f.close()
+    new = patch(exe)
+    if new != exe:
+        write_file_inplace(path, lba, new)
+    return name
+
+
+def main():
+    for p in sys.argv[1:]:
+        print(f"{p} : {patch_image(p)} patché (Carré fait défiler le Codec)")
+
+
+if __name__ == "__main__":
+    main()

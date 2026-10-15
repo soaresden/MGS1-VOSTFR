@@ -5,7 +5,7 @@ pilote emu_drive.lua de ce dépôt).
 
   python emu.py launch image.cue [--gui]   (en arrière-plan ; --gui garde l'interface,
                                              utile pour changer de disque : File > Open Lid)
-  python emu.py cmd "press START 8\\nwait 30\\npress CIRCLE\\nwait 60\\nshot s1" [attente_s]
+  python emu.py cmd "press START 8\\nwait 30\\npress CIRCLE\\nwait 60\\nshot s1" [attente_max_s]
   python emu.py cmd quit
 
 Commandes (exécutées à la suite, « wait N » attend N images) : press BOUTON [images], wait,
@@ -55,10 +55,15 @@ def to_png():
 
 
 def cmd(text, wait):
+    """Envoie les commandes et attend leur fin (CMDDONE), au plus wait secondes."""
+    log = OUT / "log.txt"
+    done = log.read_text().count("CMDDONE") if log.exists() else 0
     tmp = OUT / "cmd.tmp"
     tmp.write_text(text.replace("\\n", "\n") + "\n", newline="\n")
     os.replace(tmp, OUT / "cmd.txt")
-    time.sleep(wait)
+    end = time.time() + wait
+    while time.time() < end and log.read_text().count("CMDDONE") <= done:
+        time.sleep(0.5)
     to_png()
     print("".join((OUT / "log.txt").read_text().splitlines(True)[-3:]))
 

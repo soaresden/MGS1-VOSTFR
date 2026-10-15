@@ -51,6 +51,14 @@ Tests faits (PCSX-Redux) : premier Codec du quai (dump RAM : le flux contient la
 Changement de disque : PCSX-Redux refuse le disque 2 après le capot (« mauvais disque »), y compris le disque 2 FR d'origine, avec ou sans changement d'ISO à chaud → limite de l'émulateur, à vérifier sur Batocera (DuckStation/SwanStation, .m3u). La vérification du jeu appelle la même fonction que le démarrage (`FS_ResetCdFilePosition`), qui marche sur le disque 2 VOSTFR.
 Pas testé : une voix en jeu de Meryl (trop loin sans sauvegarde adaptée).
 
+## Patch « Carré » (option --carre, tools/carre.py)
+
+EXE PAL France (MGS1.EXE = MGS2.EXE, mêmes octets sur les deux disques ; chargé à 0x80010000, en-tête 0x800). Boucle Codec (menu/radio.c) : fonction à 0x80042614, s0 = manette (`status` +0, `press` +2, `release` +4), s3 = MenuWork (+0x210 état, +0x212 anti-rebond, +0x218 appel en cours), appel : +0x14 bInExecBlock, +0x18 drapeaux u16 (1 = non coupable, 0x100 = voix coupée).
+- État 5 (0x80042d10) : coupure de voix si X relâché (0x40) **ou Carré enfoncé (0x80)**.
+- État 4 (0x80042bc0, 28 instructions réécrites en place) : Carré enfoncé → drapeaux |= 0x8100 ; 0x8000 posé → réplique suivante aussitôt. s1/s2 servent de temporaires (réécrits après le switch avant toute lecture). Le drapeau vit avec l'appel (`field_18` rechargé à chaque appel).
+- Boutons GV : 0x20 Rond, 0x40 X, 0x10 Triangle, 0x80 Carré. Le patch vérifie les octets d'origine avant d'écrire (idempotent).
+Testé : Snowfield, appel Campbell/Naomi de 6 répliques passé en ~1 s ; appel suivant normal ; X inchangé.
+
 ## Tests
 
 `python tools/emu.py launch image.cue [--gui]` (arrière-plan) puis `python tools/emu.py cmd "press START 8\nwait 60\nshot s1" 5`. Pilote `tools/emu_drive.lua` : commandes en file, `wait N` en images. Harnais Lua et PCSX-Redux du projet RE1 Hotkey. Dans MGS PAL : **Rond = valider**, Croix = retour ; Codec : SELECT, Bas = MEMORY, Rond = appeler. Au départ du quai, Snake est dans l'eau : il se noie si on ne le sort pas.

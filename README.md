@@ -15,6 +15,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Voix en jeu (dialogues pendant l'action, Briefing) | ✅ fait, testé sur le Briefing des deux disques (même mécanisme) |
 | Disque 2 | ✅ démarre, voix anglaises et sous-titres FR (Briefing) |
 | Changement de disque en cours de partie | ⚠️ à vérifier sur console ou DuckStation : PCSX-Redux le refuse, même avec les disques d'origine |
+| Option `--carre` : Carré fait défiler les dialogues du Codec (comme dans MGS2) | ✅ fait, testé |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Version « 2 disques en 1 » | 💡 phase 3 |
 
@@ -37,6 +38,12 @@ python build.py --fr1 "MGS (France) (Disc 1).chd" --uk1 "MGS (Europe) (Disc 1).c
 ```
 
 Résultat : `Metal Gear Solid (VOSTFR) (Disc 1).bin/.cue`, `(Disc 2)` et un `.m3u` pour l'échange de disque dans l'émulateur. Compter environ une minute et demie, et 2 Go de mémoire libre.
+
+Option `--carre` : pendant un appel Codec, **Carré** coupe la voix et fait défiler toutes les répliques restantes d'un coup, comme si on martelait le bouton (X garde son rôle d'origine : il coupe la voix, puis une réplique par appui). Les choix (sauvegarde, oui/non) ne sont pas sautés. Le patch existe aussi seul, pour une image déjà construite :
+
+```bash
+python carre.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
 
 Donne les **deux disques** : la table du test sonore du disque 2 sert aussi à apparier exactement les voix du disque 1.
 
@@ -71,4 +78,5 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/vox_vostfr.py` | Nouveau `VOX.DAT`, renumérotation de `RADIO.DAT` et `STAGE.DIR` |
 | `tools/radio.py` | Script Codec `RADIO.DAT` (commandes TALK / VOICE) |
 | `tools/demo_vostfr.py` | Remplacement de l'audio des cinématiques |
+| `tools/carre.py` | Patch optionnel : Carré fait défiler le Codec |
 | `tools/emu.py`, `tools/emu_drive.lua` | Test automatique dans PCSX-Redux (captures d'écran) |
