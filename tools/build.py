@@ -6,11 +6,12 @@ build.py - Construit les images VOSTFR de MGS1 PS1 à partir des CHD (ou BIN) FR
 - Codec et voix en jeu (VOX.DAT) : banques anglaises avec les sous-titres FR, codes VOX
   renumérotés dans RADIO.DAT et STAGE.DIR, image ISO reconstruite (VOX.DAT grossit).
 
-  python build.py --fr1 FR_D1.chd --uk1 UK_D1.chd --fr2 FR_D2.chd --uk2 UK_D2.chd --out sortie [--carre] [--m9] [--psg1]
+  python build.py --fr1 FR_D1.chd --uk1 UK_D1.chd --fr2 FR_D2.chd --uk2 UK_D2.chd --out sortie [--carre] [--m9] [--psg1] [--l2r2]
 
 --carre : patch optionnel, Carré fait défiler les dialogues du Codec (voir carre.py).
 --m9    : patch optionnel, M9, PSG1-T et claymores tranquillisants (voir m9.py).
 --psg1  : patch optionnel, PSG1 utilisable debout ou accroupi (voir psg1.py).
+--l2r2  : patch optionnel, L2/R2 penchent la vue subjective comme dans MGS2 (voir l2r2.py).
 
 Donner les deux disques permet un appariement exact des banques (table de test sonore du
 disque 2, reportée sur le disque 1). Les fichiers intermédiaires vont dans ./work (ignoré).
@@ -19,7 +20,7 @@ disque 2, reportée sur le disque 1). Les fichiers intermédiaires vont dans ./w
 import argparse, sys
 from pathlib import Path
 
-import carre, chd2bin, demo_vostfr, isorebuild, m9, psg1, psxiso, vox_vostfr, voxalign
+import carre, chd2bin, demo_vostfr, isorebuild, l2r2, m9, psg1, psxiso, vox_vostfr, voxalign
 
 ROOT = Path(__file__).resolve().parent.parent
 WORK = ROOT / "work"
@@ -49,7 +50,7 @@ def tables(path):
             voxalign.sound_test_table(read(path, "STAGE.DIR")))
 
 
-def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=False, rifle=False):
+def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=False, rifle=False, lean=False):
     rep = {}
     exe = next(f for f in psxiso.Disc(fr).files() if f in ("MGS/MGS1.EXE", "MGS/MGS2.EXE"))
     if square:
@@ -81,6 +82,9 @@ def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=Fal
     if rifle:  # après m9 (qui vérifie tout le menu de débogage)
         rep[exe] = psg1.patch(rep.get(exe) or read(fr, exe[4:]))
         print(f"  {exe[4:]} : PSG1 debout ou accroupi")
+    if lean:
+        rep[exe] = l2r2.patch(rep.get(exe) or read(fr, exe[4:]))
+        print(f"  {exe[4:]} : L2/R2 penchent la vue subjective")
 
     print(f"  Image -> {out_bin.name}")
     new = isorebuild.rebuild(fr, out_bin, rep)
@@ -98,6 +102,7 @@ def main():
     ap.add_argument("--carre", action="store_true", help="Carré fait défiler les dialogues du Codec")
     ap.add_argument("--m9", action="store_true", help="M9, PSG1-T et claymores tranquillisants")
     ap.add_argument("--psg1", action="store_true", help="PSG1 utilisable debout ou accroupi")
+    ap.add_argument("--l2r2", action="store_true", help="L2/R2 penchent la vue subjective (comme MGS2)")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -116,7 +121,7 @@ def main():
     for d, (fr, uk) in imgs.items():
         print(f"Disque {d}")
         out_bin = out / f"Metal Gear Solid (VOSTFR) (Disc {d}).bin"
-        build_disc(fr, uk, anchors[d], tab[d, "F"][0], tab[d, "U"][0], out_bin, a.carre, a.m9, a.psg1)
+        build_disc(fr, uk, anchors[d], tab[d, "F"][0], tab[d, "U"][0], out_bin, a.carre, a.m9, a.psg1, a.l2r2)
         names.append(out_bin.with_suffix(".cue").name)
     if len(names) == 2:
         (out / "Metal Gear Solid (VOSTFR).m3u").write_text("\n".join(names) + "\n", encoding="utf-8")

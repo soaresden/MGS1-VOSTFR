@@ -90,9 +90,10 @@ Patch (grotte 0x80045a08-0x80045c08, fin du menu de débogage ; m9.py vérifie t
 - 0x80059418 : animation de tremblement 122 (couchée) seulement couché.
 Testé (PCSX-Redux, quai, poke en RAM) : debout (caméra 1362), accroupi (816), tir sur un garde (vie 192 -> −64), touché en visant (reste debout), couché identique à l'original (44 puis 122), R1 range / ressort, marche après rangement.
 
-## Vue subjective : L1/R1
+## Patch « L2/R2 » (option --l2r2, tools/l2r2.py)
 
-Vérifié dans l'émulateur : Triangle maintenu, **L1/R1** penchent Snake à gauche/droite (sna_80051BA4, bits GV 0x4/0x8) ; L2/R2 ne font rien dans cette vue (pas de menu non plus). Pour ajouter L2/R2 : élargir les masques de cette fonction (0x5 / 0xa), à faire seulement si Denis le demande.
+Jeu d'origine : Triangle maintenu, **L1/R1** penchent Snake à gauche/droite (sna_80051BA4, PAL 0x80057294, aussi dos au mur) ; L2/R2 ne font rien dans cette vue (pas de menu non plus). Denis veut L2/R2 comme dans MGS2. Patch : 5 andi élargis (status 0xc -> 0xf, R1 8 -> 0xa, L1 4 -> 5, en press et release) ; L1/R1 marchent toujours.
+Testé (quai) : caméra décalée de ±830 en x avec L2 / R2, comme L1 ; arme toujours en main, pas de menu.
 
 ## Tests
 

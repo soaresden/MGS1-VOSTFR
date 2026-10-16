@@ -23,6 +23,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--m9` : M9 et PSG1-T tranquillisants (les gardes s'endorment, zzz) | ✅ fait, testé (quai, garde en ronde, en alerte, 2e tir, PSG1-T) |
 | Option `--m9` : claymores zzz (« CLAY.ZZZ ») | ✅ fait, testé (quai : claymore zzz = garde endormi, claymore normale = garde tué) |
 | Option `--psg1` : PSG1 (et PSG1-T) utilisable debout ou accroupi | ✅ fait, testé (quai : debout, accroupi, couché, tir sur un garde) |
+| Option `--l2r2` : en vue subjective, L2/R2 penchent Snake (comme dans MGS2) | ✅ fait, testé |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Version « 2 disques en 1 » | 💡 phase 3 |
 
@@ -76,7 +77,11 @@ Option `--psg1` : le **PSG1** (et le PSG1-T de `--m9`) s'utilise **debout ou acc
 python psg1.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
-Bon à savoir : en vue subjective (Triangle maintenu), **L1 et R1** font déjà pencher Snake à gauche et à droite pour regarder derrière un coin. L2 et R2 ne font rien dans cette vue.
+Option `--l2r2` : en vue subjective (Triangle maintenu), **L2** penche Snake à gauche et **R2** à droite pour regarder derrière un coin, comme dans MGS2. Dans le jeu d'origine, seuls L1/R1 le font (ils marchent toujours avec le patch).
+
+```bash
+python l2r2.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
 
 Donne les **deux disques** : la table du test sonore du disque 2 sert aussi à apparier exactement les voix du disque 1.
 
@@ -114,5 +119,6 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/carre.py` | Patch optionnel : Carré fait défiler le Codec |
 | `tools/m9.py` | Patch optionnel : M9 et PSG1-T tranquillisants |
 | `tools/psg1.py` | Patch optionnel : PSG1 debout ou accroupi |
+| `tools/l2r2.py` | Patch optionnel : L2/R2 penchent la vue subjective |
 | `tools/mips.py` | Petit assembleur MIPS (R3000) pour les patchs |
 | `tools/emu.py`, `tools/emu_drive.lua` | Test automatique dans PCSX-Redux (captures d'écran) |

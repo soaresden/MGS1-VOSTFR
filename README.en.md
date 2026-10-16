@@ -23,6 +23,7 @@ This repository contains **no game data**: only the scripts that build the image
 | `--m9` option: tranquilizer M9 and PSG1-T (guards fall asleep, zzz) | ✅ done, tested (dock: patrolling guard, alert, 2nd shot, PSG1-T) |
 | `--m9` option: zzz claymores ("CLAY.ZZZ") | ✅ done, tested (dock: zzz claymore = guard asleep, normal claymore = guard killed) |
 | `--psg1` option: PSG1 (and PSG1-T) usable standing or crouching | ✅ done, tested (dock: standing, crouching, prone, shooting a guard) |
+| `--l2r2` option: in first-person view, L2/R2 make Snake lean (like in MGS2) | ✅ done, tested |
 | French dub credits in the intro → English cast | 🔧 to do |
 | "2 discs in 1" version | 💡 phase 3 |
 
@@ -76,7 +77,11 @@ python m9.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR)
 python psg1.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
-Good to know: in first-person view (holding Triangle), **L1 and R1** already make Snake lean left and right to look around a corner. L2 and R2 do nothing in this view.
+`--l2r2` option: in first-person view (holding Triangle), **L2** makes Snake lean left and **R2** lean right to look around a corner, like in MGS2. In the original game only L1/R1 do it (they still work with the patch).
+
+```bash
+python l2r2.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
 
 Give **both discs**: disc 2's sound test table is also used to pair disc 1's voices exactly.
 
@@ -114,5 +119,6 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/carre.py` | Optional patch: Square fast-forwards the Codec |
 | `tools/m9.py` | Optional patch: tranquilizer M9 and PSG1-T |
 | `tools/psg1.py` | Optional patch: PSG1 standing or crouching |
+| `tools/l2r2.py` | Optional patch: L2/R2 lean in first-person view |
 | `tools/mips.py` | Small MIPS (R3000) assembler for the patches |
 | `tools/emu.py`, `tools/emu_drive.lua` | Automated testing in PCSX-Redux (screenshots) |
