@@ -592,6 +592,12 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
     (function tick() { draw(i); if (i++ < txt.length) setTimeout(tick, txt[i - 1] === '\n' ? 380 : 42); })();
   })();
 
+  // Captures pas encore prises : on masque la vignette plutôt qu'une image cassée
+  document.querySelectorAll('.shots img').forEach(function (i) {
+    function hide() { i.closest('figure').style.display = 'none'; }
+    if (i.complete && !i.naturalWidth && i.src) hide(); else i.addEventListener('error', hide);
+  });
+
   // Textes alternatifs en anglais
   if (SB_LANG === 'en') document.querySelectorAll('[data-en-alt]').forEach(function (e) { e.alt = e.getAttribute('data-en-alt'); });
 
@@ -635,7 +641,7 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
     var OPTIONS = [
       { id: 'carre', fr: 'Carré fait défiler le Codec', en: 'Square fast-forwards the Codec',
         frD: 'Pendant un appel, Carré coupe la voix et fait défiler toutes les répliques d\'un coup.', enD: 'During a call, Square cuts the voice and runs through all the lines at once.',
-        on: 'docs/shots/carre-3.png', off: 'docs/shots/codec-kurdes.png' },
+        on: 'docs/previews/carre_on.png', off: 'docs/shots/codec-kurdes.png' },
       { id: 'm9', fr: 'M9, PSG1-T et claymores zzz', en: 'M9, PSG1-T and zzz claymores',
         frD: 'Armes tranquillisantes (Triangle dans le menu R2) ; claymores zzz silencieuses. Pour finir le jeu sans tuer.', enD: 'Tranquilizer weapons (Triangle in the R2 menu); silent zzz claymores. To finish the game without killing.',
         on: 'docs/previews/m9_zzz.png', on2: 'docs/previews/m9_menu.png', off: 'docs/shots/jeu-quai.png' },
