@@ -10,7 +10,9 @@ Pseudo-instructions : nop, move, li (1 ou 2 mots selon la valeur, connue au 1er 
 seulement si c'est une constante), la (toujours lui+addiu), b, beqz, bnez, neg, not.
 Directives : .word, .half, .byte, .ascii, .asciiz, .align n (puissance de 2).
 Pas de réordonnancement : les délais de branchement et de chargement sont à la charge
-de l'auteur, comme sur la vraie machine.
+de l'auteur, comme sur la vraie machine. Un chargement suivi d'une instruction qui lit le
+registre chargé est refusé (sur PS1 et DuckStation elle verrait l'ancienne valeur ; PCSX-Redux
+ne le reproduit pas), sauf dans le délai d'un saut sans condition.
 """
 
 import re, struct
@@ -28,6 +30,23 @@ MEM = {"lb": 0x20, "lh": 0x21, "lw": 0x23, "lbu": 0x24, "lhu": 0x25, "sb": 0x28,
 BR2 = {"beq": 4, "bne": 5}
 BR1 = {"blez": (6, 0), "bgtz": (7, 0), "bltz": (1, 0), "bgez": (1, 1)}
 BRANCHY = set(BR1) | set(BR2) | {"beqz", "bnez", "b", "j", "jal", "jr", "jalr"}
+LOADS = {"lb", "lh", "lw", "lbu", "lhu"}
+JUMPS = {"j", "jal", "b", "jr", "jalr"}
+
+
+def reads(word):
+    """Registres lus par une instruction encodée (pour le délai de chargement)."""
+    op, rs, rt = word >> 26, (word >> 21) & 31, (word >> 16) & 31
+    if op == 0:
+        f = word & 63
+        r = {rt} if f in (0, 2, 3) else set() if f in (0x10, 0x12) else {rs} if f in (8, 9) else {rs, rt}
+    elif op in (2, 3, 15):
+        r = set()
+    elif op in (4, 5) or 0x28 <= op <= 0x2E:
+        r = {rs, rt}
+    else:
+        r = {rs}
+    return r - {0}
 
 
 def reg(s):
@@ -129,9 +148,13 @@ class Asm:
         pc = self.org
         sizes = iter(self.sizes)
         prev_branch = False
+        load = None    # registre chargé par l'instruction précédente
+        prev_op = None
         for op, args in lines:
             if op == "label":
                 continue
+            if op.startswith("."):
+                load = None
             if op == ".align":
                 n = 1 << self.val(args[0], True)
                 while (self.org + len(out)) % n:
@@ -145,6 +168,11 @@ class Asm:
             b = self.encode(op, args, pc)
             if len(b) != self.cur:
                 raise ValueError(f"taille changée entre les passes : {op} {args}")
+            if load and not op.startswith(".") and load in reads(struct.unpack_from("<I", b)[0]):
+                raise ValueError(f"délai de chargement : {op} {', '.join(args)} lit le registre "
+                                 f"chargé juste avant (0x{pc:08x})")
+            load = reg(args[0]) if op in LOADS and prev_op not in JUMPS else None
+            prev_op = op
             out += b
             pc += len(b)
         return bytes(out)

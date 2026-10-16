@@ -397,8 +397,9 @@ cave_mine:
     sw t1, 0x110(v0)            # JiraiWork +0x110, inutilisé (mis à zéro par GV_NewActor)
 cave_mine_ret:
     lw ra, 0x10(sp)
+    addiu sp, sp, 0x18          # délai de chargement : jr ne doit pas suivre le lw
     jr ra
-    addiu sp, sp, 0x18
+    nop
 
 # explosion (jirai.c, s0 = mine) : souffle sur place, a0 = TARGET local
 cave_jblast:
@@ -426,8 +427,9 @@ cave_newclay:
     lui t1, %hi(clay_flag)
     sw zero, %lo(clay_flag)(t1)
     lw ra, 0x10(sp)
-    jr ra
     addiu sp, sp, 0x18
+    jr ra
+    nop
 
 # éclat (claymore.c, s0 = éclat, TARGET en +0x3c) : weapon = WP_Claymore
 cave_claytgt:
