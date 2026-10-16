@@ -7,7 +7,9 @@ des différences d'octets sur l'EXE et STAGE.DIR d'origine, calculées ici avec 
 scripts que build.py. Seuls les octets écrits par nos patchs sont exportés (notre code
 MIPS et les instructions modifiées), avec le CRC32 des fichiers d'origine pour vérifier.
 
-Une entrée par disque : FR1, FR2 (France), UK1, UK2 (Europe, anglais). Une option qu'un
+Une entrée par disque : FR1, FR2 (France), UK1, UK2 (Europe, anglais). La barre de vie
+(--life) n'est que des données : on exporte où écrire (pointeur, zone du texte), la page encode
+le texte elle-même comme life.encode(). Une option qu'un
 script ne sait pas encore appliquer à une version est simplement absente de cette version
 (la page la grise). Les options doivent être additives (la différence de chaque
 combinaison = l'union des différences de chaque option) : c'est vérifié.
@@ -20,7 +22,7 @@ combinaison = l'union des différences de chaque option) : c'est vérifié.
 import itertools, json, re, sys, zlib
 from pathlib import Path
 
-import carre, fps, l2r2, m9, psg1, psxiso
+import carre, fps, l2r2, life, m9, pal, psg1, psxiso
 
 ORDER = ["carre", "m9", "psg1", "l2r2", "fps"]  # ordre de build.py
 IDS = {"SLES_015.06": "FR1", "SLES_115.06": "FR2", "SLES_013.70": "UK1", "SLES_113.70": "UK2"}
@@ -96,6 +98,11 @@ def main():
                 if (e2, s2) != (exe, st):
                     raise SystemExit(f"{ident} : options non additives {combo}")
         discs[ident] = {"exe": exe_name, "exeCrc": zlib.crc32(exe0), "stageCrc": zlib.crc32(st0), "options": opts}
+        try:  # barre de vie (--life) : pointeur u32 LE à écrire et zone de 16 octets pour le texte
+            conf, zone, zaddr = life.offsets(pal.version(exe0))
+            discs[ident]["life"] = [conf, zone, zaddr]
+        except (Exception, SystemExit) as e:
+            print(f"{ident} : pas de barre de vie ({e})")
         size = sum(len(hx) // 2 for o in opts.values() for k in o.values() for _, hx in k)
         print(f"{ident} : {', '.join(have) or 'aucune option'} ({size} octets)"
               + (f" ; pas encore : {', '.join(missing)}" if missing else ""))

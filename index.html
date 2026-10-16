@@ -139,6 +139,14 @@
   .opt .na-tag { display: none; }
   .opt.na .na-tag { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid var(--line); border-radius: 3px; font: 11.5px var(--mono); color: var(--dim); vertical-align: 2px; font-weight: 400; }
   .slot.no { opacity: .45; }
+  .opt .txt { display: block; margin-top: 8px; width: 100%; max-width: 260px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 5px;
+              background: #000; color: var(--green); font: 15px var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+  .opt .txt:focus { outline: none; border-color: var(--green2); }
+  .opt .txt:disabled { opacity: .5; }
+  .opt .err { display: block; margin-top: 4px; font: 12.5px var(--mono); color: var(--red); min-height: 0; }
+  .screen canvas { display: none; width: 100%; aspect-ratio: 4 / 3; image-rendering: pixelated; }
+  .screen.live canvas { display: block; }
+  .screen.live img { display: none; }
 </style>
 </head>
 <body>
@@ -178,7 +186,7 @@
     <div class="choose">
       <div id="opts"></div>
       <aside class="pv" aria-live="polite">
-        <figure class="screen" id="pv-screen"><img id="pv-img" alt=""><div class="noimg" id="pv-noimg"></div></figure>
+        <figure class="screen" id="pv-screen"><img id="pv-img" alt=""><canvas id="pv-live" width="120" height="90"></canvas><div class="noimg" id="pv-noimg"></div></figure>
         <div class="thumbs" id="pv-thumbs"></div>
         <div class="cap" id="pv-cap"></div>
         <h3><span id="pv-title"></span><span class="state" id="pv-state"></span></h3>
@@ -339,17 +347,27 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
       shots: [['docs/previews/psg1_on.png', 'Avec l\'option : Snake reste debout avec le PSG1', 'With the option: Snake stays standing with the PSG1'],
               ['docs/previews/psg1_off.png', 'Jeu d\'origine : Snake doit se coucher', 'Original game: Snake has to lie down']],
       fl: ['Snake garde sa posture en sortant le PSG1 ; couché, rien ne change.', 'Dans la lunette, <b>X</b> passe de debout à accroupi.', 'Debout ou accroupi, la lunette ne tremble pas.'],
-      el: ['Snake keeps his stance when drawing the PSG1; prone, nothing changes.', 'In the scope, <b>X</b> switches between standing and crouching.', 'Standing or crouching, the scope does not sway.'] }
+      el: ['Snake keeps his stance when drawing the PSG1; prone, nothing changes.', 'In the scope, <b>X</b> switches between standing and crouching.', 'Standing or crouching, the scope does not sway.'] },
+    { id: 'life', text: true,
+      fr: 'Barre de vie : ton texte', en: 'Life bar: your own text',
+      frS: 'À la place de « LIFE » : SNAKE, ton pseudo… 15 caractères.', enS: 'Instead of "LIFE": SNAKE, your nickname… 15 characters.',
+      shots: [['#live', 'Aperçu en direct', 'Live preview'],
+              ['docs/previews/life_snake.png', 'En jeu : « SNAKE »', 'In game: "SNAKE"'],
+              ['docs/previews/life_max.png', 'En jeu : « REVOLVER OCELOT » (15 caractères)', 'In game: "REVOLVER OCELOT" (15 characters)']],
+      fl: ['Lettres, chiffres, espace et . : ! ? + - = % ( ) ; les accents sont enlevés.', 'Vide ou « LIFE » : la barre ne change pas.', 'L\'aperçu est dessiné comme dans le jeu.'],
+      el: ['Letters, digits, space and . : ! ? + - = % ( ); accents are removed.', 'Empty or "LIFE": the bar does not change.', 'The preview is drawn as in the game.'] }
   ];
   var KEY = 'mgs.vostfr.choice', st = { version: 'vostfr', mods: {} };
   try { var sv = JSON.parse(localStorage.getItem(KEY)); if (sv && sv.mods) st = sv; } catch (_) {}
-  MODS.forEach(function (m) { if (typeof st.mods[m.id] !== 'boolean') st.mods[m.id] = !m.soon; });
+  MODS.forEach(function (m) { if (typeof st.mods[m.id] !== 'boolean') st.mods[m.id] = !m.soon && !m.text; });
+  if (typeof st.life !== 'string') st.life = 'SNAKE';
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (_) {} }
 
   // version anglaise : capture « _en » à la place, si elle existe
   var EN = {};
   MODS.forEach(function (o) {
     o.shots.forEach(function (s) {
+      if (s[0][0] === '#') return;
       var p = s[0].replace(/\.png$/, '_en.png'), probe = new Image();
       probe.onload = function () { EN[s[0]] = p; if (cur === o.id) show(o.id); };
       probe.src = p;
@@ -360,6 +378,7 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
   // captures absentes : retirées de la galerie
   VERSIONS.concat(MODS).forEach(function (o) {
     o.shots.slice().forEach(function (s) {
+      if (s[0][0] === '#') return;
       var probe = new Image();
       probe.onerror = function () { o.shots = o.shots.filter(function (x) { return x !== s; }); if (cur === o.id) show(o.id); };
       probe.src = s[0];
@@ -378,14 +397,25 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
   function modOk(m) {  // le mod existe-t-il pour la version choisie ?
     if (m.soon) return false;
     var side = sideOf(st.version), ok = false;
-    ['1', '2'].forEach(function (d) { var p = P.discs[side + d]; if (p && p.options[m.id]) ok = true; });
+    ['1', '2'].forEach(function (d) { var p = P.discs[side + d]; if (p && (m.text ? p.life : p.options[m.id])) ok = true; });
     return ok;
   }
   function item(o, kind) {
     var d = document.createElement('div');
     d.className = 'opt'; d.dataset.id = o.id;
     var input = kind === 'v' ? '<input type="radio" name="ver" aria-label="' + SBT(o.fr, o.en) + '">' : '<input type="checkbox" aria-label="' + SBT(o.fr, o.en) + '">';
-    d.innerHTML = input + '<div><b>' + SBT(o.fr, o.en) + '<span class="na-tag"></span></b><small>' + SBT(o.frS, o.enS) + '</small></div>';
+    d.innerHTML = input + '<div><b>' + SBT(o.fr, o.en) + '<span class="na-tag"></span></b><small>' + SBT(o.frS, o.enS) + '</small>' +
+      (o.text ? '<input class="txt" type="text" maxlength="15" spellcheck="false" autocomplete="off" aria-label="' + SBT(o.fr, o.en) + '"><span class="err"></span>' : '') + '</div>';
+    if (o.text) {
+      var tx = d.querySelector('.txt');
+      tx.value = st.life;
+      tx.addEventListener('click', function (e) { e.stopPropagation(); show(o.id, 0); });
+      tx.addEventListener('input', function () {
+        st.life = tx.value;
+        if (tx.value && !st.mods[o.id]) { st.mods[o.id] = true; d.querySelector('input').checked = true; }
+        save(); refresh(); show(o.id, 0);
+      });
+    }
     d.addEventListener('mouseenter', function () { show(o.id); });
     d.addEventListener('focusin', function () { show(o.id); });
     d.addEventListener('click', function () { show(o.id); });
@@ -418,6 +448,10 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
       inp.checked = ok && st.mods[m.id]; inp.disabled = !ok;
       d.classList.toggle('na', !ok);
       d.querySelector('.na-tag').textContent = m.soon ? SBT('bientôt', 'soon') : SBT('bientôt en anglais', 'soon in English');
+      if (m.text) {
+        d.querySelector('.txt').disabled = !ok;
+        d.querySelector('.err').textContent = lifeError() || '';
+      }
     });
     ['FR1', 'UK1', 'FR2', 'UK2'].forEach(function (id) {
       var need = st.version === 'vostfr' || sideOf(st.version) === id.slice(0, 2);
@@ -425,17 +459,78 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
     });
     summary();
   }
-  function chosenMods() { return MODS.filter(function (m) { return modOk(m) && st.mods[m.id]; }); }
+  function lifeError() {
+    try { M.lifeClean(st.life); return null; }
+    catch (e) { return SBT('Caractère impossible dans la police du jeu (lettres, chiffres, espace, . : ! ? + - = % ( ) seulement).', 'Character not in the game font (letters, digits, space, . : ! ? + - = % ( ) only).'); }
+  }
+  function lifeText() {  // texte à écrire, ou '' (rien à faire)
+    var m = MODS.filter(function (x) { return x.id === 'life'; })[0];
+    if (!modOk(m) || !st.mods.life || lifeError()) return '';
+    var t = M.lifeClean(st.life);
+    return t === 'LIFE' ? '' : t;
+  }
+  function chosenMods() { return MODS.filter(function (m) { return !m.text && modOk(m) && st.mods[m.id]; }); }
   function summary() {
     var v = VERSIONS.filter(function (x) { return x.id === st.version; })[0], mods = chosenMods();
-    var txt = SBT('Tu vas obtenir : ', 'You will get: ') + SBT(v.fr, v.en) + (mods.length ? ' + ' + mods.map(function (m) { return SBT(m.fr, m.en); }).join(' + ') : '') + '.';
+    var names = mods.map(function (m) { return SBT(m.fr, m.en); });
+    if (lifeText()) names.push(SBT('barre de vie « ', 'life bar "') + lifeText() + SBT(' »', '"'));
+    var txt = SBT('Tu vas obtenir : ', 'You will get: ') + SBT(v.fr, v.en) + (names.length ? ' + ' + names.join(' + ') : '') + '.';
     var ready = st.version === 'vostfr' ? pair() : has(sideOf(st.version));
     if (!any()) txt = SBT('Commence par balancer tes jeux (étape 1).', 'Start by dropping your games (step 1).');
     else if (!ready) txt = SBT('Il manque des disques pour cette version.', 'Some discs are missing for this version.');
-    else if (st.version !== 'vostfr' && !mods.length) { txt = SBT('Coche au moins un mod (le jeu d\'origine tel quel, tu l\'as déjà !).', 'Tick at least one mod (you already have the original game as it is!).'); ready = false; }
+    else if (st.mods.life && lifeError()) { txt = SBT('Corrige le texte de la barre de vie.', 'Fix the life bar text.'); ready = false; }
+    else if (st.version !== 'vostfr' && !mods.length && !lifeText()) { txt = SBT('Coche au moins un mod (le jeu d\'origine tel quel, tu l\'as déjà !).', 'Tick at least one mod (you already have the original game as it is!).'); ready = false; }
     $('summary').textContent = txt;
     $('go').disabled = busy || !ready;
   }
+
+  var LIFE_BG = new Image(), LIFE_FONT = new Image();
+  LIFE_BG.onload = LIFE_FONT.onload = function () { if (cur === 'life') show('life'); };
+  LIFE_BG.src = 'docs/previews/life_bg.png'; LIFE_FONT.src = 'docs/previews/life_font.png';
+  var SYM = '.@:_!?+-/*{}', SKIP = { '.': 2, '@': 2, ':': 2, '_': 4, '!': 2, '?': 6, '+': 6, '-': 6, '/': 6, '*': 6, '{': 3, '}': 3 };
+  var CODE = { '(': '{', ')': '}', '=': '/', '%': '*' };
+  function lifeGlyphs(t) {
+    var out = [], x = 0;
+    t.split('').map(function (c) { return CODE[c] || c; }).forEach(function (c) {
+      if (c === ' ') { x += 4; return; }
+      var u, v, skip;
+      if (c >= '0' && c <= '9') { u = 6 * (+c); v = 0; skip = 6; }
+      else if (c >= 'A' && c <= 'Z') { u = 6 * (c.charCodeAt(0) - 65); v = 5; skip = 6; if (c === 'I') { x += 1; skip = 3; } }
+      else { u = 60 + 6 * SYM.indexOf(c); v = 0; skip = SKIP[c]; if (skip < 3) { x += 1; skip += 1; } }
+      out.push([x, u, v]); x += skip;
+    });
+    return { g: out, w: x };
+  }
+  function drawLife(cv) {
+    var full = document.createElement('canvas');
+    full.width = 320; full.height = 256;
+    var g = full.getContext('2d');
+    if (!LIFE_BG.complete || !LIFE_BG.naturalWidth) return;
+    g.drawImage(LIFE_BG, 0, 0);
+    var t = 'LIFE';
+    if (st.mods.life && !lifeError()) t = M.lifeClean(st.life) || 'LIFE';
+    var x = 16, y = 16, W = 32, id = g.getImageData(0, 0, 320, 256), d = id.data;
+    function px(X, Y, f) { var i = (Y * 320 + X) * 4, c = f(d[i], d[i + 1], d[i + 2]); d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; }
+    function rect(X, Y, w, h, f) { for (var j = Y; j < Y + h; j++) for (var k = X; k < X + w; k++) px(k, j, f); }
+    var black = function () { return [0, 0, 0]; };
+    rect(x - 1, y, 1, 7, black); rect(x, y, W, 1, black); rect(x, y + 6, W, 1, black); rect(x + W, y, 1, 7, black);
+    rect(x, y + 1, W, 5, function (r, gg, b) { return [r >> 1, (gg + 0x18) >> 1, (b + 0x18) >> 1]; });
+    var L = [0x10, 0x8F, 0x7F], R = [0x1F, 0xDF, 0x3F];
+    for (var k = 0; k < W; k++) {
+      var c = [0, 1, 2].map(function (n) { return L[n] + Math.floor((R[n] - L[n]) * k / 128); });
+      rect(x + k, y + 1, 1, 5, function () { return c; });
+    }
+    var gl = lifeGlyphs(t);
+    rect(x + 3, y + 3, gl.w + 2, 7, function (r, gg, b) { return [r >> 1, gg >> 1, b >> 1]; });
+    g.putImageData(id, 0, 0);
+    if (LIFE_FONT.complete && LIFE_FONT.naturalWidth)
+      gl.g.forEach(function (q) { g.drawImage(LIFE_FONT, q[1], q[2], 6, 5, x + 4 + q[0], y + 4, 6, 5); });
+    var out = cv.getContext('2d');
+    out.imageSmoothingEnabled = false;
+    out.clearRect(0, 0, cv.width, cv.height);
+    out.drawImage(full, 0, 0, cv.width, cv.height, 0, 0, cv.width, cv.height);
+  }
+  function liveThumb() { var c = document.createElement('canvas'); c.width = 120; c.height = 90; drawLife(c); return c.toDataURL(); }
 
   var cur = null, shot = 0;
   function find(id) { return VERSIONS.concat(MODS).filter(function (x) { return x.id === id; })[0]; }
@@ -448,10 +543,13 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
     box.querySelectorAll('.opt').forEach(function (d) { d.classList.toggle('cur', d.dataset.id === id); });
     var on = isV ? st.version === id : modOk(o) && st.mods[id];
     var scr = $('pv-screen'), img = $('pv-img'), s = o.shots[shot];
+    var live = !!(s && s[0] === '#live');
+    scr.classList.toggle('live', live);
+    if (live) drawLife($('pv-live'));
     scr.classList.toggle('empty', !s);
     scr.classList.toggle('dim', !on);
     $('pv-noimg').textContent = o.noimg ? SBT(o.noimg[0], o.noimg[1]) : '';
-    if (s) { img.src = src(s[0]); img.alt = SBT(s[1], s[2]); }
+    if (s && !live) { img.src = src(s[0]); img.alt = SBT(s[1], s[2]); }
     $('pv-cap').textContent = s ? SBT(s[1], s[2]) : '';
     var th = $('pv-thumbs');
     th.innerHTML = '';
@@ -459,7 +557,7 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
       var b = document.createElement('button');
       b.type = 'button'; b.className = k2 === shot ? 'cur' : '';
       b.setAttribute('aria-label', SBT(t[1], t[2]));
-      b.innerHTML = '<img src="' + src(t[0]) + '" alt="">';
+      b.innerHTML = '<img src="' + (t[0] === '#live' ? liveThumb() : src(t[0])) + '" alt="">';
       b.addEventListener('click', function () { show(id, k2); });
       th.appendChild(b);
     });
@@ -530,7 +628,7 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
                close: function () { blobs.push([name, new Blob(parts)]); parts = null; return Promise.resolve(); } };
     }
     try {
-      await M.build(discs, opts, openWriter, log, progress, { mode: st.version });
+      await M.build(discs, opts, openWriter, log, progress, { mode: st.version, life: lifeText() });
       bar.firstElementChild.style.width = '100%';
       status('✔ ' + SBT('Terminé en ', 'Done in ') + Math.round((Date.now() - t0) / 1000) + ' s. ' +
         (dir ? SBT('Tes images sont dans le dossier choisi : ouvre le .m3u dans ton émulateur.', 'Your images are in the folder you chose: open the .m3u in your emulator.')

@@ -882,6 +882,28 @@
     });
   }
 
+  // ------------------------------------------------------------------ barre de vie (life.py)
+  var LIFE_ALLOWED = /^[A-Z0-9 .:!?+\-=%()]*$/, LIFE_CODE = { '(': '{', ')': '}', '=': '/', '%': '*' };
+  function lifeClean(text) {  // comme life.clean : texte affiché (capitales, sans accents)
+    var t = String(text || '').replace(/œ/g, 'oe').replace(/Œ/g, 'OE').replace(/æ/g, 'ae').replace(/Æ/g, 'AE');
+    t = t.normalize('NFKD').replace(/[^\x00-\x7f]/g, '').toUpperCase().trim();
+    if (!LIFE_ALLOWED.test(t)) throw new Error('barre de vie : caractère impossible dans la police du jeu');
+    if (t.length > 15) throw new Error('barre de vie : 15 caractères au plus');
+    return t;
+  }
+  function lifeBytes(text) {  // 16 octets à écrire, ou null si rien à faire (vide ou LIFE)
+    var t = lifeClean(text);
+    if (!t || t === 'LIFE') return null;
+    var out = new Uint8Array(16);
+    for (var i = 0; i < t.length; i++) out[i] = (LIFE_CODE[t[i]] || t[i]).charCodeAt(0);
+    return out;
+  }
+  function applyLife(exe, pd, bytes) {
+    if (!pd.life) throw new Error('barre de vie non disponible pour ce disque');
+    w32(exe, pd.life[0], pd.life[2]);
+    exe.set(bytes, pd.life[1]);
+  }
+
   // ------------------------------------------------------------------ reconstruction de l'image (isorebuild.py)
   async function rebuild(disc, replace, writer, progress) {
     var files = await disc.files(), order = Array.from(files.entries()).sort(function (a, b) { return a[1][0] - b[1][0]; });
@@ -1000,9 +1022,9 @@
   // discs : { FR1, UK1, FR2, UK2 } (objets Disc) ; opts : ['carre', 'm9', ...] ;
   // openWriter(nom) -> { write(Uint8Array), close() } ; log(texte) ; progress(étape, fraction)
   // Jeu d'origine + options seulement : side 'FR' (build.py --vf) ou 'UK' (build.py --vo).
-  async function buildMods(discs, side, opts, openWriter, log, progress) {
+  async function buildMods(discs, side, opts, openWriter, log, progress, life) {
     var PATCHES = G.MGS_PATCHES, outputs = [], tag = side === 'FR' ? 'VF' : 'EN';
-    if (!opts.length) throw new Error('aucune option choisie');
+    if (!opts.length && !life) throw new Error('aucune option choisie');
     for (var d of ['1', '2']) {
       var fr = discs[side + d];
       if (!fr) continue;
@@ -1026,6 +1048,7 @@
         }
         log('  option ' + o);
       }
+      if (life) { applyLife(exe, pd, life); log('  barre de vie'); }
       rep.set(exeName, exe);
       if (stage) rep.set('MGS/STAGE.DIR', stage);
       var name = 'Metal Gear Solid (' + tag + ') (Disc ' + d + ')';
@@ -1050,8 +1073,9 @@
     log = log || function () {};
     progress = progress || function () {};
     var mode = settings && (settings.mode || (settings.vostfr === false ? 'fr' : null)) || 'vostfr';
-    if (mode === 'fr') return buildMods(discs, 'FR', opts, openWriter, log, progress);
-    if (mode === 'en') return buildMods(discs, 'UK', opts, openWriter, log, progress);
+    var life = lifeBytes(settings && settings.life);
+    if (mode === 'fr') return buildMods(discs, 'FR', opts, openWriter, log, progress, life);
+    if (mode === 'en') return buildMods(discs, 'UK', opts, openWriter, log, progress, life);
     var both = discs.FR2 && discs.UK2, tab = {}, keep = {};
     var order = both ? ['2', '1'] : ['1'];
     if (!discs.FR1 || !discs.UK1) order = ['2'];
@@ -1115,11 +1139,11 @@
       log('  RADIO.DAT : ' + rr.n + ' commandes VOICE renumérotées');
       var frToUk = new Map();
       mapping.forEach(function (b, a) { frToUk.set(F[a].sec, U[b].sec); });
-      var stageCrc = opts.length ? crc32(stFr) : 0;
+      var stageCrc = opts.length || life ? crc32(stFr) : 0;
       var rs = renumberStage(stFr, stUk, nv.secmap, frToUk);
       stFr = stUk = null;
       log('  STAGE.DIR : ' + rs.done + ' codes VOX renumérotés (' + rs.skipped + ' faux positifs ignorés)');
-      if (opts.length) {
+      if (opts.length || life) {
         var pd = PATCHES && PATCHES.discs['FR' + d];
         if (!pd) throw new Error('patches.js manquant');
         var exe = await fr.readFile(exeName);
@@ -1131,6 +1155,7 @@
           applyRuns(rs.data, pd.options[o].stage);
           log('  option ' + o);
         });
+        if (life) { applyLife(exe, pd, life); log('  barre de vie'); }
         rep.set(exeName, exe);
       }
       rep.set('MGS/STAGE.DIR', rs.data);
@@ -1155,7 +1180,7 @@
   }
 
   G.MGSVOSTFR = {
-    identify: identify, openSource: openSource, Disc: Disc, build: build,
+    identify: identify, openSource: openSource, Disc: Disc, build: build, lifeClean: lifeClean,
     _test: { lzmaDecode: lzmaDecode, crc32: crc32, fixForm1: fixForm1, banks: banks, bankTable: bankTable, align: align }
   };
 })(typeof window !== 'undefined' ? window : globalThis);
