@@ -6,7 +6,9 @@ SOCOM ou M9 en main, Triangle maintenu (vue subjective) : vue normale, sans arme
 l'arme apparaît en bas à droite de l'écran, dans l'axe de la caméra, avec le laser du SOCOM.
 Carré relâché = tir.
 La balle part dans la direction de la vue. Le tir reste celui du jeu (son, bruit, munitions,
-fléchette du M9 avec --m9) ; le chargeur se recharge tout seul en vue subjective.
+fléchette du M9 avec --m9). Comme en vue normale : son de braquage en commençant à tenir Carré,
+et chargeur vide -> rechargement (son du chargeur, puis on peut retirer après RELOAD images, la
+cadence de la vue normale) ; on ne peut donc pas mitrailler.
 
 Une seule retouche dans la boucle de l'acteur SOCOM (weapon/socom.c, Act) : juste avant le choix
 « Snake invisible -> arme et laser cachés » et la lecture des drapeaux de l'arme (bit 0 = viser,
@@ -16,6 +18,13 @@ bit 1 = tirer). En vue subjective, le code ajouté :
   lumineux (DG_PRIM.root, rattachés à la main d'origine) suivent la matrice de l'arme ;
 - la laisse visible (le corps de Snake est caché en vue subjective) ;
 - tant que Carré est tenu : arme visible et bit « viser » (laser) ; Carré relâché : bit « tirer ».
+- sons : le jeu joue bien le braquage (0x09) en vue subjective, mais à la position de Snake,
+  c'est-à-dire de la caméra : le son est coupé. Le code ajouté le joue sans position (volume
+  plein, GM_SeSet(NULL, son)) : une fois par appui sur Carré (pas pendant un rechargement ; à la
+  fin du rechargement si Carré est tenu, comme le jeu qui rebraque), et de même pour le chargeur ;
+- rechargement : en vue subjective, l'animation de rechargement du jeu ne se joue pas ; un
+  compteur la remplace (son 0x2F au bout de RELOAD_SE images comme dans l'animation, chargeur
+  rempli au bout de RELOAD images ; entre-temps, le jeu fait « clic » sans tirer) ;
 - rend le laser visible : vu presque de face, le trait d'origine (couleur 16,16,16, presque
   transparent) et son point rouge de 2x2 pixels ne se voyaient pas ; en vue subjective le trait
   passe en couleur LASER_RGB et le point au bout du laser en LASER_DOT x LASER_DOT pixels
@@ -43,6 +52,11 @@ SYM = dict(
     MENU_PAD=0x800BE95C,       # MenuWork + 0x24 : manette (status +0, release +4)
     EYE=0x800B3004,            # DG_Chanls[1].eye : caméra -> monde
     GM_Magazine=0x800ACFD4, GM_MagazineMax=0x800AD014, SOCOM_AMMO=0x800B63A2,
+    GM_SeSet=0x800335FC,       # GM_SeSet(position ou NULL, son)
+    SE_AIM=0x09,               # braquage (sna : Carré enfoncé debout, 0x800544fc)
+    SE_RELOAD=0x2F,            # chargeur (action de rechargement, 0x80058c50 : 16e image)
+    RELOAD_SE=16, RELOAD=22,   # images de jeu (30/s) : son du chargeur, fin du rechargement
+                               # (vue normale : un tir toutes les ~24 images en martelant Carré)
     OX=OFFSET[0], OY=OFFSET[1], OZ=OFFSET[2],
     LASER_RGB=0x60, LASER_RGB0=0x10,   # couleur du trait : vue subjective / d'origine
     LASER_DOT=6, LASER_DOT0=2,          # taille du point rouge : vue subjective / d'origine
@@ -80,6 +94,13 @@ fps:
     andi t1, t1, 1
     beqz t1, fps_off
     nop
+    addiu sp, sp, -24           # sons et rechargement (GM_SeSet écrase les registres)
+    sw ra, 16(sp)
+    jal fps_tick
+    sw v0, 20(sp)
+    lw ra, 16(sp)
+    lw v0, 20(sp)
+    addiu sp, sp, 24
     lui t0, %hi(MENU_PAD)       # manette
     lw t0, %lo(MENU_PAD)(t0)
     nop
@@ -121,25 +142,9 @@ WORLD
     move ra, t8
     ori s2, s2, 1               # visée : laser
     andi t7, a3, 0x80           # Carré relâché : tirer
-    beqz t7, fps_reload
+    beqz t7, fps_ret
     nop
-    b fps_ret
     ori s2, s2, 3
-fps_reload:                     # chargeur vide pendant la visée : rechargé tout de suite
-    lui t0, %hi(GM_Magazine)
-    lh t1, %lo(GM_Magazine)(t0)
-    lui t3, %hi(SOCOM_AMMO)
-    lh t3, %lo(SOCOM_AMMO)(t3)
-    bnez t1, fps_ret
-    lui t4, %hi(GM_MagazineMax)
-    lh t4, %lo(GM_MagazineMax)(t4)
-    blez t3, fps_ret
-    slt t5, t4, t3
-    beqz t5, fps_setmag
-    nop
-    move t3, t4
-fps_setmag:
-    sh t3, %lo(GM_Magazine)(t0)
 fps_ret:
     jr ra
     nop
@@ -169,6 +174,67 @@ fps_clear:
     li a0, LASER_RGB0           # laser d'origine
     j laser_look
     li a1, LASER_DOT0
+
+# fps_tick : chaque image en vue subjective (pile : ra et v0 de fps sauvés par l'appelant)
+fps_tick:
+    addiu sp, sp, -24
+    sw ra, 16(sp)
+    lui t0, %hi(GM_Magazine)
+    lh t1, %lo(GM_Magazine)(t0)
+    lui t3, %hi(SOCOM_AMMO)
+    lh t3, %lo(SOCOM_AMMO)(t3)
+    la t4, fps_t
+    move t7, zero               # 1 = rechargement fini à cette image
+    bnez t1, tick_idle          # chargeur non vide
+    nop
+    blez t3, tick_idle          # plus de munitions
+    nop
+    lw t5, 0(t4)
+    nop
+    addiu t5, t5, 1
+    sw t5, 0(t4)
+    li t6, RELOAD_SE
+    bne t5, t6, tick_wait
+    move a0, zero
+    jal GM_SeSet                # son du chargeur
+    li a1, SE_RELOAD
+    b tick_done                 # rechargement en cours : pas de braquage
+    nop
+tick_wait:
+    slti t6, t5, RELOAD
+    bnez t6, tick_done
+    nop
+    lui t4, %hi(GM_MagazineMax) # fin du rechargement : chargeur = min(max, munitions)
+    lh t4, %lo(GM_MagazineMax)(t4)
+    nop
+    slt t5, t4, t3
+    beqz t5, tick_setmag
+    nop
+    move t3, t4
+tick_setmag:
+    sh t3, %lo(GM_Magazine)(t0)
+    li t7, 1
+tick_idle:
+    la t4, fps_t
+    sw zero, 0(t4)
+    lui t0, %hi(MENU_PAD)       # braquage : Carré enfoncé à cette image,
+    lw t0, %lo(MENU_PAD)(t0)    # ou tenu à la fin du rechargement
+    nop
+    lhu t1, 2(t0)
+    lhu t2, 0(t0)
+    andi t1, t1, 0x80
+    andi t2, t2, 0x80
+    and t2, t2, t7
+    or t1, t1, t2
+    beqz t1, tick_done
+    move a0, zero
+    jal GM_SeSet
+    li a1, SE_AIM
+tick_done:
+    lw ra, 16(sp)
+    nop
+    jr ra
+    addiu sp, sp, 24
 
 # laser_look(a0 = couleur du trait, a1 = taille du point) ; s1 = acteur SOCOM
 laser_look:
@@ -215,6 +281,8 @@ laser_ret:
 .align 2
 fps_root:
     .word 0, 0
+fps_t:                          # images depuis le chargeur vide (rechargement)
+    .word 0
 """
 
 HOOKS = [(0x80066574, "0000728c80004230", "jal fps\nnop")]   # lw s2,0(v1) ; andi v0,v0,0x80

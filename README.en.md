@@ -108,7 +108,7 @@ python l2r2.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTF
 `--fps` option: **aim and shoot in first-person view** with the SOCOM or the M9, like in MGS2.
 - SOCOM or M9 in hand, **Triangle** held: normal first-person view, no weapon.
 - **Square** held: the weapon shows at the bottom right of the screen with the **red laser** (a beam from the weapon to the aimed spot, with the red dot at the end); **Square** released: the shot goes off in the direction of the view (Left/Right turn, Up/Down tilt the view as usual).
-- It is the game's normal shot: sound, noise, ammo; the M9 keeps its tranquilizer effect (`--m9`). The magazine reloads by itself in first-person view.
+- It is the game's normal shot: sound, noise, ammo; the M9 keeps its tranquilizer effect (`--m9`). Like in the normal view: the aiming sound when you start holding Square, and a real reload when the magazine is empty (magazine sound, same rate of fire as in the normal view: no rapid fire).
 - Works with `--m9`, `--l2r2`, `--psg1` and `--carre` (build.py applies `fps.py` after `m9.py`).
 
 ```bash
