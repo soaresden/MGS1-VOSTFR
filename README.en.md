@@ -21,7 +21,7 @@ This repository contains **no game data**: only the scripts that build the image
 | Disc swap during the game | ⚠️ to be checked on console or DuckStation: PCSX-Redux refuses it, even with the original discs |
 | `--carre` option: Square fast-forwards Codec dialogue (like in MGS2) | ✅ done, tested |
 | `--m9` option: tranquilizer M9 and PSG1-T (guards fall asleep, zzz) | ✅ done, tested (dock: patrolling guard, alert, 2nd shot, PSG1-T) |
-| `--m9` option: zzz claymores ("CLAY.ZZZ") | ✅ done, tested (dock: zzz claymore = guard asleep, normal claymore = guard killed) |
+| `--m9` option: silent zzz claymores ("CLAY.ZZZ") | ✅ done, tested (dock: zzz claymore = guard asleep with no noise or alert, normal claymore = guard killed) |
 | `--psg1` option: PSG1 (and PSG1-T) usable standing or crouching | ✅ done, tested (dock: standing, crouching, prone, shooting a guard) |
 | `--l2r2` option: in first-person view, L2/R2 lean, L2+R2 tiptoe (like in MGS2) | ✅ done, tested |
 | `--fps` option: aim and shoot the SOCOM / M9 in first-person view (like in MGS2) | ✅ done, tested (dock: guard put to sleep with the M9, hurt with the SOCOM, laser) |
@@ -62,6 +62,7 @@ python carre.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOST
 - During an alert or a search: the 1st shot **shakes** him; he falls asleep **8 s** later, or right away on the 2nd shot.
 - Bosses, cameras, etc.: same damage as the original weapon (Sniper Wolf with the PSG1-T, for example).
 - **Zzz claymores**: on the CLAYMORE slot, Triangle switches to zzz claymores ("CLAY.ZZZ" name, bluish icon) and back. Shared ammo ("CLAYMORE + ZZZ" message on pickup). What counts is the mode when the mine is **planted**: a planted zzz claymore stays zzz. A soldier who sets it off (or is caught in the blast) falls asleep at once, even during an alert, for good and without losing life. Other targets (Raven, Snake...) take normal claymore damage.
+- A zzz claymore is **silent**: no blast sound, no flash or fireball, invisible fragments, and the other guards hear nothing. Just a small "pfft" and a puff of smoke. Normal claymores are as loud as ever.
 - The soldier code is patched in 33 of the 36 stages that have soldiers (3 stages with no recognised "knocked down" soldier: s03c, s12b, s12c).
 - ⚠️ After a new version of the images, resume from a **memory card save** (Codec), not from an emulator save state: a state keeps the program of the old image (for example, Triangle does not switch claymores with a state made before they were added).
 

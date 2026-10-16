@@ -21,7 +21,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Changement de disque en cours de partie | ⚠️ à vérifier sur console ou DuckStation : PCSX-Redux le refuse, même avec les disques d'origine |
 | Option `--carre` : Carré fait défiler les dialogues du Codec (comme dans MGS2) | ✅ fait, testé |
 | Option `--m9` : M9 et PSG1-T tranquillisants (les gardes s'endorment, zzz) | ✅ fait, testé (quai, garde en ronde, en alerte, 2e tir, PSG1-T) |
-| Option `--m9` : claymores zzz (« CLAY.ZZZ ») | ✅ fait, testé (quai : claymore zzz = garde endormi, claymore normale = garde tué) |
+| Option `--m9` : claymores zzz (« CLAY.ZZZ »), silencieuses | ✅ fait, testé (quai : claymore zzz = garde endormi sans bruit ni alerte, claymore normale = garde tué) |
 | Option `--psg1` : PSG1 (et PSG1-T) utilisable debout ou accroupi | ✅ fait, testé (quai : debout, accroupi, couché, tir sur un garde) |
 | Option `--l2r2` : en vue subjective, L2/R2 penchent Snake, L2+R2 pointe des pieds (comme dans MGS2) | ✅ fait, testé |
 | Option `--fps` : viser et tirer au SOCOM / M9 en vue subjective (comme dans MGS2) | ✅ fait, testé (quai : garde endormi au M9, blessé au SOCOM, laser) |
@@ -62,6 +62,7 @@ Option `--m9` : un **M9 tranquillisant** (et un **PSG1-T**) pour finir le jeu sa
 - Pendant une alerte ou une recherche : le 1er tir le **secoue** ; il s'endort **8 s** plus tard, ou tout de suite au 2e tir.
 - Boss, caméras, etc. : mêmes dégâts que l'arme d'origine (Sniper Wolf au PSG1-T, par exemple).
 - **Claymores zzz** : sur la case CLAYMORE, Triangle passe aux claymores zzz (nom « CLAY.ZZZ », icône bleutée) et inversement. Munitions communes (message « CLAYMORE + ZZZ » au ramassage). Le choix compte au moment où on **pose** la mine : une claymore zzz posée reste zzz. Un soldat qui la déclenche (ou qui prend l'explosion) s'endort tout de suite, même en alerte, pour de bon et sans perdre de vie. Les autres cibles (Raven, Snake...) prennent les dégâts normaux d'une claymore.
+- Une claymore zzz est **silencieuse** : pas de détonation, pas de flash ni de boule de feu, éclats invisibles, et les autres gardes n'entendent rien. Juste un petit « pfft » et une bouffée de fumée. Les claymores normales font toujours le même boucan.
 - Le code des soldats est retouché dans 33 des 36 stages qui en ont (3 stages sans soldat « au sol » reconnu : s03c, s12b, s12c).
 - ⚠️ Après une nouvelle version des images, reprendre la partie depuis une **sauvegarde de la carte mémoire** (Codec), pas depuis une sauvegarde d'état de l'émulateur : un état garde le programme de l'ancienne image (par exemple, Triangle ne bascule pas les claymores avec un état fait avant leur ajout).
 

@@ -16,7 +16,9 @@ Sur les autres cibles (boss, caméras...) : mêmes dégâts que l'arme d'origine
 
 Claymores zzz : même bascule (Triangle) sur la case CLAYMORE (« CLAY.ZZZ »). Le mode est lu à la
 pose de la mine ; à l'explosion (souffle et éclats), un soldat s'endort tout de suite, même en
-alerte ; les autres cibles (Raven, Snake...) prennent les dégâts normaux.
+alerte ; les autres cibles (Raven, Snake...) prennent les dégâts normaux. Une claymore zzz est
+silencieuse : pas de détonation ni de bruit entendu par les gardes, pas de flash ni de boule de
+feu, éclats invisibles ; juste un « pfft » et une bouffée de fumée.
 
 Le code ajouté va dans le menu de débogage de l'EXE (écrans mem/pow/ply/obj/tex et
 menu_viewer_act, jamais appelés : 0x800447e4-0x80045900 pour m9 ; la fin sert à carre.py et psg1.py). Le sommeil sans réveil et les zzz
@@ -32,7 +34,7 @@ import mips, psxiso
 from cdsector import write_file_inplace
 
 LOAD = 0x80010000  # adresse de chargement de l'EXE (en-tête PS-X EXE de 0x800 octets)
-CAVE, CAVE_END = 0x800447E4, 0x80045900  # suite : carre.py (0x80045900), psg1.py (0x80045a08)
+CAVE, CAVE_END = 0x800447E4, 0x80045600  # suite : fps.py (0x80045600), carre.py (0x80045900), psg1.py (0x80045a08)
 OVB = 0x800C47D8   # adresse de chargement des overlays de stage
 
 SYM = dict(
@@ -48,6 +50,9 @@ SYM = dict(
     INIT_SPRT=0x8003E0F0, GET_RPK=0x8003EF30, NAVIGATE=0x8003E714,
     SOCOM_RES_DONE=0x80066AE0, POWER_NEXT=0x8002E420,
     GM_PowerTarget=0x8002E264, NewJirai=0x8006C4F8, NewClaymore=0x80074EB0,
+    GM_SeSet=0x800335FC, AN_Puff=0x8005EE40, GV_RandU=0x8001721C, PAL_FLASH=0x8007A680,
+    CLAY_BOOM=0x80074F7C, CLAY_LOOP=0x80075008,
+    SE_PFFT=0x52,            # SE_SOCOM_SUPPRESSED : le « pfft » du SOCOM silencieux
     M9CODE=0x19,             # a_mode des fléchettes (inutilisé par le jeu)
     CLAYCODE=0x1A,           # a_mode des claymores zzz (inutilisé par le jeu)
     CLAYMARK=0x4D39CCCC,     # marque d'une mine zzz (JiraiWork +0x110)
@@ -441,7 +446,59 @@ cave_claytgt:
     beqz t0, cave_claytgt_ret
     li t0, CLAYCODE
     sh t0, 0x7A(s0)             # TARGET.a_mode
+    lw t1, 0x84(s0)             # éclat invisible (DG_InvisiblePrim)
+    nop
+    lw t2, 0x24(t1)
+    nop
+    ori t2, t2, 0x100
+    sw t2, 0x24(t1)
 cave_claytgt_ret:
+    jr ra
+    nop
+
+# NewClaymore, 1er appel (s0 = 8) : explosion. Claymore zzz : pas de son d'explosion, pas de
+# bruit pour les gardes (GM_SetNoise), pas de boule de feu ; un « pfft » et une bouffée de fumée.
+cave_clayexp:                   # s0 = param_4, s2 = position
+    li v0, 8
+    bne s0, v0, cave_clayexp_loop
+    lui t0, %hi(clay_flag)
+    lw t0, %lo(clay_flag)(t0)
+    nop
+    bnez t0, cave_clayexp_zzz
+    nop
+    j CLAY_BOOM
+    nop
+cave_clayexp_zzz:
+    move a0, s2
+    jal GM_SeSet
+    li a1, SE_PFFT
+    jal AN_Puff
+    move a0, s2
+cave_clayexp_loop:
+    j CLAY_LOOP
+    nop
+
+# claymore_Act (s1 = éclat) : GV_RandU(32) décide de l'étincelle et du ricochet sur un mur
+cave_clayspark:
+    lh t0, 0x7A(s1)
+    li t1, CLAYCODE
+    beq t0, t1, cave_clayspark_zzz
+    nop
+    j GV_RandU
+    nop
+cave_clayspark_zzz:
+    jr ra
+    move v0, zero               # 0 : ni étincelle ni ricochet
+
+# jirai.c (s0 = mine) : flash blanc de l'écran à l'explosion, sauf pour une mine zzz
+cave_flash:
+    lw t0, 0x110(s0)
+    li t1, CLAYMARK
+    beq t0, t1, cave_flash_ret
+    nop
+    j PAL_FLASH
+    nop
+cave_flash_ret:
     jr ra
     nop
 
@@ -603,6 +660,9 @@ HOOKS = [
     (0x8006BFC0, "99b8000c", "jal cave_jblast"),       # jirai.c : souffle de l'explosion
     (0x8006C010, "acd3010c", "jal cave_newclay"),      # jirai.c : éclats (NewClaymore)
     (0x80074CEC, "05000224800002ae", "jal cave_claytgt\nnop"),  # claymore.c : cible d'un éclat
+    (0x80074F70, "0800022424000216", "j cave_clayexp\nmove s5, zero"),  # NewClaymore : explosion
+    (0x80074B0C, "875c000c", "jal cave_clayspark"),    # claymore.c : étincelle et ricochet
+    (0x8006BF74, "a0e9010c", "jal cave_flash"),        # jirai.c : flash blanc
     (0x80066DA0, "0b80013c14d023a40b80013cd4cf24a4", "jal cave_mag\nnop\nnop\nnop"),  # NewSOCOM : chargeur
     (0x8006697C, "0c000424", "jal cave_magmax"),       # SOCOM Act : chargeur après un tir
 ]
@@ -629,7 +689,7 @@ def zzz_script(stage):
     raise SystemExit("script zzz introuvable dans STAGE.DIR")
 
 
-CAVE_SHA1 = "685292e372c782221799b5376a664a1b149904bc"  # menu de débogage d'origine
+CAVE_SHA1 = "1d2ca17daa2d3ef9fc60c73ef9acbbd1488be41d"  # menu de débogage d'origine
 
 
 def build_cave(stage, sites):
