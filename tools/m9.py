@@ -47,7 +47,7 @@ SYM = dict(
     NewAnime=0x800609BC, DG_GetTexture=0x8001DCE0,
     STR_SOCOM2=0x800ACE28,   # "socom2"
     GET_RPK_NEXT=0x8003EF50, GET_RPK_SOCOM=0x8003EF38, ITEMS_SOCOM2=0x800BEE74,
-    INIT_SPRT=0x8003E0F0, GET_RPK=0x8003EF30, NAVIGATE=0x8003E714,
+    INIT_SPRT=0x8003E0F0, PRINT_DESC=0x800409A4, GET_RPK=0x8003EF30, NAVIGATE=0x8003E714,
     SOCOM_RES_DONE=0x80066AE0, POWER_NEXT=0x8002E420,
     GM_PowerTarget=0x8002E264, NewJirai=0x8006C4F8, NewClaymore=0x80074EB0,
     GM_SeSet=0x800335FC, AN_Puff=0x8005EE40, GV_RandU=0x8001721C, PAL_FLASH=0x8007A680,
@@ -177,6 +177,8 @@ cave_nav_toggle:
     nop
     xor t2, t2, t0
     sh t2, %lo(MODES)(t1)
+    sw zero, 0x2F0(gp)          # description réaffichée (compteur, déjà affichée)
+    sw zero, 0x2F4(gp)
     addiu sp, sp, -0x20
     sw ra, 0x10(sp)
     sw a0, 0x14(sp)
@@ -216,6 +218,32 @@ cave_res_m9:                    # M9 : modèle silencieux, sans toucher au silen
     li t0, 1
     j SOCOM_RES_DONE
     sh t0, 0x56(s2)
+
+# ---- menu : description de l'arme (remplace jal menu_printDescription, a0 = texte) ---
+cave_desc:                      # at = 0x800a0000 + 4 * id (index de la table)
+    move t9, a0
+    andi a0, at, 0xFF
+    srl a0, a0, 2
+    move t8, ra
+    jal is_tranq
+    nop
+    move ra, t8
+    beqz v0, cave_desc_go
+    move a0, t9
+    la t1, desc_m9
+    li t0, 1
+    beq v0, t0, cave_desc_set
+    nop
+    la t1, desc_psg1t
+    li t0, 2
+    beq v0, t0, cave_desc_set
+    nop
+    la t1, desc_clay
+cave_desc_set:
+    move a0, t1
+cave_desc_go:
+    j PRINT_DESC
+    nop
 
 # ---- ramassage d'une arme (s1 = objet) : « SOCOM + M9 », « PSG1 + PSG1-T » ---
 cave_pickup:                    # v0 est posé dans le délai : ne pas y toucher
@@ -627,6 +655,12 @@ str_m9:
     .asciiz "M9"
 str_psg1t:
     .asciiz "PSG1-T"
+desc_m9:
+DESC_M9
+desc_psg1t:
+DESC_PSG1T
+desc_clay:
+DESC_CLAY
 str_get_m9:
     .asciiz "SOCOM + M9"
 str_get_psg1t:
@@ -656,6 +690,7 @@ HOOKS = [
     (0x80077B44, "440112ae340114ae", "jal cave_bullet\nsw s2, 0x144(s0)"),  # NewBullet
     (0x8002E2E4, "daff0296f8ff0386", "jal cave_power\nnop"),          # GM_PowerTarget
     (0x80034A7C, "1801238e", "jal cave_pickup"),       # objet ramassé : message
+    (0x8003F090, "6902010c", "jal cave_desc"),         # description de l'arme dans le menu
     (0x80068578, "3eb1010c", "jal cave_mine"),         # mine.c : pose d'une claymore
     (0x8006BFC0, "99b8000c", "jal cave_jblast"),       # jirai.c : souffle de l'explosion
     (0x8006C010, "acd3010c", "jal cave_newclay"),      # jirai.c : éclats (NewClaymore)
@@ -692,6 +727,30 @@ def zzz_script(stage):
 CAVE_SHA1 = "38b1bbb1a550a498f5e9c7615085c0c9bf34f55b"  # menu de débogage d'origine
 
 
+# Textes de description (police du menu : 《 》 = B0 14 / D0 15, retour à la ligne 80 7C,
+# accents 1F xx). Au plus 29 caractères par ligne, comme les textes d'origine ; la police est
+# proportionnelle : une ligne trop large (« Fusil tranquillisant : endort ») passe à la ligne.
+DESCRIPTIONS = {
+    "DESC_M9": ("M9", ["Pistolet tranquillisant :", "endort les gardes sans bruit.",
+                       "Triangle : retour au SOCOM."]),
+    "DESC_PSG1T": ("PSG1-T", ["Fusil tranquillisant :", "endort les gardes de loin.",
+                              "Triangle : retour au PSG1."]),
+    "DESC_CLAY": ("Claymore ZZZ", ["Mine silencieuse : endort les", "gardes qui passent devant.",
+                                   "Triangle : claymore normale."]),
+}
+ACCENTS = {"à": 0x09, "â": 0x0A, "ç": 0x0E, "é": 0x0F, "è": 0x10, "ê": 0x11, "î": 0x15}
+
+
+def encode_desc(name, lines):
+    out = bytearray(b"\xb0\x14" + name.encode("ascii") + b"\xd0\x15")
+    for line in lines:
+        assert len(line) <= 29, line
+        out += b"\x80\x7c"
+        for c in line:
+            out += bytes([0x1F, ACCENTS[c]]) if c in ACCENTS else c.encode("ascii")
+    return bytes(out) + b"\0"
+
+
 def build_cave(stage, sites):
     """Assemble le code ajouté, avec un relais par variante de soldat (voir scan_overlay)."""
     stubs = []
@@ -701,7 +760,10 @@ def build_cave(stage, sites):
         stubs += [f"piyo_{x:x}_{t:x}:", f"    lui t9, %hi({x})", f"    addiu t9, t9, %lo({x})",
                   "    j cave_piyo", f"    li t8, {t}"]
     script = zzz_script(stage)
-    src = "\n".join([CAVE_SRC + "    .byte " + ", ".join(str(b) for b in script), ".align 2"] + stubs) + "\n"
+    cave_src = CAVE_SRC
+    for key, (name, lines) in DESCRIPTIONS.items():
+        cave_src = cave_src.replace(key, "    .byte " + ", ".join(str(b) for b in encode_desc(name, lines)))
+    src = "\n".join([cave_src + "    .byte " + ", ".join(str(b) for b in script), ".align 2"] + stubs) + "\n"
     code, sym = mips.assemble(src, CAVE, SYM)
     if CAVE + len(code) > CAVE_END:
         raise SystemExit(f"code M9 trop gros ({len(code)} octets)")
