@@ -114,3 +114,13 @@ Testé (quai, garde déplacé devant la vue : mov du garde 0x80168aa8 sur la sau
 `python tools/emu.py launch image.cue [--gui]` (arrière-plan) puis `python tools/emu.py cmd "press START 8\nwait 60\nshot s1" 5`. Pilote `tools/emu_drive.lua` : commandes en file, `wait N` en images (VSync), aussi r16/r32, w16/w32, `poke fichier`, `near cible position dz`. Harnais Lua et PCSX-Redux du projet RE1 Hotkey. Dans MGS PAL : **Rond = valider**, Croix = retour ; Codec : SELECT, Bas = MEMORY, Rond = appeler. Au départ du quai, Snake est dans l'eau : il se noie si on ne le sort pas.
 Pas de commande Lua pour le capot dans cette version de Redux et l'exe portable n'est pas pilotable par le contrôle de l'ordinateur : changement de disque à la main (`--gui`, File > Open Lid / Open ISO / Close Lid).
 Sauvegarde utile : carte DuckStation `D:\batocera\saves\psx\Metal Gear Solid (France) (Disc 1) [SLES_015.06]_1.mcd` (« Snowfield », fin du disque 1 ; avancer tout droit vers le haut → « Insérez le disque 2 »). La copier en `%APPDATA%\pcsx-redux\memcard1.mcd` (garder l'ancienne : partagée avec RE1). Les `.sav` Batocera sont des états DuckStation, illisibles par Redux.
+
+## Page web (fabrication dans le navigateur)
+
+- `index.html` (GitHub Pages) + `docs/mgs-vostfr.js` : portage JS fidèle de build.py (CHD avec LZMA/deflate maison, ISO, EDC/ECC, voxalign, vox_vostfr, isorebuild). Vérifié : images **identiques octet pour octet** à build.py, sans option et avec toutes les options (`node tools/webtest.js build --fr1 ... --out work/web_x [--carre ...]` puis `cmp`). ~4 min, ~1 Go de RAM sous Node.
+- Le décodeur LZMA est « déplié » (variables locales, pas de fermeture) : ~300 Mo/s. Une version avec fonctions imbriquées tournait à 11 Mo/s.
+- Options = différences d'octets sur l'EXE FR et STAGE.DIR FR, dans `docs/patches.js`, générées par `python tools/webpatches.py work/FR1.bin work/FR2.bin` (vérifie que les options sont additives et stocke le CRC32 des fichiers d'origine). **À relancer après chaque modification d'une option**, sinon la page applique l'ancienne version.
+- Le MD5 des banques (voxalign.anchors_disc1) est remplacé par une empreinte 64 bits maison : seule l'égalité compte.
+- Écriture : `showDirectoryPicker` (Chrome/Edge) écrit directement dans un dossier ; sinon Blob + liens de téléchargement. Marche aussi en `file://` (page téléchargée, hors ligne).
+- Test dans le panneau navigateur : config `mgs-vostfr` (python -m http.server 8799) dans le launch.json de SoundBoardHTMLMaker ; jonction `work/chd` → dossier des CHD pour les charger depuis la page.
+- Aperçus des options : `docs/previews/*.png` (320×256).

@@ -19,7 +19,7 @@
     });
   })();
 </script>
-<meta name="description" content="Metal Gear Solid sur PlayStation avec les voix anglaises d'origine et les textes français : cinématiques, Codec, voix en jeu, deux disques, et l'option Carré qui fait défiler le Codec.">
+<meta name="description" content="Metal Gear Solid sur PlayStation avec les voix anglaises d'origine et les textes français : cinématiques, Codec, voix en jeu, deux disques. Fabrique tes images dans le navigateur, avec des options façon MGS2 à cocher.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;800&family=Share+Tech+Mono&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
@@ -164,6 +164,47 @@
     .reveal { opacity: 1; transform: none; transition: none; }
     .vostfr .bars i, .lead .cur { animation: none; }
   }
+
+  /* ── patcheur ── */
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; margin-bottom: 16px; }
+  .box h3 { margin: 0 0 6px; font: 700 21px var(--head); letter-spacing: .06em; text-transform: uppercase; color: #e9fff3; }
+  .box h3 .n { display: inline-grid; place-items: center; width: 30px; height: 30px; margin-right: 10px; border-radius: 50%; background: var(--green2); color: #021208; font: 800 17px var(--head); }
+  .box > p { margin: 0 0 12px; opacity: .9; }
+  #drop { display: block; border: 2px dashed var(--line); border-radius: 8px; padding: 22px; text-align: center; cursor: pointer; font: 15px var(--mono); color: var(--green); transition: .15s; }
+  #drop:hover, #drop.over { border-color: var(--green2); background: rgba(61,220,132,.06); }
+  #drop input { display: none; }
+  .slots { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px; }
+  .slot { border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; background: #030a06; min-width: 0; }
+  .slot b { display: block; font: 600 15px Barlow, sans-serif; color: #e9fff3; }
+  .slot span { display: block; font: 12.5px var(--mono); color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .slot.ok { border-color: var(--green2); } .slot.ok span { color: var(--green); }
+  .slot.bad { border-color: var(--red); } .slot.bad span { color: var(--red); }
+  @media (max-width: 560px) { .slots { grid-template-columns: 1fr; } }
+  .optgrid { display: grid; grid-template-columns: 1fr 340px; gap: 18px; align-items: start; }
+  .opt { display: flex; gap: 12px; align-items: flex-start; padding: 11px 10px; border-top: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
+  .opt:first-child { border-top: 0; }
+  .opt.cur { background: rgba(61,220,132,.07); }
+  .opt input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--green2); flex: none; cursor: pointer; }
+  .opt b { display: block; color: #e9fff3; font-weight: 600; }
+  .opt span { display: block; font-size: 14.5px; opacity: .85; }
+  .opt code { font-size: 12px; }
+  .pv { position: sticky; top: 64px; background: #030a06; border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  .pv .screen { cursor: default; }
+  .pv .screen.dim img { filter: grayscale(.7) brightness(.45); }
+  .pv-cap { margin-top: 8px; font: 13px var(--mono); color: var(--green); }
+  .pv-cap .badge { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 3px; font-size: 12px; }
+  .badge.on { background: rgba(61,220,132,.16); color: var(--green); } .badge.off { background: rgba(224,69,58,.16); color: #ff8b80; }
+  @media (max-width: 860px) { .optgrid { grid-template-columns: 1fr; } .pv { position: static; order: -1; max-width: 420px; width: 100%; margin: 0 auto; } }
+  button.go { width: 100%; border: 0; border-radius: 6px; padding: 16px; font: 800 20px var(--head); letter-spacing: .14em; text-transform: uppercase; color: #021208; background: var(--green2);
+              box-shadow: 0 0 22px rgba(61,220,132,.35); cursor: pointer; }
+  button.go:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
+  .bar { height: 10px; margin-top: 14px; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; background: #030a06; display: none; }
+  .bar i { display: block; height: 100%; width: 0; background: var(--green2); transition: width .2s; }
+  #status { margin-top: 10px; min-height: 1.5em; font: 14px var(--mono); color: var(--green); }
+  #status.err { color: #ff8b80; }
+  #log { display: none; margin-top: 10px; max-height: 220px; overflow: auto; white-space: pre-wrap; }
+  #dl { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+  .note { font-size: 14px; opacity: .8; border-left: 3px solid var(--line); padding-left: 10px; margin: 10px 0 0; }
 </style>
 </head>
 <body>
@@ -173,8 +214,9 @@
     <a class="brand" href="#">MGS · VOSTFR</a>
     <div class="links">
       <a href="#patchs" data-en="Patches">Patchs</a>
+      <a href="#options">Options</a>
+      <a href="#fabriquer" data-en="Build">Fabriquer</a>
       <a href="#etat" data-en="Status">État</a>
-      <a href="#installer" data-en="Install">Installer</a>
       <a href="#technique" data-en="Technical">Technique</a>
     </div>
     <a class="gh" href="https://github.com/soaresden/MGS1-VOSTFR">GitHub</a>
@@ -189,9 +231,9 @@
       <h1>Metal Gear<small>Solid</small></h1>
       <div class="vostfr"><span class="bars"><i></i><i></i><i></i><i></i><i></i></span>VOSTFR · 140.85</div>
       <p class="lead" id="lead" aria-live="polite"></p>
-      <p class="sub" data-en="The English voices of David Hayter, Jennifer Hale and the original cast, with the French text and subtitles: cutscenes, Codec calls, in-game voices, on both discs. The repository has <b>no game data</b>: the scripts build the images from <b>your own</b> PAL discs.">Les voix anglaises de David Hayter, Jennifer Hale et de toute la distribution d'origine, avec les textes et sous-titres français : cinématiques, appels Codec, voix en jeu, sur les deux disques. Le dépôt ne contient <b>aucune donnée du jeu</b> : les scripts fabriquent les images à partir de <b>tes propres</b> disques PAL.</p>
+      <p class="sub" data-en="The English voices of David Hayter, Jennifer Hale and the original cast, with the French text and subtitles: cutscenes, Codec calls, in-game voices, on both discs. The repository has <b>no game data</b>: this page builds the images from <b>your own</b> PAL discs, right in your browser. Plus a few MGS2-style options to tick or untick.">Les voix anglaises de David Hayter, Jennifer Hale et de toute la distribution d'origine, avec les textes et sous-titres français : cinématiques, appels Codec, voix en jeu, sur les deux disques. Le dépôt ne contient <b>aucune donnée du jeu</b> : cette page fabrique les images à partir de <b>tes propres</b> disques PAL, directement dans ton navigateur. En plus, quelques options façon MGS2 à cocher ou décocher.</p>
       <div class="cta">
-        <a class="btn main" href="#installer" data-en="▶ Build my discs">▶ Fabriquer mes disques</a>
+        <a class="btn main" href="#fabriquer" data-en="▶ Build my discs">▶ Fabriquer mes disques</a>
         <a class="btn alt" href="https://github.com/soaresden/MGS1-VOSTFR" data-en="Source code">Code source</a>
       </div>
     </div>
@@ -270,9 +312,17 @@
       </div>
     </article>
 
+  </div>
+</section>
+
+<section id="options">
+  <div class="wrap">
+    <div class="sec-head"><span class="freq">141.52</span><h2 data-en="Options">Options</h2></div>
+    <p class="intro" data-en="Extras inspired by MGS2, each one to tick or untick when you build your discs. Nothing changes in the game if you leave them all unticked.">Des petits plus inspirés de MGS2, chacun à cocher ou décocher au moment de fabriquer tes disques. Rien ne change dans le jeu si tu les laisses tous décochés.</p>
+
     <article class="patch reveal" id="carre">
       <div>
-        <span class="tag opt" data-en="★ OPTION --carre">★ OPTION --carre</span>
+        <span class="tag opt" data-en="★ OPTION · SQUARE">★ OPTION · CARRÉ</span>
         <h3 data-en="Square fast-forwards the Codec">Carré fait défiler le Codec</h3>
         <p data-en="Like in MGS2: during a call, <b>Square</b> cuts the voice and runs through all remaining lines at once. Perfect when you replay the game or call Mei Ling to save.">Comme dans MGS2 : pendant un appel, <b>Carré</b> coupe la voix et fait défiler d'un coup toutes les répliques restantes. Idéal quand on refait le jeu ou qu'on appelle Mei Ling pour sauvegarder.</p>
         <ul>
@@ -289,6 +339,88 @@
         </div>
       </div>
     </article>
+
+    <article class="patch reveal" id="m9">
+      <div>
+        <span class="tag opt" data-en="★ OPTION · M9">★ OPTION · M9</span>
+        <h3 data-en="Tranquilizer M9 &amp; PSG1-T">M9 tranquillisant &amp; PSG1-T</h3>
+        <p data-en="To finish the game without killing: in the weapon menu (R2), <b>Triangle</b> turns the SOCOM into the <b>M9</b> and the PSG1 into the <b>PSG1-T</b> (bluish icon), and back.">Pour finir le jeu sans tuer : dans le menu des armes (R2), <b>Triangle</b> transforme le SOCOM en <b>M9</b> et le PSG1 en <b>PSG1-T</b> (icône bleutée), et inversement.</p>
+        <ul>
+          <li data-en="Patrolling guard: asleep after one shot, for good, with <b>zzz</b> above his head. No blood, not counted as a kill.">Garde en ronde : endormi en un tir, pour de bon, avec des <b>zzz</b> au-dessus de la tête. Pas de sang, pas compté comme tué.</li>
+          <li data-en="During an alert: the first shot shakes him, he falls asleep 8 s later, or right away on the second shot.">En alerte : le premier tir le secoue, il s'endort 8 s plus tard, ou tout de suite au deuxième tir.</li>
+          <li data-en="Ammo shared with the original weapon, one dart at a time. Bosses: normal damage.">Munitions communes avec l'arme d'origine, une fléchette à la fois. Boss : dégâts normaux.</li>
+        </ul>
+      </div>
+      <div class="shots">
+        <figure class="screen"><img src="docs/previews/m9_menu.png" alt="Menu des armes : M9 avec son icône bleutée" data-en-alt="Weapon menu: M9 with its bluish icon" loading="lazy"><figcaption data-en="R2 menu · M9">Menu R2 · M9</figcaption></figure>
+        <figure class="screen"><img src="docs/previews/m9_zzz.png" alt="Garde endormi avec des zzz" data-en-alt="Guard asleep with zzz" loading="lazy"><figcaption data-en="Guard asleep · zzz">Garde endormi · zzz</figcaption></figure>
+      </div>
+    </article>
+
+    <article class="patch reveal" id="clay">
+      <div>
+        <span class="tag opt" data-en="★ OPTION · M9">★ OPTION · M9</span>
+        <h3 data-en="Silent zzz claymores">Claymores zzz silencieuses</h3>
+        <p data-en="On the CLAYMORE slot, <b>Triangle</b> switches to <b>CLAY.ZZZ</b> claymores: a soldier who steps on one falls asleep at once, even during an alert.">Sur la case CLAYMORE, <b>Triangle</b> passe aux claymores <b>CLAY.ZZZ</b> : un soldat qui marche dessus s'endort aussitôt, même en alerte.</p>
+        <ul>
+          <li data-en="Silent: no blast and no flash, just a small &quot;pfft&quot; and a puff of smoke. The other guards hear nothing.">Silencieuses : pas de détonation ni de flash, juste un petit « pfft » et une bouffée de fumée. Les autres gardes n'entendent rien.</li>
+          <li data-en="What counts is the mode when the mine is planted. Normal claymores are as loud as ever.">Le mode compte au moment où on pose la mine. Les claymores normales font toujours le même boucan.</li>
+        </ul>
+      </div>
+      <div class="shots">
+        <figure class="screen"><img src="docs/previews/clay_menu.png" alt="Menu des armes : CLAY.ZZZ" data-en-alt="Weapon menu: CLAY.ZZZ" loading="lazy"><figcaption data-en="R2 menu · CLAY.ZZZ">Menu R2 · CLAY.ZZZ</figcaption></figure>
+        <figure class="screen"><img src="docs/previews/clay_pfft.png" alt="Bouffée de fumée d'une claymore zzz" data-en-alt="Puff of smoke from a zzz claymore" loading="lazy"><figcaption data-en="&quot;pfft&quot;">« pfft »</figcaption></figure>
+      </div>
+    </article>
+
+    <article class="patch reveal" id="psg1">
+      <div>
+        <span class="tag opt" data-en="★ OPTION · PSG1">★ OPTION · PSG1</span>
+        <h3 data-en="PSG1 standing or crouching">PSG1 debout ou accroupi</h3>
+        <p data-en="The sniper rifle can be used <b>standing or crouching</b>, without Snake lying down. Prone, nothing changes.">Le fusil de précision s'utilise <b>debout ou accroupi</b>, sans que Snake se couche. Couché, rien ne change.</p>
+        <ul>
+          <li data-en="In the scope, <b>X</b> switches between standing and crouching.">Dans la lunette, <b>X</b> passe de debout à accroupi.</li>
+          <li data-en="Standing or crouching, the scope does not sway; the heartbeat is still felt in the controller.">Debout ou accroupi, la lunette ne tremble pas ; le cœur bat toujours dans la manette.</li>
+        </ul>
+      </div>
+      <div class="shots">
+        <figure class="screen"><img src="docs/previews/psg1_off.png" alt="PSG1 couché, comme dans le jeu d'origine" data-en-alt="PSG1 prone, as in the original game" loading="lazy"><figcaption data-en="Without the option · prone">Sans l'option · couché</figcaption></figure>
+        <figure class="screen"><img src="docs/previews/psg1_on.png" alt="PSG1 debout" data-en-alt="PSG1 standing" loading="lazy"><figcaption data-en="With the option · standing">Avec l'option · debout</figcaption></figure>
+      </div>
+    </article>
+
+    <article class="patch reveal" id="l2r2">
+      <div>
+        <span class="tag opt" data-en="★ OPTION · L2/R2">★ OPTION · L2/R2</span>
+        <h3 data-en="Lean in first-person view">Se pencher en vue subjective</h3>
+        <p data-en="In first-person view (holding Triangle), <b>L2</b> makes Snake lean left and <b>R2</b> lean right to look around a corner, like in MGS2.">En vue subjective (Triangle maintenu), <b>L2</b> penche Snake à gauche et <b>R2</b> à droite pour regarder derrière un coin, comme dans MGS2.</p>
+        <ul>
+          <li data-en="While leaning, the arrows still turn the view.">Penché, les flèches tournent toujours la vue.</li>
+          <li data-en="<b>L2 + R2</b> together: Snake stands on tiptoe to look over an obstacle."><b>L2 + R2</b> ensemble : Snake se hisse sur la pointe des pieds pour regarder par-dessus un obstacle.</li>
+        </ul>
+      </div>
+      <div class="shots">
+        <figure class="screen"><img src="docs/previews/l2r2_on.png" alt="Snake penché en vue subjective" data-en-alt="Snake leaning in first-person view" loading="lazy"><figcaption data-en="Leaning · L2">Penché · L2</figcaption></figure>
+        <figure class="screen"><img src="docs/previews/l2r2_pointe.png" alt="Vue sur la pointe des pieds" data-en-alt="View on tiptoe" loading="lazy"><figcaption data-en="Tiptoe · L2+R2">Pointe des pieds · L2+R2</figcaption></figure>
+      </div>
+    </article>
+
+    <article class="patch reveal" id="fps">
+      <div>
+        <span class="tag opt" data-en="★ OPTION · AIMING">★ OPTION · VISÉE</span>
+        <h3 data-en="Aim in first-person view">Viser en vue subjective</h3>
+        <p data-en="With the SOCOM or the M9, aim and shoot from the first-person view, like in MGS2.">Avec le SOCOM ou le M9, on vise et on tire depuis la vue subjective, comme dans MGS2.</p>
+        <ul>
+          <li data-en="Hold <b>Triangle</b>: first-person view. Hold <b>Square</b>: the weapon shows with its <b>red laser</b>; release Square: the shot goes off where you look."><b>Triangle</b> maintenu : vue subjective. <b>Carré</b> maintenu : l'arme apparaît avec son <b>laser rouge</b> ; Carré relâché : le coup part dans la direction de la vue.</li>
+          <li data-en="It is the game's normal shot (sound, noise, ammo); the M9 keeps its tranquilizer effect.">C'est le tir normal du jeu (son, bruit, munitions) ; le M9 garde son effet tranquillisant.</li>
+        </ul>
+      </div>
+      <div class="shots">
+        <figure class="screen"><img src="docs/previews/fps_off.png" alt="Vue subjective d'origine" data-en-alt="Original first-person view" loading="lazy"><figcaption data-en="Triangle · first-person view">Triangle · vue subjective</figcaption></figure>
+        <figure class="screen"><img src="docs/previews/fps_on.png" alt="Vue subjective avec l'arme et le laser" data-en-alt="First-person view with the weapon and laser" loading="lazy"><figcaption data-en="Square · weapon and laser">Carré · arme et laser</figcaption></figure>
+      </div>
+    </article>
+
   </div>
 </section>
 
@@ -308,6 +440,7 @@
         <tr><td>✅</td><td data-en="<code>--psg1</code> option: PSG1 standing or crouching">Option <code>--psg1</code> : PSG1 debout ou accroupi</td><td data-en="done, tested">fait, testé</td></tr>
         <tr><td>✅</td><td data-en="<code>--l2r2</code> option: lean with L2/R2 in first-person view">Option <code>--l2r2</code> : pencher avec L2/R2 en vue subjective</td><td data-en="done, tested">fait, testé</td></tr>
         <tr><td>✅</td><td data-en="<code>--fps</code> option: aim and shoot the SOCOM / M9 in first-person view">Option <code>--fps</code> : viser et tirer au SOCOM / M9 en vue subjective</td><td data-en="done, tested">fait, testé</td></tr>
+        <tr><td>✅</td><td data-en="This page: build in the browser, options to tick">Cette page : fabrication dans le navigateur, options à cocher</td><td data-en="done, same images as Python byte for byte">fait, mêmes images que Python octet pour octet</td></tr>
         <tr><td>⚠️</td><td data-en="Disc swap during the game">Changement de disque en cours de partie</td><td data-en="to confirm on DuckStation or console">à confirmer sur DuckStation ou console</td></tr>
         <tr><td>🔧</td><td data-en="French dub credits in the intro → English cast">Crédits du doublage FR dans l'intro → distribution anglaise</td><td data-en="to do">à faire</td></tr>
         <tr><td>💡</td><td data-en="&quot;2 discs in 1&quot; version">Version « 2 disques en 1 »</td><td data-en="next phase">prochaine phase</td></tr>
@@ -316,42 +449,70 @@
   </div>
 </section>
 
-<section id="installer">
+<section id="fabriquer">
   <div class="wrap">
     <div class="sec-head"><span class="freq">140.15</span><h2 data-en="Build your discs">Fabriquer ses disques</h2></div>
-    <p class="intro" data-en="You need the four original discs, French and European (English) PAL versions, as CHD or BIN/CUE.">Il faut les quatre disques d'origine, versions PAL française et européenne (anglaise), en CHD ou en BIN/CUE.</p>
-    <div class="steps">
-      <div class="step reveal">
-        <h3 data-en="Your discs">Tes disques</h3>
-        <div class="tbl"><table class="discs">
-          <tr><th>Version</th><th data-en="Disc 1">Disque 1</th><th data-en="Disc 2">Disque 2</th></tr>
-          <tr><td>France</td><td><code>SLES-01506</code></td><td><code>SLES-11506</code></td></tr>
-          <tr><td data-en="Europe (English)">Europe (anglais)</td><td><code>SLES-01370</code></td><td><code>SLES-11370</code></td></tr>
-        </table></div>
-        <p style="margin-top:10px" data-en="CHD files (like in Batocera) are read directly, no chdman needed, and their SHA-1 is checked.">Les CHD (comme dans Batocera) sont lus directement, sans chdman, et leur SHA-1 est vérifié.</p>
+    <p class="intro" data-en="Everything happens <b>in your browser, on your computer</b>: your discs are not sent anywhere. Chrome or Edge recommended, with about 3 GB of free memory; count a few minutes.">Tout se passe <b>dans ton navigateur, sur ton ordinateur</b> : tes disques ne sont envoyés nulle part. Chrome ou Edge conseillé, avec environ 3 Go de mémoire libre ; compter quelques minutes.</p>
+
+    <div class="box">
+      <h3><span class="n">1</span><span data-en="Your four discs">Tes quatre disques</span></h3>
+      <p data-en="The French and European (English) PAL versions, discs 1 and 2, as <b>CHD</b> (like in Batocera) or <b>BIN</b>. Drop all four files here at once.">Les versions PAL française et européenne (anglaise), disques 1 et 2, en <b>CHD</b> (comme dans Batocera) ou en <b>BIN</b>. Dépose les quatre fichiers ici d'un coup.</p>
+      <label id="drop">
+        <input id="files" type="file" accept=".chd,.bin,.iso,.img" multiple>
+        <span data-en="📂 Drop the 4 files here, or click to choose them">📂 Glisse les 4 fichiers ici, ou clique pour les choisir</span>
+      </label>
+      <div class="slots">
+        <div class="slot" id="slot-FR1"><b data-en="France · disc 1">France · disque 1</b><span>SLES-01506 · <i data-en="missing">manquant</i></span></div>
+        <div class="slot" id="slot-UK1"><b data-en="Europe · disc 1">Europe · disque 1</b><span>SLES-01370 · <i data-en="missing">manquant</i></span></div>
+        <div class="slot" id="slot-FR2"><b data-en="France · disc 2">France · disque 2</b><span>SLES-11506 · <i data-en="missing">manquant</i></span></div>
+        <div class="slot" id="slot-UK2"><b data-en="Europe · disc 2">Europe · disque 2</b><span>SLES-11370 · <i data-en="missing">manquant</i></span></div>
       </div>
-      <div class="step reveal">
-        <h3 data-en="Python">Python</h3>
-        <p data-en="Python 3.10 or newer, with numpy. About 2 GB of free memory.">Python 3.10 ou plus récent, avec numpy. Environ 2 Go de mémoire libre.</p>
+      <p class="note" data-en="Only one disc? The French + European pair of the same disc is enough, but give all four if you have them: disc 2 helps pair disc 1's voices exactly.">Un seul disque ? La paire française + européenne d'un même disque suffit, mais donne les quatre si tu les as : le disque 2 aide à apparier exactement les voix du disque 1.</p>
+    </div>
+
+    <div class="box">
+      <h3><span class="n">2</span><span data-en="Options">Options</span></h3>
+      <p data-en="Tick what you want; hover an option to see it in the game. The English voices and French text are always included.">Coche ce que tu veux ; survole une option pour la voir en jeu. Les voix anglaises et le texte français sont toujours inclus.</p>
+      <div class="optgrid">
+        <div id="opts"></div>
+        <aside class="pv" aria-live="polite">
+          <figure class="screen" id="pv-screen"><img id="pv-img" alt=""></figure>
+          <div class="pv-cap"><span id="pv-title"></span><span class="badge" id="pv-state"></span></div>
+        </aside>
+      </div>
+    </div>
+
+    <div class="box">
+      <h3><span class="n">3</span><span data-en="Build">Fabriquer</span></h3>
+      <p id="out-note" data-en="You will be asked for a folder: the images are written straight into it (Disc 1, Disc 2, .cue and .m3u).">On va te demander un dossier : les images y sont écrites directement (Disc 1, Disc 2, .cue et .m3u).</p>
+      <button class="go" id="go" type="button" disabled data-en="▶ Build my discs">▶ Fabriquer mes disques</button>
+      <div class="bar" id="bar"><i></i></div>
+      <div id="status"></div>
+      <div id="dl"></div>
+      <pre id="log"></pre>
+      <p class="note" data-en="Then open the <code>.m3u</code> file in your emulator (Batocera, DuckStation…) so it can swap discs. With a new version of the images, resume from a memory card save, not from an emulator save state.">Ensuite, ouvre le fichier <code>.m3u</code> dans ton émulateur (Batocera, DuckStation…) pour qu'il puisse changer de disque. Avec une nouvelle version des images, reprends ta partie depuis une sauvegarde de la carte mémoire, pas depuis une sauvegarde d'état de l'émulateur.</p>
+    </div>
+
+    <details class="reveal">
+      <summary data-en="Offline, on your computer">Hors ligne, sur ton ordinateur</summary>
+      <div>
+        <p data-en="The page works without internet: download the project, unzip it and double-click <code>index.html</code>. Same page, same result, nothing to install.">La page marche sans internet : télécharge le projet, décompresse-le et double-clique sur <code>index.html</code>. Même page, même résultat, rien à installer.</p>
+        <p><a class="btn alt" href="https://github.com/soaresden/MGS1-VOSTFR/archive/refs/heads/main.zip" data-en="⬇ Download the page (zip)">⬇ Télécharger la page (zip)</a></p>
+      </div>
+    </details>
+    <details class="reveal">
+      <summary data-en="With Python, from the command line">Avec Python, en ligne de commande</summary>
+      <div>
+        <p data-en="The page is a faithful port of the Python scripts: same images, byte for byte. With Python 3.10+ and numpy:">La page est un portage fidèle des scripts Python : mêmes images, octet pour octet. Avec Python 3.10+ et numpy :</p>
         <pre>git clone https://github.com/soaresden/MGS1-VOSTFR
 cd MGS1-VOSTFR/tools
-pip install numpy</pre>
-      </div>
-      <div class="step reveal">
-        <h3 data-en="Build">Construire</h3>
-        <p data-en="About a minute and a half. Optional extras: <code>--carre</code> (Square skips the Codec), <code>--m9</code> (tranquilizer weapons), <code>--psg1</code>, <code>--l2r2</code>, <code>--fps</code> (MGS2-style first-person view).">Environ une minute et demie. Options : <code>--carre</code> (Carré fait défiler le Codec), <code>--m9</code> (armes tranquillisantes), <code>--psg1</code>, <code>--l2r2</code>, <code>--fps</code> (vue subjective façon MGS2).</p>
-        <pre>python build.py --carre \
+pip install numpy
+python build.py --carre --m9 --psg1 --l2r2 --fps \
   --fr1 "MGS (France) (Disc 1).chd" --uk1 "MGS (Europe) (Disc 1).chd" \
   --fr2 "MGS (France) (Disc 2).chd" --uk2 "MGS (Europe) (Disc 2).chd" \
   --out ../work/out</pre>
       </div>
-      <div class="step reveal">
-        <h3 data-en="Play">Jouer</h3>
-        <p data-en="You get <code>Metal Gear Solid (VOSTFR) (Disc 1).bin/.cue</code>, <code>(Disc 2)</code> and a <code>.m3u</code>: open the <code>.m3u</code> in your emulator so it can swap discs.">Tu obtiens <code>Metal Gear Solid (VOSTFR) (Disc 1).bin/.cue</code>, <code>(Disc 2)</code> et un <code>.m3u</code> : ouvre le <code>.m3u</code> dans l'émulateur pour qu'il puisse changer de disque.</p>
-        <p data-en="Already built your discs? The Square option alone:">Disques déjà construits ? L'option Carré seule :</p>
-        <pre>python carre.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"</pre>
-      </div>
-    </div>
+    </details>
   </div>
 </section>
 
@@ -382,6 +543,11 @@ pip install numpy</pre>
       <div><p data-en="In the Codec loop of the French executable, the voice-cut test also accepts Square, and the line-waiting state is rewritten in place: Square held sets a flag that moves to the next line at once, until the end of the call. The flag lives with the call, so the next call is normal. The patch checks the original bytes before writing and can be applied twice without harm.">Dans la boucle du Codec de l'exécutable français, le test de coupure de la voix accepte aussi Carré, et l'état d'attente des répliques est réécrit en place : Carré enfoncé pose un drapeau qui passe aussitôt à la réplique suivante, jusqu'à la fin de l'appel. Le drapeau vit avec l'appel : l'appel suivant est normal. Le patch vérifie les octets d'origine avant d'écrire et peut être appliqué deux fois sans risque.</p></div>
     </details>
     <details class="reveal">
+      <summary data-en="This page: everything in the browser">Cette page : tout dans le navigateur</summary>
+      <div><p data-en="<code>docs/mgs-vostfr.js</code> is a JavaScript port of the Python scripts: CHD reading (its own LZMA and deflate decoders), ISO 9660, EDC/ECC, voice pairing, new <code>VOX.DAT</code> and image rebuild. On the same discs it writes exactly the same images as <code>build.py</code>, checked byte for byte. The options are byte differences on the French executable and <code>STAGE.DIR</code>, exported by <code>webpatches.py</code> (only our own code, checked against the CRC32 of the original files). Your files are read in place and the images are written straight into the folder you choose: nothing leaves your computer.">
+        <code>docs/mgs-vostfr.js</code> est un portage en JavaScript des scripts Python : lecture des CHD (avec ses propres décodeurs LZMA et deflate), ISO 9660, EDC/ECC, appariement des voix, nouveau <code>VOX.DAT</code> et reconstruction de l'image. Sur les mêmes disques, il écrit exactement les mêmes images que <code>build.py</code>, vérifié octet pour octet. Les options sont des différences d'octets sur l'exécutable français et <code>STAGE.DIR</code>, exportées par <code>webpatches.py</code> (uniquement notre propre code, vérifié avec le CRC32 des fichiers d'origine). Tes fichiers sont lus sur place et les images écrites directement dans le dossier choisi : rien ne quitte ton ordinateur.</p></div>
+    </details>
+    <details class="reveal">
       <summary data-en="The tools">Les outils</summary>
       <div class="tbl" style="margin:0 16px 14px"><table>
         <tr><th>Script</th><th data-en="Role">Rôle</th></tr>
@@ -396,6 +562,7 @@ pip install numpy</pre>
         <tr><td><code>carre.py</code></td><td data-en="Square option">Option Carré</td></tr>
         <tr><td><code>m9.py</code> · <code>mips.py</code></td><td data-en="Tranquilizer weapons · small MIPS assembler">Armes tranquillisantes · petit assembleur MIPS</td></tr>
         <tr><td><code>psg1.py</code> · <code>l2r2.py</code> · <code>fps.py</code></td><td data-en="PSG1 standing, leaning, first-person shooting">PSG1 debout, pencher, tir en vue subjective</td></tr>
+        <tr><td><code>docs/mgs-vostfr.js</code> · <code>webpatches.py</code> · <code>webtest.js</code></td><td data-en="This page: build in the browser, options export, Node test">Cette page : fabrication dans le navigateur, export des options, test sous Node</td></tr>
         <tr><td><code>emu.py</code> · <code>emu_drive.lua</code></td><td data-en="Automatic tests in PCSX-Redux">Tests automatiques dans PCSX-Redux</td></tr>
       </table></div>
     </details>
@@ -410,6 +577,9 @@ pip install numpy</pre>
 </footer>
 
 <dialog id="zoom"><img alt=""><p></p></dialog>
+
+<script src="docs/patches.js"></script>
+<script src="docs/mgs-vostfr.js"></script>
 
 <script>
   // Texte d'accroche tapé comme dans le Codec
@@ -455,6 +625,147 @@ pip install numpy</pre>
       setTimeout(function () { show(1); }, 300);
       setTimeout(function () { show(2); btn.classList.remove('hit'); msg.textContent = SBT('Appel terminé. Rappuie pour recommencer.', 'Call over. Press again to replay.'); }, 1000);
       setTimeout(function () { show(0); busy = false; }, 3200);
+    });
+  })();
+
+
+  // ── Fabricant : disques, options, fabrication dans le navigateur ──
+  (function () {
+    var $ = function (id) { return document.getElementById(id); };
+    var OPTIONS = [
+      { id: 'carre', fr: 'Carré fait défiler le Codec', en: 'Square fast-forwards the Codec',
+        frD: 'Pendant un appel, Carré coupe la voix et fait défiler toutes les répliques d\'un coup.', enD: 'During a call, Square cuts the voice and runs through all the lines at once.',
+        on: 'docs/shots/carre-3.png', off: 'docs/shots/codec-kurdes.png' },
+      { id: 'm9', fr: 'M9, PSG1-T et claymores zzz', en: 'M9, PSG1-T and zzz claymores',
+        frD: 'Armes tranquillisantes (Triangle dans le menu R2) ; claymores zzz silencieuses. Pour finir le jeu sans tuer.', enD: 'Tranquilizer weapons (Triangle in the R2 menu); silent zzz claymores. To finish the game without killing.',
+        on: 'docs/previews/m9_zzz.png', on2: 'docs/previews/m9_menu.png', off: 'docs/shots/jeu-quai.png' },
+      { id: 'psg1', fr: 'PSG1 debout ou accroupi', en: 'PSG1 standing or crouching',
+        frD: 'Le fusil de précision sans se coucher ; X passe de debout à accroupi dans la lunette.', enD: 'The sniper rifle without lying down; X switches between standing and crouching in the scope.',
+        on: 'docs/previews/psg1_on.png', off: 'docs/previews/psg1_off.png' },
+      { id: 'l2r2', fr: 'Se pencher en vue subjective (L2/R2)', en: 'Lean in first-person view (L2/R2)',
+        frD: 'L2/R2 penchent Snake, L2+R2 le met sur la pointe des pieds, comme dans MGS2.', enD: 'L2/R2 make Snake lean, L2+R2 puts him on tiptoe, like in MGS2.',
+        on: 'docs/previews/l2r2_on.png', off: 'docs/previews/fps_off.png' },
+      { id: 'fps', fr: 'Viser en vue subjective (SOCOM / M9)', en: 'Aim in first-person view (SOCOM / M9)',
+        frD: 'Triangle + Carré : l\'arme et son laser apparaissent, Carré relâché tire, comme dans MGS2.', enD: 'Triangle + Square: the weapon and its laser show, releasing Square shoots, like in MGS2.',
+        on: 'docs/previews/fps_on.png', off: 'docs/previews/fps_off.png' }
+    ];
+    var KEY = 'mgs.vostfr.opts', state = {};
+    try { state = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (_) { state = {}; }
+    var box = $('opts'), cur = null;
+    OPTIONS.forEach(function (o) {
+      if (state[o.id] === undefined) state[o.id] = true;
+      var d = document.createElement('label');
+      d.className = 'opt'; d.dataset.id = o.id;
+      d.innerHTML = '<input type="checkbox"' + (state[o.id] ? ' checked' : '') + '><div><b>' + SBT(o.fr, o.en) + '</b><span>' + SBT(o.frD, o.enD) + '</span></div>';
+      d.addEventListener('mouseenter', function () { show(o.id); });
+      d.addEventListener('focusin', function () { show(o.id); });
+      d.querySelector('input').addEventListener('change', function (e) {
+        state[o.id] = e.target.checked;
+        try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) {}
+        show(o.id);
+      });
+      box.appendChild(d);
+    });
+    function show(id) {
+      var o = OPTIONS.filter(function (x) { return x.id === id; })[0], on = state[id];
+      cur = id;
+      document.querySelectorAll('#opts .opt').forEach(function (d) { d.classList.toggle('cur', d.dataset.id === id); });
+      var img = $('pv-img');
+      img.onerror = function () { if (o.on2 && img.src.indexOf(o.on2) < 0 && on) img.src = o.on2; else if (img.src.indexOf(o.off) < 0) img.src = o.off; };
+      img.src = on ? o.on : o.off;
+      img.alt = SBT(o.fr, o.en);
+      $('pv-screen').classList.toggle('dim', !on);
+      $('pv-title').textContent = SBT(o.fr, o.en);
+      var b = $('pv-state');
+      b.textContent = on ? SBT('activée', 'on') : SBT('désactivée', 'off');
+      b.className = 'badge ' + (on ? 'on' : 'off');
+    }
+    show(OPTIONS[0].id);
+
+    // disques déposés
+    var M = window.MGSVOSTFR, discs = {}, busy = false;
+    var LABELS = { FR1: 'SLES-01506', UK1: 'SLES-01370', FR2: 'SLES-11506', UK2: 'SLES-11370' };
+    function wrap(file) {
+      return { name: file.name, size: file.size,
+        read: function (off, len) { return file.slice(off, off + len).arrayBuffer().then(function (b) { return new Uint8Array(b); }); } };
+    }
+    function slot(id, cls, text) {
+      var el = $('slot-' + id);
+      el.className = 'slot ' + (cls || '');
+      el.querySelector('span').textContent = LABELS[id] + ' · ' + text;
+    }
+    function ready() {
+      var pair1 = discs.FR1 && discs.UK1, pair2 = discs.FR2 && discs.UK2;
+      $('go').disabled = busy || !(pair1 || pair2);
+    }
+    function status(text, err) { var s = $('status'); s.textContent = text; s.className = err ? 'err' : ''; }
+    async function addFiles(list) {
+      for (var i = 0; i < list.length; i++) {
+        var f = list[i];
+        if (/\.(cue|m3u|sbi)$/i.test(f.name)) continue;
+        status(SBT('Lecture de ', 'Reading ') + f.name + '…');
+        try {
+          var r = await M.identify(wrap(f));
+          if (!r.id) { status(f.name + SBT(' : ce n\'est pas un des quatre disques attendus (' + r.exe + ').', ': not one of the four expected discs (' + r.exe + ').'), true); continue; }
+          discs[r.id] = r.disc;
+          slot(r.id, 'ok', '✔ ' + f.name);
+          status('');
+        } catch (e) {
+          status(f.name + ' : ' + e.message, true);
+        }
+      }
+      ready();
+    }
+    var drop = $('drop');
+    $('files').addEventListener('change', function (e) { addFiles(e.target.files); });
+    ['dragenter', 'dragover'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
+    ['dragleave', 'drop'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove('over'); }); });
+    drop.addEventListener('drop', function (e) { addFiles(e.dataTransfer.files); });
+
+    var canPick = 'showDirectoryPicker' in window;
+    if (!canPick) $('out-note').textContent = SBT('Ton navigateur ne sait pas écrire dans un dossier : les images seront proposées en téléchargement à la fin (ça demande plus de mémoire ; Chrome ou Edge font mieux).',
+      'Your browser cannot write to a folder: the images will be offered as downloads at the end (this needs more memory; Chrome or Edge do better).');
+
+    $('go').addEventListener('click', async function () {
+      var opts = OPTIONS.filter(function (o) { return state[o.id]; }).map(function (o) { return o.id; });
+      var dir = null, blobs = [];
+      if (canPick) {
+        try { dir = await window.showDirectoryPicker({ mode: 'readwrite', id: 'mgs-vostfr' }); }
+        catch (e) { if (e.name === 'AbortError') return; dir = null; }
+      }
+      busy = true; ready();
+      var logEl = $('log'), bar = $('bar');
+      logEl.style.display = 'block'; logEl.textContent = ''; bar.style.display = 'block'; $('dl').innerHTML = '';
+      var t0 = Date.now();
+      function log(t) { logEl.textContent += t + '\n'; logEl.scrollTop = logEl.scrollHeight; }
+      function progress(step, f) {
+        status(step + (f ? ' · ' + Math.round(f * 100) + ' %' : '') + ' · ' + Math.round((Date.now() - t0) / 1000) + ' s');
+        bar.firstElementChild.style.width = Math.round((f || 0) * 100) + '%';
+      }
+      async function openWriter(name) {
+        if (dir) {
+          var fh = await dir.getFileHandle(name, { create: true }), w = await fh.createWritable();
+          return { write: function (b) { return w.write(b); }, close: function () { return w.close(); } };
+        }
+        var parts = [];
+        return { write: function (b) { parts.push(b); return Promise.resolve(); },
+                 close: function () { blobs.push([name, new Blob(parts)]); parts = null; return Promise.resolve(); } };
+      }
+      try {
+        await M.build(discs, opts, openWriter, log, progress);
+        bar.firstElementChild.style.width = '100%';
+        status(SBT('Terminé en ', 'Done in ') + Math.round((Date.now() - t0) / 1000) + ' s. ' +
+          (dir ? SBT('Les fichiers sont dans le dossier choisi.', 'The files are in the folder you chose.') : SBT('Télécharge les fichiers ci-dessous.', 'Download the files below.')));
+        blobs.forEach(function (nb) {
+          var a = document.createElement('a');
+          a.className = 'btn alt'; a.href = URL.createObjectURL(nb[1]); a.download = nb[0]; a.textContent = '⬇ ' + nb[0];
+          $('dl').appendChild(a);
+        });
+      } catch (e) {
+        console.error(e);
+        status(SBT('Erreur : ', 'Error: ') + (e && e.message || e), true);
+      }
+      busy = false; ready();
     });
   })();
 

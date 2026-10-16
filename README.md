@@ -25,6 +25,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--psg1` : PSG1 (et PSG1-T) utilisable debout ou accroupi | ✅ fait, testé (quai : debout, accroupi, couché, tir sur un garde) |
 | Option `--l2r2` : en vue subjective, L2/R2 penchent Snake, L2+R2 pointe des pieds (comme dans MGS2) | ✅ fait, testé |
 | Option `--fps` : viser et tirer au SOCOM / M9 en vue subjective (comme dans MGS2) | ✅ fait, testé (quai : garde endormi au M9, blessé au SOCOM, laser) |
+| Page web : fabrication dans le navigateur, options à cocher, hors ligne possible | ✅ fait, mêmes images que Python octet pour octet |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Version « 2 disques en 1 » | 💡 phase 3 |
 
@@ -38,6 +39,16 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 En CHD (comme dans Batocera) ou en BIN/CUE. Pas besoin de chdman : le CHD est lu directement en Python, et le SHA-1 brut est vérifié.
 
 ## Utilisation
+
+### Le plus simple : la page web
+
+**[soaresden.github.io/MGS1-VOSTFR](https://soaresden.github.io/MGS1-VOSTFR/#fabriquer)** : dépose tes quatre disques (CHD ou BIN), coche les options, et la page fabrique les images **dans ton navigateur**. Rien n'est envoyé : tout se passe sur ton ordinateur, et les images sont écrites dans le dossier que tu choisis (Chrome ou Edge conseillé, environ 3 Go de mémoire libre, quelques minutes).
+
+La page marche aussi **hors ligne** : télécharge le projet ([zip](https://github.com/soaresden/MGS1-VOSTFR/archive/refs/heads/main.zip)), décompresse-le et double-clique sur `index.html`.
+
+Elle utilise `docs/mgs-vostfr.js`, un portage en JavaScript des scripts Python : sur les mêmes disques, les images sont **identiques octet pour octet** à celles de `build.py` (vérifié avec `tools/webtest.js`). Les options y sont des différences d'octets exportées par `tools/webpatches.py` vers `docs/patches.js` : **à relancer après chaque modification d'une option** (`python tools/webpatches.py work/FR1.bin work/FR2.bin`).
+
+### En ligne de commande
 
 Python 3.10+ avec `numpy`.
 

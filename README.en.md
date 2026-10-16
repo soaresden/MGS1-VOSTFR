@@ -25,6 +25,7 @@ This repository contains **no game data**: only the scripts that build the image
 | `--psg1` option: PSG1 (and PSG1-T) usable standing or crouching | ✅ done, tested (dock: standing, crouching, prone, shooting a guard) |
 | `--l2r2` option: in first-person view, L2/R2 lean, L2+R2 tiptoe (like in MGS2) | ✅ done, tested |
 | `--fps` option: aim and shoot the SOCOM / M9 in first-person view (like in MGS2) | ✅ done, tested (dock: guard put to sleep with the M9, hurt with the SOCOM, laser) |
+| Web page: build in the browser, options to tick, works offline | ✅ done, same images as Python byte for byte |
 | French dub credits in the intro → English cast | 🔧 to do |
 | "2 discs in 1" version | 💡 phase 3 |
 
@@ -38,6 +39,16 @@ This repository contains **no game data**: only the scripts that build the image
 As CHD (like in Batocera) or BIN/CUE. No chdman needed: the CHD is read directly in Python, and its raw SHA-1 is checked.
 
 ## Usage
+
+### The easy way: the web page
+
+**[soaresden.github.io/MGS1-VOSTFR](https://soaresden.github.io/MGS1-VOSTFR/#fabriquer)**: drop your four discs (CHD or BIN), tick the options, and the page builds the images **in your browser**. Nothing is uploaded: everything happens on your computer, and the images are written to the folder you choose (Chrome or Edge recommended, about 3 GB of free memory, a few minutes).
+
+The page also works **offline**: download the project ([zip](https://github.com/soaresden/MGS1-VOSTFR/archive/refs/heads/main.zip)), unzip it and double-click `index.html`.
+
+It uses `docs/mgs-vostfr.js`, a JavaScript port of the Python scripts: on the same discs, the images are **byte-for-byte identical** to those of `build.py` (checked with `tools/webtest.js`). The options are byte differences exported by `tools/webpatches.py` to `docs/patches.js`: **run it again after changing an option** (`python tools/webpatches.py work/FR1.bin work/FR2.bin`).
+
+### From the command line
 
 Python 3.10+ with `numpy`.
 
