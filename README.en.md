@@ -20,6 +20,7 @@ This repository contains **no game data**: only the scripts that build the image
 | Disc 2 | ✅ boots, English voices and French subtitles (Briefing) |
 | Disc swap during the game | ⚠️ to be checked on console or DuckStation: PCSX-Redux refuses it, even with the original discs |
 | `--carre` option: Square fast-forwards Codec dialogue (like in MGS2) | ✅ done, tested |
+| `--m9` option: tranquilizer M9 and PSG1-T (guards fall asleep, zzz) | ✅ done, tested (dock: patrolling guard, alert, 2nd shot, PSG1-T) |
 | French dub credits in the intro → English cast | 🔧 to do |
 | "2 discs in 1" version | 💡 phase 3 |
 
@@ -47,6 +48,19 @@ Output: `Metal Gear Solid (VOSTFR) (Disc 1).bin/.cue`, `(Disc 2)` and an `.m3u` 
 
 ```bash
 python carre.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
+
+`--m9` option: a **tranquilizer M9** (and a **PSG1-T**) to finish the game without killing.
+- You get it when you pick up the SOCOM ("SOCOM + M9" message); the PSG1-T comes with the PSG1.
+- In the weapon menu (R2), on the SOCOM, **Triangle** switches to the M9 ("M9" name, bluish icon) and back. Same on the PSG1. The four directions already move through this menu. R1 (equip / put away) keeps the choice, which is also stored in the save.
+- Ammo is shared with the original weapon: SOCOM ammo also fills the M9. Always silenced, one shot at a time. On screen, the weapon in hand is the silenced SOCOM.
+- Patrolling guard: asleep after **1 shot**, for good (he does not wake up), with **zzz** above him. No blood, no life lost, not counted as a kill.
+- During an alert or a search: the 1st shot **shakes** him; he falls asleep **8 s** later, or right away on the 2nd shot.
+- Bosses, cameras, etc.: same damage as the original weapon (Sniper Wolf with the PSG1-T, for example).
+- The soldier code is patched in 33 of the 36 stages that have soldiers (3 stages with no recognised "knocked down" soldier: s03c, s12b, s12c).
+
+```bash
+python m9.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
 Give **both discs**: disc 2's sound test table is also used to pair disc 1's voices exactly.
@@ -83,4 +97,6 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/radio.py` | `RADIO.DAT` codec script (TALK / VOICE commands) |
 | `tools/demo_vostfr.py` | Cutscene audio replacement |
 | `tools/carre.py` | Optional patch: Square fast-forwards the Codec |
+| `tools/m9.py` | Optional patch: tranquilizer M9 and PSG1-T |
+| `tools/mips.py` | Small MIPS (R3000) assembler for the patches |
 | `tools/emu.py`, `tools/emu_drive.lua` | Automated testing in PCSX-Redux (screenshots) |

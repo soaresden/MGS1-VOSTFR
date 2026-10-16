@@ -20,6 +20,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Disque 2 | ✅ démarre, voix anglaises et sous-titres FR (Briefing) |
 | Changement de disque en cours de partie | ⚠️ à vérifier sur console ou DuckStation : PCSX-Redux le refuse, même avec les disques d'origine |
 | Option `--carre` : Carré fait défiler les dialogues du Codec (comme dans MGS2) | ✅ fait, testé |
+| Option `--m9` : M9 et PSG1-T tranquillisants (les gardes s'endorment, zzz) | ✅ fait, testé (quai, garde en ronde, en alerte, 2e tir, PSG1-T) |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Version « 2 disques en 1 » | 💡 phase 3 |
 
@@ -47,6 +48,19 @@ Option `--carre` : pendant un appel Codec, **Carré** coupe la voix et fait déf
 
 ```bash
 python carre.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
+
+Option `--m9` : un **M9 tranquillisant** (et un **PSG1-T**) pour finir le jeu sans tuer.
+- On l'a en ramassant le SOCOM (message « SOCOM + M9 ») ; le PSG1-T vient avec le PSG1.
+- Dans le menu des armes (R2), sur le SOCOM, **Triangle** passe au M9 (nom « M9 », icône bleutée) et inversement. Même chose sur le PSG1. Les quatre directions servent déjà à naviguer dans ce menu. R1 (équiper / ranger) garde le choix, qui est aussi enregistré dans la sauvegarde.
+- Munitions communes avec l'arme d'origine : les munitions de SOCOM remplissent aussi le M9. Toujours silencieux, coup par coup. À l'écran, l'arme en main est celle du SOCOM avec silencieux.
+- Garde en ronde : endormi en **1 tir**, pour de bon (il ne se réveille pas), avec des **zzz** au-dessus de lui. Pas de sang, pas de perte de vie, pas compté comme tué.
+- Pendant une alerte ou une recherche : le 1er tir le **secoue** ; il s'endort **8 s** plus tard, ou tout de suite au 2e tir.
+- Boss, caméras, etc. : mêmes dégâts que l'arme d'origine (Sniper Wolf au PSG1-T, par exemple).
+- Le code des soldats est retouché dans 33 des 36 stages qui en ont (3 stages sans soldat « au sol » reconnu : s03c, s12b, s12c).
+
+```bash
+python m9.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
 Donne les **deux disques** : la table du test sonore du disque 2 sert aussi à apparier exactement les voix du disque 1.
@@ -83,4 +97,6 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/radio.py` | Script Codec `RADIO.DAT` (commandes TALK / VOICE) |
 | `tools/demo_vostfr.py` | Remplacement de l'audio des cinématiques |
 | `tools/carre.py` | Patch optionnel : Carré fait défiler le Codec |
+| `tools/m9.py` | Patch optionnel : M9 et PSG1-T tranquillisants |
+| `tools/mips.py` | Petit assembleur MIPS (R3000) pour les patchs |
 | `tools/emu.py`, `tools/emu_drive.lua` | Test automatique dans PCSX-Redux (captures d'écran) |
