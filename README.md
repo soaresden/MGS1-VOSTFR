@@ -42,7 +42,7 @@ En CHD (comme dans Batocera) ou en BIN/CUE. Pas besoin de chdman : le CHD est lu
 
 ### Le plus simple : la page web
 
-**[soaresden.github.io/MGS1-VOSTFR](https://soaresden.github.io/MGS1-VOSTFR/#fabriquer)** : balance tes disques (CHD ou BIN), choisis la version et les options, et la page fabrique les images **dans ton navigateur**. Trois versions au choix : **VOSTFR** (disques français + européens), **version française d'origine + mods** (disques français seuls) ou **version anglaise d'origine + mods** (disques européens seuls, mods en cours de portage). Rien n'est envoyé : tout se passe sur ton ordinateur, et les images sont écrites dans le dossier que tu choisis (Chrome ou Edge conseillé, environ 3 Go de mémoire libre, quelques minutes).
+**[soaresden.github.io/MGS1-VOSTFR](https://soaresden.github.io/MGS1-VOSTFR/#fabriquer)** : balance tes disques (CHD ou BIN), choisis la version et les options, et la page fabrique les images **dans ton navigateur**. Trois versions au choix : **VOSTFR** (disques français + européens), **version française d'origine + mods** (disques français seuls) ou **version anglaise d'origine + mods** (disques européens seuls ; textes ajoutés au menu des armes en anglais). Rien n'est envoyé : tout se passe sur ton ordinateur, et les images sont écrites dans le dossier que tu choisis (Chrome ou Edge conseillé, environ 3 Go de mémoire libre, quelques minutes).
 
 La page marche aussi **hors ligne** : télécharge le projet ([zip](https://github.com/soaresden/MGS1-VOSTFR/archive/refs/heads/main.zip)), décompresse-le et double-clique sur `index.html`.
 
@@ -153,4 +153,6 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/l2r2.py` | Patch optionnel : vue subjective, L2/R2 penchent, L2+R2 pointe des pieds |
 | `tools/fps.py` | Patch optionnel : tirer au SOCOM / M9 en vue subjective |
 | `tools/mips.py` | Petit assembleur MIPS (R3000) pour les patchs |
+| `tools/pal.py` | Version de l'EXE (PAL France ou PAL Europe anglaise) et traduction des adresses des patchs |
+| `tools/palmap.py` | Outil de développement : génère `tools/pal_uk.py` (adresses FR → UK) |
 | `tools/emu.py`, `tools/emu_drive.lua` | Test automatique dans PCSX-Redux (captures d'écran) |

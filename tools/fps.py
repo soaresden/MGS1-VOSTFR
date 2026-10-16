@@ -22,12 +22,12 @@ bit 1 = tirer). En vue subjective, le code ajouté :
   (rendus en sortant de la vue).
 Code ajouté à 0x80045400-0x80045900 (menu de débogage inutilisé, voir m9.py).
 
-  python fps.py image.bin [image2.bin ...]     patch en place (VOSTFR ou FR d'origine)
+  python fps.py image.bin [image2.bin ...]     patch en place (VOSTFR, FR ou UK d'origine)
 """
 
 import hashlib, sys
 
-import mips, psxiso
+import mips, pal, psxiso
 from cdsector import write_file_inplace
 
 LOAD = 0x80010000
@@ -220,30 +220,33 @@ fps_root:
 HOOKS = [(0x80066574, "0000728c80004230", "jal fps\nnop")]   # lw s2,0(v1) ; andi v0,v0,0x80
 
 
-def cave():
-    code, sym = mips.assemble(CAVE_SRC.replace("WORLD", world_src()), CAVE, SYM)
+def cave(v="FR"):
+    """Code ajouté pour la version v ('FR' ou 'UK', voir pal.py)."""
+    code, sym = mips.assemble(CAVE_SRC.replace("WORLD", world_src()), pal.addr(v, CAVE), pal.syms(v, SYM))
     if CAVE + len(code) > CAVE_END:
         raise SystemExit(f"code fps trop gros ({len(code)} octets)")
     return code, sym
 
 
 def patch(exe):
+    """EXE PAL France ou Europe -> EXE patché."""
+    v = pal.version(exe)
     out = bytearray(exe)
-    code, sym = cave()
-    off = 0x800 + CAVE - LOAD
-    cur = bytes(out[off:off + CAVE_END - CAVE])
-    if cur[:len(code)] != code:
-        if hashlib.sha1(cur).hexdigest() != CAVE_SHA1:
-            raise SystemExit(f"EXE inattendu à {CAVE:08x} (pas la version PAL France ?)")
+    code, sym = cave(v)
+    off = 0x800 + pal.addr(v, CAVE) - LOAD
+    if bytes(out[off:off + len(code)]) != code:
+        if not pal.cave_ok(v, exe, CAVE, CAVE_END, CAVE_SHA1):
+            raise SystemExit(f"EXE inattendu à {CAVE:08x} (zone de code ajouté déjà utilisée ?)")
         out[off:off + len(code)] = code
     for addr, orig, src in HOOKS:
-        new, _ = mips.assemble(src, addr, sym)
-        o = 0x800 + addr - LOAD
+        a = pal.addr(v, addr)
+        new, _ = mips.assemble(src, a, sym)
+        o = 0x800 + a - LOAD
         cur = bytes(out[o:o + len(new)])
         if cur == new:
             continue
-        if cur != bytes.fromhex(orig):
-            raise SystemExit(f"EXE inattendu à {addr:08x} (pas la version PAL France ?)")
+        if not pal.same(v, cur, orig):
+            raise SystemExit(f"EXE inattendu à {a:08x} ({v})")
         out[o:o + len(new)] = new
     return bytes(out)
 

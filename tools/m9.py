@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-m9.py - Patch optionnel : M9 tranquillisant (et PSG1-T, claymores zzz) pour MGS1 PAL France.
+m9.py - Patch optionnel : M9 tranquillisant (et PSG1-T, claymores zzz) pour MGS1 PAL France
+et PAL Europe anglaise (adresses traduites par pal.py, textes du menu en anglais).
 
 Le M9 partage la case du SOCOM : dans le menu des armes (R2), sur le SOCOM, Triangle
 passe du SOCOM au M9 (icône bleue, toujours silencieux) et inversement. Même
@@ -25,17 +26,16 @@ menu_viewer_act, jamais appelés : 0x800447e4-0x80045900 pour m9 ; la fin sert �
 demandent aussi de retoucher le code des soldats dans chaque overlay de STAGE.DIR.
 Toutes les retouches vérifient les octets d'origine (motifs) avant d'écrire.
 
-  python m9.py image.bin [image2.bin ...]     patch en place (images VOSTFR ou FR d'origine)
+  python m9.py image.bin [image2.bin ...]     patch en place (images VOSTFR, FR ou UK d'origine)
 """
 
-import hashlib, struct, sys
+import struct, sys
 
-import mips, psxiso
+import mips, pal, psxiso
 from cdsector import write_file_inplace
 
 LOAD = 0x80010000  # adresse de chargement de l'EXE (en-tête PS-X EXE de 0x800 octets)
 CAVE, CAVE_END = 0x800447E4, 0x80045400  # suite : fps.py (0x80045400), carre.py (0x80045900), psg1.py (0x80045a08)
-OVB = 0x800C47D8   # adresse de chargement des overlays de stage
 
 SYM = dict(
     MODES=0x800B6426,        # linkvar 83 : bit 0 = M9, bit 1 = PSG1-T, bit 2 = claymore zzz
@@ -707,13 +707,13 @@ HOOKS = [
 ZZZ_HDR = struct.pack("<10H", 0xF7BB, 1, 1, 1, 1, 0, 1, 2, 2, 0)
 
 
-def zzz_script(stage):
+def zzz_script(stage, ovb):
     """Script d'animation des zzz (AN_Sleep), recopié d'un overlay de STAGE.DIR."""
     hdr = ZZZ_HDR
     for name, ovl, _ in overlays(stage):
         k = ovl.find(hdr)
         while k >= 0:
-            p = struct.unpack_from("<I", ovl, k + 0x18)[0] - OVB
+            p = struct.unpack_from("<I", ovl, k + 0x18)[0] - ovb
             if 0 <= p < len(ovl):
                 end = p
                 for _ in range(3):      # 3 sous-scripts, chacun finit par 0D 0F
@@ -731,12 +731,22 @@ CAVE_SHA1 = "38b1bbb1a550a498f5e9c7615085c0c9bf34f55b"  # menu de débogage d'or
 # accents 1F xx). Au plus 29 caractères par ligne, comme les textes d'origine ; la police est
 # proportionnelle : une ligne trop large (« Fusil tranquillisant : endort ») passe à la ligne.
 DESCRIPTIONS = {
-    "DESC_M9": ("M9", ["Pistolet tranquillisant :", "endort les gardes sans bruit.",
-                       "Triangle : retour au SOCOM."]),
-    "DESC_PSG1T": ("PSG1-T", ["Fusil tranquillisant :", "endort les gardes de loin.",
-                              "Triangle : retour au PSG1."]),
-    "DESC_CLAY": ("Claymore ZZZ", ["Mine silencieuse : endort les", "gardes qui passent devant.",
-                                   "Triangle : claymore normale."]),
+    "fr": {
+        "DESC_M9": ("M9", ["Pistolet tranquillisant :", "endort les gardes sans bruit.",
+                           "Triangle : retour au SOCOM."]),
+        "DESC_PSG1T": ("PSG1-T", ["Fusil tranquillisant :", "endort les gardes de loin.",
+                                  "Triangle : retour au PSG1."]),
+        "DESC_CLAY": ("Claymore ZZZ", ["Mine silencieuse : endort les", "gardes qui passent devant.",
+                                       "Triangle : claymore normale."]),
+    },
+    "en": {   # même style que les textes anglais d'origine (« Socom Pistol », « Sniper rifle. »)
+        "DESC_M9": ("M9", ["Tranquilizer pistol.", "Puts guards to sleep quietly.",
+                           "Triangle: back to Socom."]),
+        "DESC_PSG1T": ("PSG1-T", ["Tranquilizer sniper rifle.", "Puts guards to sleep.",
+                                  "Triangle: back to PSG1."]),
+        "DESC_CLAY": ("Claymore ZZZ", ["Silent mine: puts guards", "to sleep when they pass.",
+                                       "Triangle: normal claymore."]),
+    },
 }
 ACCENTS = {"à": 0x09, "â": 0x0A, "ç": 0x0E, "é": 0x0F, "è": 0x10, "ê": 0x11, "î": 0x15}
 
@@ -751,7 +761,7 @@ def encode_desc(name, lines):
     return bytes(out) + b"\0"
 
 
-def build_cave(stage, sites):
+def build_cave(stage, sites, v="FR"):
     """Assemble le code ajouté, avec un relais par variante de soldat (voir scan_overlay)."""
     stubs = []
     for t in sorted({s["target"] for ss in sites.values() for s in ss}):
@@ -759,36 +769,39 @@ def build_cave(stage, sites):
     for x, t in sorted({(s["piyo"], s["target"]) for ss in sites.values() for s in ss if s["piyo"]}):
         stubs += [f"piyo_{x:x}_{t:x}:", f"    lui t9, %hi({x})", f"    addiu t9, t9, %lo({x})",
                   "    j cave_piyo", f"    li t8, {t}"]
-    script = zzz_script(stage)
+    script = zzz_script(stage, pal.ovb(v))
     cave_src = CAVE_SRC
-    for key, (name, lines) in DESCRIPTIONS.items():
+    # gp+0x2f0/0x2f4 (description du menu) : mêmes décalages dans les deux versions
+    assert pal.gp(v, 0x2F0) == 0x2F0 and pal.gp(v, 0x2F4) == 0x2F4
+    for key, (name, lines) in DESCRIPTIONS[pal.lang(v)].items():
         cave_src = cave_src.replace(key, "    .byte " + ", ".join(str(b) for b in encode_desc(name, lines)))
     src = "\n".join([cave_src + "    .byte " + ", ".join(str(b) for b in script), ".align 2"] + stubs) + "\n"
-    code, sym = mips.assemble(src, CAVE, SYM)
+    code, sym = mips.assemble(src, pal.addr(v, CAVE), pal.syms(v, SYM))
     if CAVE + len(code) > CAVE_END:
         raise SystemExit(f"code M9 trop gros ({len(code)} octets)")
     return code, sym
 
 
-def patch_exe(exe, code, sym):
+def patch_exe(exe, code, sym, v="FR"):
     out = bytearray(exe)
-    off = 0x800 + CAVE - LOAD
-    if hashlib.sha1(exe[off:off + CAVE_END - CAVE]).hexdigest() != CAVE_SHA1:
-        raise SystemExit("EXE inattendu (pas la version PAL France, ou déjà patché ?)")
+    off = 0x800 + pal.addr(v, CAVE) - LOAD
+    if not pal.cave_ok(v, exe, CAVE, CAVE_END, CAVE_SHA1):
+        raise SystemExit(f"EXE inattendu ({v}) : menu de débogage déjà utilisé ?")
     out[off:off + len(code)] = code
     for addr, orig, src in HOOKS:
-        new, _ = mips.assemble(src, addr, sym)
-        o = 0x800 + addr - LOAD
-        if bytes(out[o:o + len(new)]) != bytes.fromhex(orig):
-            raise SystemExit(f"EXE inattendu à {addr:08x} (pas la version PAL France ?)")
+        a = pal.addr(v, addr)
+        new, _ = mips.assemble(src, a, sym)
+        o = 0x800 + a - LOAD
+        if not pal.same(v, bytes(out[o:o + len(new)]), orig):
+            raise SystemExit(f"EXE inattendu à {a:08x} ({v})")
         out[o:o + len(new)] = new
     return bytes(out)
 
 
-def is_patched_exe(exe):
+def is_patched_exe(exe, v="FR"):
     addr, orig, _ = HOOKS[0]
-    o = 0x800 + addr - LOAD
-    return exe[o:o + 4] != bytes.fromhex(orig)
+    o = 0x800 + pal.addr(v, addr) - LOAD
+    return not pal.same(v, exe[o:o + 4], orig)
 
 
 # ---- STAGE.DIR ----------------------------------------------------------------
@@ -813,19 +826,19 @@ def jal_target(x):
     return 0x80000000 | (x & 0x3FFFFFF) << 2 if x >> 26 == 3 else None
 
 
-def is_piyo(w, addr):
+def is_piyo(w, addr, ovb):
     """Vrai si la fonction à addr est AN_Piyopiyo (animation de texture GV_StrCode 0xCAFE)."""
-    i = (addr - OVB) // 4
+    i = (addr - ovb) // 4
     if not 0 <= i < len(w):
         return False  # fonction de l'EXE
     for k in range(i, min(i + 40, len(w) - 1)):
         if w[k] >> 16 == 0x3C10 and w[k + 1] >> 16 == 0x2610:  # lui s0 / addiu s0 : ANIMATION
-            p = ((w[k] & 0xFFFF) << 16) + ((w[k + 1] & 0xFFFF) ^ 0x8000) - 0x8000 - OVB
+            p = ((w[k] & 0xFFFF) << 16) + ((w[k + 1] & 0xFFFF) ^ 0x8000) - 0x8000 - ovb
             return 0 <= p < 4 * len(w) and w[p // 4] & 0xFFFF == 0xCAFE
     return False
 
 
-def scan_overlay(ovl):
+def scan_overlay(ovl, ovb):
     """Repère chaque mode « soldat au sol » : test de réveil, appel des étoiles, décalages."""
     w = words(ovl)
     sites = []
@@ -840,7 +853,7 @@ def scan_overlay(ovl):
         body = range(f, i)
         if not {0x8E02009C, 0x2604009C} & {w[k] for k in body}:  # modèle du soldat en 0x9c
             continue
-        piyo = [k for k in body if jal_target(w[k]) and is_piyo(w, jal_target(w[k]))]
+        piyo = [k for k in body if jal_target(w[k]) and is_piyo(w, jal_target(w[k]), ovb)]
         sites.append(dict(wake=i, delay=w[i] & 0xFFFF, target=w[i + 5] & 0xFFFF,
                           piyo=jal_target(w[piyo[0]]) if len(piyo) == 1 else None,
                           piyo_at=piyo[0] if len(piyo) == 1 else None))
@@ -858,11 +871,11 @@ def old_switch(ovl):
     return None
 
 
-def patch_overlay(ovl, sites, sym):
+def patch_overlay(ovl, sites, sym, ovb):
     out = bytearray(ovl)
 
     def put(k, src):
-        new, _ = mips.assemble(src, OVB + 4 * k, sym)
+        new, _ = mips.assemble(src, ovb + 4 * k, sym)
         out[4 * k:4 * k + len(new)] = new
 
     for s in sites:
@@ -877,17 +890,20 @@ def patch_overlay(ovl, sites, sym):
 
 
 def patch_files(exe, stage):
-    """EXE et STAGE.DIR d'un disque -> versions patchées (ou None si déjà patché)."""
-    if is_patched_exe(exe):
+    """EXE et STAGE.DIR d'un disque (PAL France ou Europe) -> versions patchées (ou None si
+    déjà patché)."""
+    v = pal.version(exe)
+    if is_patched_exe(exe, v):
         return None
-    sites = {name: scan_overlay(ovl) for name, ovl, _ in overlays(stage)}
-    sites = {k: v for k, v in sites.items() if v}
-    code, sym = build_cave(stage, sites)
-    new_exe = patch_exe(exe, code, sym)
+    ovb = pal.ovb(v)
+    sites = {name: scan_overlay(ovl, ovb) for name, ovl, _ in overlays(stage)}
+    sites = {k: s for k, s in sites.items() if s}
+    code, sym = build_cave(stage, sites, v)
+    new_exe = patch_exe(exe, code, sym, v)
     out = bytearray(stage)
     for name, ovl, pos in overlays(stage):
         if name in sites:
-            out[pos:pos + len(ovl)] = patch_overlay(ovl, sites[name], sym)
+            out[pos:pos + len(ovl)] = patch_overlay(ovl, sites[name], sym, ovb)
     zzz = [n for n, o, _ in overlays(stage) if ZZZ_HDR in o]
     skipped = [n for n in zzz if n not in sites]
     return new_exe, bytes(out), sorted(sites), skipped

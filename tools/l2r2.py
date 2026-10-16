@@ -10,18 +10,19 @@ la tête pendant qu'on est penché. Avec ce patch :
 - L2 + R2 ensemble (ou un bouton de chaque côté) : Snake se hisse sur la pointe des pieds,
   la vue monte de 20 cm (pour regarder par-dessus un obstacle).
 
-Modifie seulement l'exécutable PAL France (MGS1.EXE = MGS2.EXE), en place : masques de
+Modifie seulement l'exécutable (MGS1.EXE = MGS2.EXE ; PAL France ou PAL Europe anglaise,
+adresses traduites par pal.py), en place : masques de
 boutons de la fonction du penché (sna_80051BA4 de la décompilation, 0x8005726c en PAL), plus
 un peu de code dans la toute fin du menu de débogage jamais appelé (0x80045bb8-0x80045c08,
 après le code de psg1.py). Octets d'origine vérifiés avant d'écrire.
 Bits des boutons : L2 0x1, R2 0x2, L1 0x4, R1 0x8.
 
-  python l2r2.py image.bin [image2.bin ...]     patch en place (images VOSTFR ou FR d'origine)
+  python l2r2.py image.bin [image2.bin ...]     patch en place (images VOSTFR, FR ou UK d'origine)
 """
 
-import hashlib, sys
+import sys
 
-import mips, psxiso
+import mips, pal, psxiso
 from cdsector import write_file_inplace
 
 LOAD = 0x80010000
@@ -86,23 +87,25 @@ def rd(exe, addr, n):
 
 
 def patch(exe):
-    """EXE PAL France -> EXE patché (None si déjà patché)."""
+    """EXE PAL France ou Europe -> EXE patché (None si déjà patché)."""
+    v = pal.version(exe)
     addr, orig, _ = HOOKS[-1]
-    if rd(exe, addr, 4) != bytes.fromhex(orig)[:4]:
+    if not pal.same(v, rd(exe, pal.addr(v, addr), 4), orig[:8]):
         return None
-    if hashlib.sha1(rd(exe, CAVE, CAVE_END - CAVE)).hexdigest() != CAVE_SHA1:
-        raise SystemExit("EXE inattendu (pas la version PAL France ?) : fin du menu de débogage")
-    code, sym = mips.assemble(CAVE_SRC, CAVE, SYM)
+    if not pal.cave_ok(v, exe, CAVE, CAVE_END, CAVE_SHA1):
+        raise SystemExit("EXE inattendu : fin du menu de débogage déjà utilisée ?")
+    code, sym = mips.assemble(CAVE_SRC, pal.addr(v, CAVE), pal.syms(v, SYM))
     if CAVE + len(code) > CAVE_END:
         raise SystemExit(f"code L2/R2 trop gros ({len(code)} octets)")
     out = bytearray(exe)
-    o = 0x800 + CAVE - LOAD
+    o = 0x800 + pal.addr(v, CAVE) - LOAD
     out[o:o + len(code)] = code
     for addr, orig, src in HOOKS:
-        new, _ = mips.assemble(src, addr, sym)
-        o = 0x800 + addr - LOAD
-        if bytes(out[o:o + len(new)]) != bytes.fromhex(orig):
-            raise SystemExit(f"EXE inattendu à {addr:08x} (pas la version PAL France ?)")
+        a = pal.addr(v, addr)
+        new, _ = mips.assemble(src, a, sym)
+        o = 0x800 + a - LOAD
+        if not pal.same(v, bytes(out[o:o + len(new)]), orig):
+            raise SystemExit(f"EXE inattendu à {a:08x} ({v})")
         out[o:o + len(new)] = new
     return bytes(out)
 

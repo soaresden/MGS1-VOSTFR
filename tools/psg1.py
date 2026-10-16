@@ -12,17 +12,18 @@ couchée). Dans la lunette, X fait passer de debout à accroupi et inversement.
 Le jeu remet aussi Snake à plat ventre après certaines scènes (fin d'une scène scriptée,
 reprise après un appel...) quand le PSG1 est en main : ce retour forcé est supprimé.
 
-Modifie seulement l'exécutable PAL France (MGS1.EXE = MGS2.EXE), en place. Le code ajouté va
+Modifie seulement l'exécutable (MGS1.EXE = MGS2.EXE ; PAL France ou PAL Europe anglaise,
+adresses traduites par pal.py), en place. Le code ajouté va
 dans la fin du menu de débogage jamais appelé (0x80045a08-0x80045bb8, à côté du code des
 patchs M9 et Carré ; la suite est à l2r2.py) ; les octets d'origine sont vérifiés avant d'écrire. Avec --m9, appliquer m9.py
 d'abord (il vérifie tout le menu de débogage).
 
-  python psg1.py image.bin [image2.bin ...]     patch en place (images VOSTFR ou FR d'origine)
+  python psg1.py image.bin [image2.bin ...]     patch en place (images VOSTFR, FR ou UK d'origine)
 """
 
-import hashlib, struct, sys
+import struct, sys
 
-import mips, psxiso
+import mips, pal, psxiso
 from cdsector import write_file_inplace
 
 LOAD = 0x80010000
@@ -186,9 +187,9 @@ def rd(exe, addr, n):
     return exe[o:o + n]
 
 
-def build_cave(exe):
-    sym = dict(SYM)
-    pack = struct.unpack("<7I", rd(exe, SYM["PSG1_PACK"], 28))
+def build_cave(exe, v="FR"):
+    sym = pal.syms(v, SYM)
+    pack = struct.unpack("<7I", rd(exe, sym["PSG1_PACK"], 28))
     if pack[1] != 0:
         raise SystemExit("EXE inattendu : table d'actions du PSG1")
     sym.update(STILL=pack[0], TRANS=pack[2], DAMAGE=pack[3], SPECIAL=pack[5], SPECIAL2=pack[6])
@@ -196,28 +197,30 @@ def build_cave(exe):
     if att[0] != 44:            # visée couchée du PSG1
         raise SystemExit("EXE inattendu : animations du PSG1")
     sym.update({f"ATT{i}": att[i] for i in range(1, 9)})
-    code, sym = mips.assemble(CAVE_SRC, CAVE, sym)
+    code, sym = mips.assemble(CAVE_SRC, pal.addr(v, CAVE), sym)
     if CAVE + len(code) > CAVE_END:
         raise SystemExit(f"code PSG1 trop gros ({len(code)} octets)")
     return code, sym
 
 
 def patch(exe):
-    """EXE PAL France -> EXE patché (None si déjà patché)."""
+    """EXE PAL France ou Europe -> EXE patché (None si déjà patché)."""
+    v = pal.version(exe)
     addr, orig, _ = HOOKS[0]
-    if rd(exe, addr, 4) != bytes.fromhex(orig)[:4]:
+    if not pal.same(v, rd(exe, pal.addr(v, addr), 4), orig[:8]):
         return None
-    if hashlib.sha1(rd(exe, CAVE, CAVE_END - CAVE)).hexdigest() != CAVE_SHA1:
-        raise SystemExit("EXE inattendu (pas la version PAL France ?) : fin du menu de débogage")
-    code, sym = build_cave(exe)
+    if not pal.cave_ok(v, exe, CAVE, CAVE_END, CAVE_SHA1):
+        raise SystemExit("EXE inattendu : fin du menu de débogage déjà utilisée ?")
+    code, sym = build_cave(exe, v)
     out = bytearray(exe)
-    o = 0x800 + CAVE - LOAD
+    o = 0x800 + pal.addr(v, CAVE) - LOAD
     out[o:o + len(code)] = code
     for addr, orig, src in HOOKS:
-        new, _ = mips.assemble(src, addr, sym)
-        o = 0x800 + addr - LOAD
-        if bytes(out[o:o + len(new)]) != bytes.fromhex(orig):
-            raise SystemExit(f"EXE inattendu à {addr:08x} (pas la version PAL France ?)")
+        a = pal.addr(v, addr)
+        new, _ = mips.assemble(src, a, sym)
+        o = 0x800 + a - LOAD
+        if not pal.same(v, bytes(out[o:o + len(new)]), orig):
+            raise SystemExit(f"EXE inattendu à {a:08x} ({v})")
         out[o:o + len(new)] = new
     return bytes(out)
 

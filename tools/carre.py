@@ -7,7 +7,8 @@ chaque réplique. Avec ce patch, Carré coupe la voix lui aussi, puis toutes les
 restantes de l'appel défilent seules (comme si on martelait le bouton). Les questions
 (sauvegarde, choix oui/non) ne sont pas touchées.
 
-Modifie seulement l'exécutable PAL France (MGS1.EXE / MGS2.EXE, identiques), en place,
+Modifie seulement l'exécutable (MGS1.EXE / MGS2.EXE, identiques ; PAL France ou PAL Europe
+anglaise, adresses traduites par pal.py), en place,
 dans la boucle Codec (menu/radio.c de la décompilation) :
 - état 5 « appel en cours » : la coupure de voix réagit aussi à Carré enfoncé ;
 - état 4 « attente d'une touche » : Carré enfoncé pose un drapeau (bits 0x8000 = défilement,
@@ -18,12 +19,12 @@ dans la boucle Codec (menu/radio.c de la décompilation) :
   quitte d'habitude sans s'en rendre compte en martelant X). Petit code ajouté à la fin du
   menu de débogage inutilisé (0x80045900-0x80045a08, voir m9.py).
 
-  python carre.py image.bin [image2.bin ...]     patch en place (VOSTFR ou FR d'origine)
+  python carre.py image.bin [image2.bin ...]     patch en place (VOSTFR, FR ou UK d'origine)
 """
 
-import hashlib, struct, sys
+import struct, sys
 
-import mips, psxiso
+import mips, pal, psxiso
 from cdsector import write_file_inplace
 
 LOAD = 0x80010000  # adresse de chargement, en-tête PS-X EXE de 0x800 octets
@@ -76,11 +77,12 @@ WAKE_TASK, CLEAR_TEXT, STATE_END = 0x80049420, 0x80042178, 0x800430DC
 STATE4 = 0x80042BC0
 
 
-def state4():
-    pc = STATE4
+def state4(v="FR"):
+    A = lambda a: pal.addr(v, a)
+    pc = A(STATE4)
     adv, deb = pc + 0x50, pc + 0x64
     return assemble(pc, [
-        move("a0", "s3"), jal(0x800424BC), move("a1", "s4"),   # trace le repère d'attente
+        move("a0", "s3"), jal(A(0x800424BC)), move("a1", "s4"),   # trace le repère d'attente
         lw("v1", 0x218, "s3"),          # v1 = appel en cours
         lhu("s1", 0, "s0"),             # s1 = touches enfoncées
         lhu("v0", 0x18, "v1"),          # v0 = drapeaux de l'appel
@@ -99,12 +101,12 @@ def state4():
         NOP,
         ("bnez", "s2", deb),            # ... qui n'était pas déjà tenue
         addiu("v0", "zero", 3),         # adv :
-        jal(WAKE_TASK),
+        jal(A(WAKE_TASK)),
         sh("v0", 0x210, "s3"),          # état 3
-        jal(CLEAR_TEXT),
+        jal(A(CLEAR_TEXT)),
         move("a0", "s3"),
         and_("s2", "s2", "s1"),         # deb : anti-rebond
-        j(STATE_END),
+        j(A(STATE_END)),
         sh("s2", 0x212, "s3"),
     ])
 
@@ -114,18 +116,18 @@ STATE5 = 0x80042D10
 SKIP = 0x80042D84
 
 
-def state5():
-    pc = STATE5
+def state5(v="FR"):
+    pc, skip = pal.addr(v, STATE5), pal.addr(v, SKIP)
     return assemble(pc, [
         lhu("v0", 0x18, "s1"),
         lhu("v1", 0, "s0"),             # touches enfoncées
         andi("v0", "v0", 1),            # appel impossible à couper ?
-        ("bnez", "v0", SKIP),
+        ("bnez", "v0", skip),
         lhu("a1", 4, "s0"),             # touches relâchées
         andi("v1", "v1", 0x80),         # Carré enfoncé
         andi("a1", "a1", 0x40),         # ou X relâché (origine)
         or_("v0", "v1", "a1"),
-        ("beqz", "v0", SKIP),
+        ("beqz", "v0", skip),
         NOP,
     ])
 
@@ -186,32 +188,38 @@ def words(lst):
 
 
 def patch(exe):
+    """EXE PAL France ou Europe -> EXE patché."""
+    v = pal.version(exe)
     out = bytearray(exe)
-    for addr, new in ((STATE4, state4()), (STATE5, state5())):
-        off = 0x800 + addr - LOAD
-        orig = bytes.fromhex(ORIG[addr])
-        cur = bytes(out[off:off + len(orig)])
+    for addr, new in ((STATE4, state4(v)), (STATE5, state5(v))):
+        a = pal.addr(v, addr)
+        off = 0x800 + a - LOAD
+        n = len(ORIG[addr]) // 2
+        cur = bytes(out[off:off + n])
         if cur == words(new):
             continue  # déjà patché
-        if cur != orig:
-            raise SystemExit(f"EXE inattendu à {addr:08x} (pas la version PAL France ?)")
-        out[off:off + len(orig)] = words(new)
-    code, sym = mips.assemble(CAVE_SRC, CAVE, {"END_CHECK": END_CHECK})
+        if not pal.same(v, cur, ORIG[addr]):
+            raise SystemExit(f"EXE inattendu à {a:08x} ({v})")
+        out[off:off + n] = words(new)
+    # gp+0x828 et gp+0x814 : mêmes décalages dans les deux versions (pal.gp)
+    assert pal.gp(v, 0x828) == 0x828 and pal.gp(v, 0x814) == 0x814
+    cave = pal.addr(v, CAVE)
+    code, sym = mips.assemble(CAVE_SRC, cave, {"END_CHECK": pal.addr(v, END_CHECK)})
     assert CAVE + len(code) <= CAVE_END
-    off = 0x800 + CAVE - LOAD
-    cur = bytes(out[off:off + CAVE_END - CAVE])
-    if cur[:len(code)] != code:
-        if hashlib.sha1(cur).hexdigest() != CAVE_SHA1:
-            raise SystemExit(f"EXE inattendu à {CAVE:08x} (pas la version PAL France ?)")
+    off = 0x800 + cave - LOAD
+    if bytes(out[off:off + len(code)]) != code:
+        if not pal.cave_ok(v, exe, CAVE, CAVE_END, CAVE_SHA1):
+            raise SystemExit(f"EXE inattendu à {cave:08x} ({v})")
         out[off:off + len(code)] = code
     for addr, orig, src in HOOKS:
-        new, _ = mips.assemble(src, addr, sym)
-        o = 0x800 + addr - LOAD
+        a = pal.addr(v, addr)
+        new, _ = mips.assemble(src, a, sym)
+        o = 0x800 + a - LOAD
         cur = bytes(out[o:o + len(new)])
         if cur == new:
             continue
-        if cur != bytes.fromhex(orig):
-            raise SystemExit(f"EXE inattendu à {addr:08x} (pas la version PAL France ?)")
+        if not pal.same(v, cur, orig):
+            raise SystemExit(f"EXE inattendu à {a:08x} ({v})")
         out[o:o + len(new)] = new
     return bytes(out)
 

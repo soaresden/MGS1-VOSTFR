@@ -42,7 +42,7 @@ As CHD (like in Batocera) or BIN/CUE. No chdman needed: the CHD is read directly
 
 ### The easy way: the web page
 
-**[soaresden.github.io/MGS1-VOSTFR](https://soaresden.github.io/MGS1-VOSTFR/#fabriquer)**: drop your discs (CHD or BIN), choose the version and the options, and the page builds the images **in your browser**. Three versions to choose from: **VOSTFR** (French + European discs), **original French version + mods** (French discs only) or **original English version + mods** (European discs only, mods being ported). Nothing is uploaded: everything happens on your computer, and the images are written to the folder you choose (Chrome or Edge recommended, about 3 GB of free memory, a few minutes).
+**[soaresden.github.io/MGS1-VOSTFR](https://soaresden.github.io/MGS1-VOSTFR/#fabriquer)**: drop your discs (CHD or BIN), choose the version and the options, and the page builds the images **in your browser**. Three versions to choose from: **VOSTFR** (French + European discs), **original French version + mods** (French discs only) or **original English version + mods** (European discs only; the texts added to the weapon menu are in English). Nothing is uploaded: everything happens on your computer, and the images are written to the folder you choose (Chrome or Edge recommended, about 3 GB of free memory, a few minutes).
 
 The page also works **offline**: download the project ([zip](https://github.com/soaresden/MGS1-VOSTFR/archive/refs/heads/main.zip)), unzip it and double-click `index.html`.
 
@@ -153,4 +153,6 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/l2r2.py` | Optional patch: first-person view, L2/R2 lean, L2+R2 tiptoe |
 | `tools/fps.py` | Optional patch: shoot the SOCOM / M9 in first-person view |
 | `tools/mips.py` | Small MIPS (R3000) assembler for the patches |
+| `tools/pal.py` | EXE version (PAL France or PAL Europe English) and translation of the patch addresses |
+| `tools/palmap.py` | Development tool: generates `tools/pal_uk.py` (FR → UK addresses) |
 | `tools/emu.py`, `tools/emu_drive.lua` | Automated testing in PCSX-Redux (screenshots) |
