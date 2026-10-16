@@ -100,6 +100,13 @@ Jeu d'origine : Triangle maintenu, **L1/R1** penchent Snake à gauche/droite (sn
 Patch (Denis, comme MGS2) : 5 andi élargis (status 0xc -> 0xf, R1 8 -> 0xa, L1 4 -> 5, en press et release) ; 0x800578b0 : penché -> sna_80051DA0 (0x8005746c) + sna_80051FD0 (0x800576a0) puis retour ; 0x800573ac (choix du côté) : un bouton gauche (0x5) et un droit (0xa) tenus -> field_A60.vy (+0xa5e, caméra, y vers le haut) += 200 au lieu du décalage latéral (pointe des pieds). Grotte 0x80045bb8-0x80045c08 (80 octets, tout pris).
 Testé (quai) : L2 / R2 / L1 = caméra ±830 en x ; penché + Droite : rot.vy 0 -> −1239, la vue tourne ; L2+R2 : caméra centrée, y 1371 -> 1571, retour à 1371 au relâchement. Arme toujours en main, pas de menu.
 
+## Patch « vue subjective » (option --fps, tools/fps.py)
+
+Un seul crochet dans l'Act du SOCOM : 0x80066574 (`lw s2,0(v1)` = drapeaux de l'arme ; `andi v0,v0,0x80` = Snake invisible), juste avant le choix « arme et laser cachés » et la lecture des bits 0 (viser, laser) et 1 (tirer). Code à 0x80045600-0x80045900 (pris sur la fin de la zone de m9.py, dont le code finit vers 0x800451b0 ; m9 vérifie sa zone avant fps -> build.py applique fps après m9).
+En vue subjective (GM_Camera.first_person 0x800b8de2 et PLAYER_WATCH, bit 0 de GM_PlayerStatus 0x800ad038) : DG_OBJS.root de l'arme (+0x20) mis à NULL (sauvé, remis en sortant de la vue), DG_PRIM.root (+0x20) du laser (acteur +0x58) et de son point (+0x10c) -> &objs->world ; matrice de l'arme = caméra (DG_Chanls[1].eye, 0x800b3004 : colonnes droite, bas, avant ; t = position) avec colonnes (-X, -Z, -Y) de la caméra (canon = -Y de l'arme) et décalage (130, 170, 260) ; v0 = 0 (visible) ; manette MenuWork+0x24 (0x800be95c) : Carré tenu -> bit 0, Carré relâché -> bits 0 et 1 ; chargeur vide hors visée -> rechargé. Le reste (laser, balle, son, bruit, munitions, fléchette M9) est le code d'origine.
+Jeu d'origine : en vue subjective Carré ne fait rien ; Gauche/Droite tournent, Haut/Bas inclinent la vue.
+Testé (quai, garde déplacé devant la vue : mov du garde 0x80168aa8 sur la sauvegarde du quai) : arme visible en bas à droite, point du laser sur le garde, M9 = garde endormi, SOCOM = vie 192 -> 128.
+
 ## Tests
 
 `python tools/emu.py launch image.cue [--gui]` (arrière-plan) puis `python tools/emu.py cmd "press START 8\nwait 60\nshot s1" 5`. Pilote `tools/emu_drive.lua` : commandes en file, `wait N` en images (VSync), aussi r16/r32, w16/w32, `poke fichier`, `near cible position dz`. Harnais Lua et PCSX-Redux du projet RE1 Hotkey. Dans MGS PAL : **Rond = valider**, Croix = retour ; Codec : SELECT, Bas = MEMORY, Rond = appeler. Au départ du quai, Snake est dans l'eau : il se noie si on ne le sort pas.

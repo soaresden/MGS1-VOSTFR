@@ -304,6 +304,10 @@
         <tr><td>✅</td><td data-en="In-game voices, Briefing">Voix en jeu, Briefing</td><td data-en="done, tested on both discs">fait, testé sur les deux disques</td></tr>
         <tr><td>✅</td><td data-en="Disc 2">Disque 2</td><td data-en="boots, English voices and French subtitles">démarre, voix anglaises et sous-titres français</td></tr>
         <tr><td>✅</td><td data-en="<code>--carre</code> option">Option <code>--carre</code></td><td data-en="done, tested">fait, testé</td></tr>
+        <tr><td>✅</td><td data-en="<code>--m9</code> option: tranquilizer M9, PSG1-T, zzz claymores">Option <code>--m9</code> : M9, PSG1-T, claymores zzz tranquillisants</td><td data-en="done, tested">fait, testé</td></tr>
+        <tr><td>✅</td><td data-en="<code>--psg1</code> option: PSG1 standing or crouching">Option <code>--psg1</code> : PSG1 debout ou accroupi</td><td data-en="done, tested">fait, testé</td></tr>
+        <tr><td>✅</td><td data-en="<code>--l2r2</code> option: lean with L2/R2 in first-person view">Option <code>--l2r2</code> : pencher avec L2/R2 en vue subjective</td><td data-en="done, tested">fait, testé</td></tr>
+        <tr><td>✅</td><td data-en="<code>--fps</code> option: aim and shoot the SOCOM / M9 in first-person view">Option <code>--fps</code> : viser et tirer au SOCOM / M9 en vue subjective</td><td data-en="done, tested">fait, testé</td></tr>
         <tr><td>⚠️</td><td data-en="Disc swap during the game">Changement de disque en cours de partie</td><td data-en="to confirm on DuckStation or console">à confirmer sur DuckStation ou console</td></tr>
         <tr><td>🔧</td><td data-en="French dub credits in the intro → English cast">Crédits du doublage FR dans l'intro → distribution anglaise</td><td data-en="to do">à faire</td></tr>
         <tr><td>💡</td><td data-en="&quot;2 discs in 1&quot; version">Version « 2 disques en 1 »</td><td data-en="next phase">prochaine phase</td></tr>
@@ -335,7 +339,7 @@ pip install numpy</pre>
       </div>
       <div class="step reveal">
         <h3 data-en="Build">Construire</h3>
-        <p data-en="About a minute and a half. Add <code>--carre</code> for the Square option.">Environ une minute et demie. Ajoute <code>--carre</code> pour l'option Carré.</p>
+        <p data-en="About a minute and a half. Optional extras: <code>--carre</code> (Square skips the Codec), <code>--m9</code> (tranquilizer weapons), <code>--psg1</code>, <code>--l2r2</code>, <code>--fps</code> (MGS2-style first-person view).">Environ une minute et demie. Options : <code>--carre</code> (Carré fait défiler le Codec), <code>--m9</code> (armes tranquillisantes), <code>--psg1</code>, <code>--l2r2</code>, <code>--fps</code> (vue subjective façon MGS2).</p>
         <pre>python build.py --carre \
   --fr1 "MGS (France) (Disc 1).chd" --uk1 "MGS (Europe) (Disc 1).chd" \
   --fr2 "MGS (France) (Disc 2).chd" --uk2 "MGS (Europe) (Disc 2).chd" \
@@ -390,6 +394,8 @@ pip install numpy</pre>
         <tr><td><code>radio.py</code></td><td data-en="Codec script <code>RADIO.DAT</code>">Script Codec <code>RADIO.DAT</code></td></tr>
         <tr><td><code>demo_vostfr.py</code></td><td data-en="Cutscene audio">Audio des cinématiques</td></tr>
         <tr><td><code>carre.py</code></td><td data-en="Square option">Option Carré</td></tr>
+        <tr><td><code>m9.py</code> · <code>mips.py</code></td><td data-en="Tranquilizer weapons · small MIPS assembler">Armes tranquillisantes · petit assembleur MIPS</td></tr>
+        <tr><td><code>psg1.py</code> · <code>l2r2.py</code> · <code>fps.py</code></td><td data-en="PSG1 standing, leaning, first-person shooting">PSG1 debout, pencher, tir en vue subjective</td></tr>
         <tr><td><code>emu.py</code> · <code>emu_drive.lua</code></td><td data-en="Automatic tests in PCSX-Redux">Tests automatiques dans PCSX-Redux</td></tr>
       </table></div>
     </details>

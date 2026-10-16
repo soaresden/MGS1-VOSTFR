@@ -24,6 +24,7 @@ This repository contains **no game data**: only the scripts that build the image
 | `--m9` option: zzz claymores ("CLAY.ZZZ") | ✅ done, tested (dock: zzz claymore = guard asleep, normal claymore = guard killed) |
 | `--psg1` option: PSG1 (and PSG1-T) usable standing or crouching | ✅ done, tested (dock: standing, crouching, prone, shooting a guard) |
 | `--l2r2` option: in first-person view, L2/R2 lean, L2+R2 tiptoe (like in MGS2) | ✅ done, tested |
+| `--fps` option: aim and shoot the SOCOM / M9 in first-person view (like in MGS2) | ✅ done, tested (dock: guard put to sleep with the M9, hurt with the SOCOM, laser) |
 | French dub credits in the intro → English cast | 🔧 to do |
 | "2 discs in 1" version | 💡 phase 3 |
 
@@ -89,6 +90,16 @@ python psg1.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTF
 python l2r2.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
+`--fps` option: **aim and shoot in first-person view** with the SOCOM or the M9, like in MGS2.
+- SOCOM or M9 in hand, **Triangle** held (first-person view): the weapon shows at the bottom right of the screen.
+- **Square** held: the laser turns on; **Square** released: the shot goes off in the direction of the view (Left/Right turn, Up/Down tilt the view as usual).
+- It is the game's normal shot: sound, noise, ammo; the M9 keeps its tranquilizer effect (`--m9`). The magazine reloads by itself in first-person view.
+- Works with `--m9`, `--l2r2`, `--psg1` and `--carre` (build.py applies `fps.py` after `m9.py`).
+
+```bash
+python fps.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
+
 Give **both discs**: disc 2's sound test table is also used to pair disc 1's voices exactly.
 
 ## How it works
@@ -126,5 +137,6 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/m9.py` | Optional patch: tranquilizer M9 and PSG1-T |
 | `tools/psg1.py` | Optional patch: PSG1 standing or crouching |
 | `tools/l2r2.py` | Optional patch: first-person view, L2/R2 lean, L2+R2 tiptoe |
+| `tools/fps.py` | Optional patch: shoot the SOCOM / M9 in first-person view |
 | `tools/mips.py` | Small MIPS (R3000) assembler for the patches |
 | `tools/emu.py`, `tools/emu_drive.lua` | Automated testing in PCSX-Redux (screenshots) |
