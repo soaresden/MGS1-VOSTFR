@@ -253,7 +253,7 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
     <details class="faq">
       <summary data-en="What is left to do?">Ce qui reste à faire</summary>
       <div>
-        <p data-en="CD Combiner (both discs in one); the mods on the English version; confirm the disc swap mid-game on DuckStation or a console; replace the French dub credits shown in the VOSTFR intro with the English cast.">CD Combiner (les deux disques en un) ; les mods sur la version anglaise ; confirmer le changement de disque en cours de partie sur DuckStation ou console ; remplacer les crédits du doublage français affichés dans l'intro VOSTFR par la distribution anglaise.</p>
+        <p data-en="CD Combiner (both discs in one); confirm the disc swap mid-game on DuckStation or a console; replace the French dub credits shown in the VOSTFR intro with the English cast.">CD Combiner (les deux disques en un) ; confirmer le changement de disque en cours de partie sur DuckStation ou console ; remplacer les crédits du doublage français affichés dans l'intro VOSTFR par la distribution anglaise.</p>
       </div>
     </details>
   </section>
@@ -291,9 +291,10 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
     { id: 'en', need: ['UK'],
       fr: 'Version anglaise d\'origine', en: 'Original English version',
       frS: 'Voix et textes anglais, avec tes mods. Disques européens seulement.', enS: 'English voices and text, with your mods. European discs only.',
-      shots: [], noimg: ['Le jeu européen en anglais, tel quel, avec tes mods.', 'The European game in English, as it is, with your mods.'],
-      fl: ['Le jeu européen (anglais) tel quel, avec les mods cochés.', 'Les mods arrivent bientôt sur cette version.'],
-      el: ['The European (English) game as it is, with the ticked mods.', 'The mods are coming soon to this version.'] }
+      shots: [['docs/previews/m9_texte_en.png', 'Menu R2 en anglais · M9', 'R2 menu in English · M9'],
+              ['docs/previews/carre_on_en.png', 'Codec en anglais', 'Codec in English']],
+      fl: ['Le jeu européen (anglais) tel quel, avec les mods cochés.', 'Les textes ajoutés par les mods (menu des armes…) sont en anglais.'],
+      el: ['The European (English) game as it is, with the ticked mods.', 'The text added by the mods (weapon menu…) is in English.'] }
   ];
   var MODS = [
     { id: 'combine', soon: true,
@@ -344,6 +345,17 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
   try { var sv = JSON.parse(localStorage.getItem(KEY)); if (sv && sv.mods) st = sv; } catch (_) {}
   MODS.forEach(function (m) { if (typeof st.mods[m.id] !== 'boolean') st.mods[m.id] = !m.soon; });
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (_) {} }
+
+  // version anglaise : capture « _en » à la place, si elle existe
+  var EN = {};
+  MODS.forEach(function (o) {
+    o.shots.forEach(function (s) {
+      var p = s[0].replace(/\.png$/, '_en.png'), probe = new Image();
+      probe.onload = function () { EN[s[0]] = p; if (cur === o.id) show(o.id); };
+      probe.src = p;
+    });
+  });
+  function src(path) { return st.version === 'en' && EN[path] ? EN[path] : path; }
 
   // captures absentes : retirées de la galerie
   VERSIONS.concat(MODS).forEach(function (o) {
@@ -439,7 +451,7 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
     scr.classList.toggle('empty', !s);
     scr.classList.toggle('dim', !on);
     $('pv-noimg').textContent = o.noimg ? SBT(o.noimg[0], o.noimg[1]) : '';
-    if (s) { img.src = s[0]; img.alt = SBT(s[1], s[2]); }
+    if (s) { img.src = src(s[0]); img.alt = SBT(s[1], s[2]); }
     $('pv-cap').textContent = s ? SBT(s[1], s[2]) : '';
     var th = $('pv-thumbs');
     th.innerHTML = '';
@@ -447,7 +459,7 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
       var b = document.createElement('button');
       b.type = 'button'; b.className = k2 === shot ? 'cur' : '';
       b.setAttribute('aria-label', SBT(t[1], t[2]));
-      b.innerHTML = '<img src="' + t[0] + '" alt="">';
+      b.innerHTML = '<img src="' + src(t[0]) + '" alt="">';
       b.addEventListener('click', function () { show(id, k2); });
       th.appendChild(b);
     });
