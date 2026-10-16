@@ -4,7 +4,7 @@
  *
  *   node webtest.js check disque.chd disque.bin [secteurs]   lecture CHD == BIN ?
  *   node webtest.js combine disque1.bin disque2.bin sortie.bin   CD Combiner (comme combine.py)
- *   node webtest.js build --fr1 a.chd --uk1 b.chd --fr2 c.chd --uk2 d.chd --out dossier [--carre --m9 --psg1 --l2r2 --fps --cartes --psg1loup] [--vf | --vo] [--life TEXTE] [--combine]
+ *   node webtest.js build --fr1 a.chd --uk1 b.chd --fr2 c.chd --uk2 d.chd --out dossier [--carre --m9 --psg1 --l2r2 --fps --bandana --cartes --psg1loup] [--vf | --vo] [--life TEXTE] [--combine]
  *
  * Sert à vérifier que la page produit exactement les mêmes images que build.py.
  */
@@ -53,7 +53,7 @@ async function build(args) {
     if (id.id !== k.toUpperCase()) throw new Error(`${get(k)} : ${id.id || id.exe}, attendu ${k.toUpperCase()}`);
     discs[id.id] = id.disc;
   }
-  const opts = ['carre', 'm9', 'psg1', 'l2r2', 'fps', 'cartes', 'psg1loup'].filter(o => args.includes('--' + o));
+  const opts = ['carre', 'm9', 'psg1', 'l2r2', 'fps', 'bandana', 'cartes', 'psg1loup'].filter(o => args.includes('--' + o));
   const mode = args.includes('--vf') ? 'fr' : args.includes('--vo') ? 'en' : 'vostfr';
   const t = Date.now();
   let last = '';
