@@ -73,7 +73,24 @@ Retouches de l'EXE :
 Sommeil : TARGET.damaged |= 4, a_mode 9 (le soldat s'effondre comme sous grenade incapacitante), faint = -32000, field_18 = 0x4D395A5A. Alerte (mode >= 2) : 1er tir = a_mode 3 (secoué), field_18 = 0x4D39AAAA + acteur minuteur (200 images de jeu = 8 s, PAL 25 images/s ; 1 image de jeu = 2 VSync) ; 2e tir ou fin du minuteur = sommeil. field_18 (pointeur de saisie) n'est remis à NULL qu'à l'init du soldat (GM_SetCaptureTarget).
 Overlays (36 avec soldats, 33 retouchés) : mode « au sol » repéré par `lh v0,DELAI(s0); nop; slt v0,v0,s1; beqz; nop; lw v1,CIBLE(s0)` (DELAI 0xb5a/0xaf6/0xaea, CIBLE 0x900/0x8fc/0x8f0) : test de réveil -> relais wake_CIBLE (jamais de réveil, zzz toutes les 64 images, copie d'AN_Sleep dans l'EXE, script recopié de STAGE.DIR) ; appel d'AN_Piyopiyo (texture 0xcafe) -> relais piyo_ADR_CIBLE (pas d'étoiles). Les textures zzz/étoiles sont résidentes (stage init). Ancienne variante (s07c, s09a, coups 1-4 seulement) : coup 9 redirigé vers le coup 3. Pas de soldat reconnu : s03c, s12b, s12c.
 Testé (PCSX-Redux, quai, sauvegarde d'état + écriture de l'EXE patché en RAM) : bascule Triangle SOCOM/M9 et PSG1/PSG1-T, R1, garde en ronde endormi en 1 tir et toujours au sol 20 s après avec zzz, alerte : secoué puis endormi ~8 s après, 2e tir = endormi tout de suite, PSG1-T, message « SOCOM + M9 ». Pas testé : boss (code simple : a_mode 1).
-Pièges de test : `load` d'un état s'applique à l'image suivante (attendre avant d'écrire en RAM) ; l'émulateur tourne entre deux commandes (une alerte peut tuer Snake) ; la commande `near` du pilote place Snake (mov 0x8016cac8 sur la sauvegarde du quai) près d'une cible.
+Pièges de test : le pilote Lua plante (« stack overflow ») vers 32 000 images après le lancement -> relancer l'émulateur ; tourner Snake en écrivant turn.vy pendant la visée le pousse (il peut tomber à l'eau) : l'orienter (rot.vy + turn.vy) avant d'équiper ; `load` d'un état s'applique à l'image suivante (attendre avant d'écrire en RAM) ; l'émulateur tourne entre deux commandes (une alerte peut tuer Snake) ; la commande `near` du pilote place Snake (mov 0x8016cac8 sur la sauvegarde du quai) près d'une cible.
+
+## Patch « PSG1 debout » (option --psg1, tools/psg1.py)
+
+Travail de Snake (sna_init, s0 ; décalages PAL = Integral − 4) : +0x9b0 actpack, +0xa22 posture (0 debout, 1 accroupi, 2 couché), +0xa36 état de la visée (field_A3A), +0xaa action en cours, +0x9cc tableau de visée (field_9D0). Sur la sauvegarde du quai : travail à 0x8016caa8 (mov 0x8016cac8, rot.vy 0x8016cad2, turn.vy 0x8016cb16, action 0x8016cb52, posture 0x8016d4ca, état 0x8016d4de, actpack 0x8016d458, caméra field_A60 0x8016d504). GM_Magazine 0x800acfd4.
+Tables : gSnakeWeapons 0x800a0560 (PSG1 : NewRifle 0x80069158, sna_anim_psg1 0x80057fc0 ; Stinger 0x80058290), weapon_actions 0x800a03b8 (pas 28 ; PSG1 0x800a04b4, move = NULL, attack 0x800a0368 = {44, 136...}), FamasMove 0x800a02a8, GM_WeaponTypes 0x8009eb98 (PSG1 0x9220 : 0x20 = l'état d'attaque démarre dès qu'on équipe). Fonction de visée PSG1 (field_9C8) 0x800590dc.
+Pourquoi Snake se couche : sna_anim_psg1, image 0, posture debout -> accroupi (état 0-1) -> couché (état 2) -> visée (état 3, action attack->aim = 44, couchée). Sauter seulement les états 0-2 ne suffit pas : l'animation 44 garde la caméra au ras du sol (mesuré : 189 contre 1371 en vue Triangle debout).
+Patch (grotte 0x80045a08-0x80045c08, fin du menu de débogage ; m9.py vérifie tout le menu -> appliquer m9 avant psg1) :
+- 0x80058014 : état 3 tout de suite quelle que soit la posture ; actpack = copie du PSG1 avec attack->aim 5 (set_up_famas) debout, 15 (squat_socom) accroupi, move = FamasMove ; couché : actpack d'origine.
+- 0x800581a8 : état 3, accroupi -> ne pas effacer PLAYER_SQUAT (0x20).
+- 0x800581e4 : état 4 et suivants (visée en cours), caméra field_A60 = main (os 4) + (5,500,80) seulement couché ; sinon la tête (os 6), comme la vue Triangle.
+- 0x800592a4 : limite de visée verticale 0x78 couché, 0x200 sinon (bornée ensuite par le jeu : −188..+222 mesuré debout).
+- 0x80059418 : animation de tremblement 122 (couchée) seulement couché.
+Testé (PCSX-Redux, quai, poke en RAM) : debout (caméra 1362), accroupi (816), tir sur un garde (vie 192 -> −64), touché en visant (reste debout), couché identique à l'original (44 puis 122), R1 range / ressort, marche après rangement.
+
+## Vue subjective : L1/R1
+
+Vérifié dans l'émulateur : Triangle maintenu, **L1/R1** penchent Snake à gauche/droite (sna_80051BA4, bits GV 0x4/0x8) ; L2/R2 ne font rien dans cette vue (pas de menu non plus). Pour ajouter L2/R2 : élargir les masques de cette fonction (0x5 / 0xa), à faire seulement si Denis le demande.
 
 ## Tests
 

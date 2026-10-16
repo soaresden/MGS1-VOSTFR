@@ -21,6 +21,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Changement de disque en cours de partie | ⚠️ à vérifier sur console ou DuckStation : PCSX-Redux le refuse, même avec les disques d'origine |
 | Option `--carre` : Carré fait défiler les dialogues du Codec (comme dans MGS2) | ✅ fait, testé |
 | Option `--m9` : M9 et PSG1-T tranquillisants (les gardes s'endorment, zzz) | ✅ fait, testé (quai, garde en ronde, en alerte, 2e tir, PSG1-T) |
+| Option `--psg1` : PSG1 (et PSG1-T) utilisable debout ou accroupi | ✅ fait, testé (quai : debout, accroupi, couché, tir sur un garde) |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Version « 2 disques en 1 » | 💡 phase 3 |
 
@@ -63,6 +64,18 @@ Option `--m9` : un **M9 tranquillisant** (et un **PSG1-T**) pour finir le jeu sa
 python m9.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
+Option `--psg1` : le **PSG1** (et le PSG1-T de `--m9`) s'utilise **debout ou accroupi**, sans que Snake se couche.
+- Debout, Snake épaule le fusil et la lunette est à hauteur des yeux (comme la vue subjective Triangle). Accroupi, la lunette est plus basse. Couché, rien ne change par rapport au jeu d'origine.
+- Snake garde la posture qu'il avait en sortant le PSG1. Pour viser couché : se coucher d'abord, puis sortir le PSG1. Pour changer de posture : ranger le PSG1 (R1), changer de posture, le ressortir (R1).
+- Debout ou accroupi, on vise un peu plus haut et plus bas que couché, et la lunette **ne tremble pas** (dans le jeu, le tremblement est une animation couchée). Le cœur bat toujours dans la manette.
+- Avec `--m9`, appliquer `m9.py` **avant** `psg1.py` (build.py le fait dans le bon ordre).
+
+```bash
+python psg1.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
+
+Bon à savoir : en vue subjective (Triangle maintenu), **L1 et R1** font déjà pencher Snake à gauche et à droite pour regarder derrière un coin. L2 et R2 ne font rien dans cette vue.
+
 Donne les **deux disques** : la table du test sonore du disque 2 sert aussi à apparier exactement les voix du disque 1.
 
 ## Comment ça marche
@@ -98,5 +111,6 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/demo_vostfr.py` | Remplacement de l'audio des cinématiques |
 | `tools/carre.py` | Patch optionnel : Carré fait défiler le Codec |
 | `tools/m9.py` | Patch optionnel : M9 et PSG1-T tranquillisants |
+| `tools/psg1.py` | Patch optionnel : PSG1 debout ou accroupi |
 | `tools/mips.py` | Petit assembleur MIPS (R3000) pour les patchs |
 | `tools/emu.py`, `tools/emu_drive.lua` | Test automatique dans PCSX-Redux (captures d'écran) |

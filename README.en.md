@@ -21,6 +21,7 @@ This repository contains **no game data**: only the scripts that build the image
 | Disc swap during the game | ⚠️ to be checked on console or DuckStation: PCSX-Redux refuses it, even with the original discs |
 | `--carre` option: Square fast-forwards Codec dialogue (like in MGS2) | ✅ done, tested |
 | `--m9` option: tranquilizer M9 and PSG1-T (guards fall asleep, zzz) | ✅ done, tested (dock: patrolling guard, alert, 2nd shot, PSG1-T) |
+| `--psg1` option: PSG1 (and PSG1-T) usable standing or crouching | ✅ done, tested (dock: standing, crouching, prone, shooting a guard) |
 | French dub credits in the intro → English cast | 🔧 to do |
 | "2 discs in 1" version | 💡 phase 3 |
 
@@ -63,6 +64,18 @@ python carre.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOST
 python m9.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
+`--psg1` option: the **PSG1** (and the `--m9` PSG1-T) can be used **standing or crouching**, without Snake lying down.
+- Standing, Snake shoulders the rifle and the scope is at eye level (like the Triangle first-person view). Crouching, the scope is lower. Prone, nothing changes from the original game.
+- Snake keeps the stance he had when drawing the PSG1. To aim prone: lie down first, then draw the PSG1. To change stance: put the PSG1 away (R1), change stance, draw it again (R1).
+- Standing or crouching, you can aim a bit higher and lower than prone, and the scope **does not sway** (in the game, the sway is a prone animation). The heartbeat is still felt in the controller.
+- With `--m9`, apply `m9.py` **before** `psg1.py` (build.py does it in the right order).
+
+```bash
+python psg1.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
+
+Good to know: in first-person view (holding Triangle), **L1 and R1** already make Snake lean left and right to look around a corner. L2 and R2 do nothing in this view.
+
 Give **both discs**: disc 2's sound test table is also used to pair disc 1's voices exactly.
 
 ## How it works
@@ -98,5 +111,6 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/demo_vostfr.py` | Cutscene audio replacement |
 | `tools/carre.py` | Optional patch: Square fast-forwards the Codec |
 | `tools/m9.py` | Optional patch: tranquilizer M9 and PSG1-T |
+| `tools/psg1.py` | Optional patch: PSG1 standing or crouching |
 | `tools/mips.py` | Small MIPS (R3000) assembler for the patches |
 | `tools/emu.py`, `tools/emu_drive.lua` | Automated testing in PCSX-Redux (screenshots) |
