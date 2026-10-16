@@ -828,24 +828,6 @@
     });
     return { data: out, n: n };
   }
-  function stageTable(st) {
-    var size = u32(st, 0), ent = [];
-    for (var k = 0; k < Math.floor(size / 12); k++) {
-      var nm = ascii(st, 4 + 12 * k, 12 + 12 * k).replace(/\0+$/, '');
-      ent.push([nm, u32(st, 12 + 12 * k) * 2048]);
-    }
-    var out = new Map();
-    ent.forEach(function (e, k) { out.set(e[0], [e[1], k + 1 < ent.length ? ent[k + 1][1] : st.length]); });
-    return out;
-  }
-  function gclInts(st, a, b, wanted) {
-    var out = [];
-    for (var i = a; i < b - 4; i++) {
-      var c = st[i];
-      if (c === 9 || c === 10) { var v = u32be(st, i + 1); if (v && wanted.has(v)) out.push([i, v]); }
-    }
-    return out;
-  }
   // ------------------------------------------------------------------ scripts GCX (gcx.py)
   var DEMO_CMD = 0xA242;
   function be16(b, i) { return b[i] << 8 | b[i + 1]; }
@@ -932,20 +914,16 @@
     return out;
   }
 
-  // Codes VOX des scripts : jetons exacts des scripts GCX (gcxCodes), confirmés par le même stage
-  // anglais (comme vox_vostfr.renumber_stage).
-  function renumberStage(stFr, stUk, secmap, frToUk) {
-    var out = stFr.slice(), tu = stageTable(stUk), ukSecs = new Set(frToUk.values()), ukVals = new Map(), done = 0, skipped = 0;
+  // Codes VOX des scripts (vox_vostfr.renumber_stage) : tout jeton « vox » exact des scripts GCX ;
+  // stage « sound » (codes du VOX du disque 2) renuméroté seulement sur le disque 2.
+  function renumberStage(stFr, secmap, disc2) {
+    var out = stFr.slice(), done = 0, left = 0;
     gcxCodes(stFr, new Set(secmap.keys()), new Set()).forEach(function (c) {
-      if (c[1] !== 'vox' || !tu.has(c[2])) return;
-      if (!ukVals.has(c[2])) {
-        var r = tu.get(c[2]);
-        ukVals.set(c[2], new Set(gclInts(stUk, r[0], r[1], ukSecs).map(function (x) { return x[1]; })));
-      }
-      var v = u32be(stFr, c[0] + 1);
-      if (ukVals.get(c[2]).has(frToUk.get(v))) { w32be(out, c[0] + 1, secmap.get(v)); done++; } else skipped++;
+      if (c[2] === 'sound' && !disc2) { left++; return; }
+      w32be(out, c[0] + 1, secmap.get(u32be(stFr, c[0] + 1)));
+      done++;
     });
-    return { data: out, done: done, skipped: skipped };
+    return { data: out, done: done, left: left };
   }
 
   // ------------------------------------------------------------------ cinématiques (demo_vostfr.py)
@@ -1671,12 +1649,10 @@
       var rr = renumberRadio(radioFr, nv.secmap);
       rep.set('MGS/RADIO.DAT', rr.data);
       log('  RADIO.DAT : ' + rr.n + ' commandes VOICE renumérotées');
-      var frToUk = new Map();
-      mapping.forEach(function (b, a) { frToUk.set(F[a].sec, U[b].sec); });
       var stageCrc = opts.length || life ? crc32(stFr) : 0;
-      var rs = renumberStage(stFr, stUk, nv.secmap, frToUk);
+      var rs = renumberStage(stFr, nv.secmap, d === '2');
       stFr = stUk = null;
-      log('  STAGE.DIR : ' + rs.done + ' codes VOX renumérotés (' + rs.skipped + ' faux positifs ignorés)');
+      log('  STAGE.DIR : ' + rs.done + ' codes VOX renumérotés' + (rs.left ? ' (test sonore : codes du disque 2, laissés)' : ''));
       if (opts.length || life) {
         var pd = PATCHES && PATCHES.discs['FR' + d];
         if (!pd) throw new Error('patches.js manquant');
