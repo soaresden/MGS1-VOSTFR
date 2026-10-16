@@ -28,6 +28,7 @@ This repository contains **no game data**: only the scripts that build the image
 | `--life TEXT` option: your own text instead of "LIFE" in the life bar (e.g. "SNAKE") | ✅ done, tested (dock, French and English versions) |
 | `--cartes` option: key card doors open with the card in your inventory (no need to equip it) | ✅ done, tested (Blast Furnace LV.6 door: blocked without the patch, opens with it) |
 | `--psg1loup` option: the PSG1 where Meryl fell, in Sniper Wolf's passage (no trip back to the armory) | ✅ done, checked in memory (PSG1 there when coming back into the passage, not before) |
+| `--bandana` option: the bandana shows, with a very long tail flowing behind Snake (like in MGS2) | ✅ prototype, tested (Snowfield French and English, Blast Furnace: tail at rest, running, equip / unequip) |
 | Web page: build in the browser, options to tick, works offline | ✅ done, same images as Python byte for byte |
 | French dub credits in the intro → English cast | 🔧 to do |
 | `--combine` option: both discs in **a single image** (emulators, lighter sound) | ✅ done, tested in PCSX-Redux (intro, Codec on both discs, switch to disc 2 from a save, no disc change); VOSTFR, VF and EN, all options |
@@ -141,6 +142,14 @@ python cartes.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOS
 python psg1loup.py "Metal Gear Solid (VOSTFR) (Disc 1).bin"
 ```
 
+`--bandana` option (prototype): in the original game, equipping the BANDANA (infinite ammo, earned by finishing the game) barely shows: the headband Snake already wears just gets a bit darker. With this option, the bandana gets a **1.30 m long tail** tied behind the head, like in MGS2: it hangs down his back when Snake stands still, lifts up behind him when he runs, and waves. It is the small tail model Konami left on the disc and never displayed, made longer and animated. Simple animation: the tail follows the head and ignores the scenery (with Snake lying down, it can go through the floor).
+
+![With --bandana: Snake running in the Snowfield, the tail flowing behind him](docs/previews/bandana_on_en.png) ![From behind (Blast Furnace, brightened)](docs/previews/bandana_dos.png)
+
+```bash
+python bandana.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
+
 ### One image for emulators ("CD Combiner", `--combine` option)
 
 `--combine` adds a **"(1 CD)"** image: the whole game on one disc, **no disc change ever**. The game moves on to disc 2 by itself, without the "Insert disc 2" screen; a disc 2 save loads directly.
@@ -211,6 +220,7 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/life.py` | Optional patch: your text instead of "LIFE" in the life bar (+ preview) |
 | `tools/cartes.py` | Optional patch: key card doors open without equipping the card |
 | `tools/psg1loup.py` | Optional patch: the PSG1 where Meryl fell, in Sniper Wolf's passage |
+| `tools/bandana.py` | Optional patch: visible bandana, very long animated tail (like MGS2) |
 | `tools/combine.py` | Both discs in a single image (lighter sound, no disc change); also in the web page ("CD Combiner" box) |
 | `tools/spuadpcm.py` | SPU ADPCM: decoding, encoding, integer resampling |
 | `tools/gcx.py` | Exact parsing of the `STAGE.DIR` GCX scripts (voice and cutscene codes) |

@@ -6,7 +6,7 @@ build.py - Construit les images VOSTFR de MGS1 PS1 à partir des CHD (ou BIN) FR
 - Codec et voix en jeu (VOX.DAT) : banques anglaises avec les sous-titres FR, codes VOX
   renumérotés dans RADIO.DAT et STAGE.DIR, image ISO reconstruite (VOX.DAT grossit).
 
-  python build.py --fr1 FR_D1.chd --uk1 UK_D1.chd --fr2 FR_D2.chd --uk2 UK_D2.chd --out sortie [--carre] [--m9] [--psg1] [--l2r2] [--fps] [--life SNAKE] [--cartes] [--psg1loup]
+  python build.py --fr1 FR_D1.chd --uk1 UK_D1.chd --fr2 FR_D2.chd --uk2 UK_D2.chd --out sortie [--carre] [--m9] [--psg1] [--l2r2] [--fps] [--life SNAKE] [--cartes] [--psg1loup] [--bandana]
   python build.py --vf --fr1 FR_D1.chd --fr2 FR_D2.chd --out sortie --m9 ...   (jeu français + options)
   python build.py --vo --uk1 UK_D1.chd --uk2 UK_D2.chd --out sortie --m9 ...   (jeu anglais + options)
 
@@ -18,6 +18,7 @@ build.py - Construit les images VOSTFR de MGS1 PS1 à partir des CHD (ou BIN) FR
 --life TEXTE : patch optionnel, texte à la place de « LIFE » dans la barre de vie (voir life.py).
 --cartes : patch optionnel, les portes à carte s'ouvrent avec la carte dans l'inventaire (voir cartes.py).
 --psg1loup : patch optionnel, le PSG1 à la place de Meryl, dans le passage de Sniper Wolf (voir psg1loup.py).
+--bandana : patch optionnel, le bandana se voit, avec de très longs pans comme dans MGS2 (voir bandana.py).
 --combine : en plus des 2 disques, une image unique « (1 CD) » pour émulateurs (voir combine.py :
             son allégé pour tenir sous 99 minutes, pas de changement de disque).
 
@@ -28,7 +29,7 @@ disque 2, reportée sur le disque 1). Les fichiers intermédiaires vont dans ./w
 import argparse, sys
 from pathlib import Path
 
-import carre, cartes, chd2bin, combine, demo_vostfr, fps, isorebuild, l2r2, life, m9, psg1, psg1loup, psxiso, vox_vostfr, voxalign
+import bandana, carre, cartes, chd2bin, combine, demo_vostfr, fps, isorebuild, l2r2, life, m9, psg1, psg1loup, psxiso, vox_vostfr, voxalign
 
 ROOT = Path(__file__).resolve().parent.parent
 WORK = ROOT / "work"
@@ -58,7 +59,7 @@ def tables(path):
             voxalign.sound_test_table(read(path, "STAGE.DIR")))
 
 
-def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=False, rifle=False, lean=False, aim=False, name=None, cards=False, wolf=False, vf=False):
+def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=False, rifle=False, lean=False, aim=False, name=None, cards=False, wolf=False, scarf=False, vf=False):
     """vf : garde les voix françaises (pas de VOSTFR), seulement les options ; uk inutile."""
     rep = {}
     exe = next(f for f in psxiso.Disc(fr).files() if f in ("MGS/MGS1.EXE", "MGS/MGS2.EXE"))
@@ -85,6 +86,9 @@ def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=Fal
         if new is not None:
             rep[exe] = new
             print(f"  {exe[4:]} : barre de vie « {life.clean(name)} »")
+    if scarf:
+        rep[exe] = bandana.patch(rep.get(exe) or read(fr, exe[4:]))
+        print(f"  {exe[4:]} : bandana visible (pans très longs)")
     if cards:
         rep["MGS/STAGE.DIR"], n = cartes.patch_stage(rep.get("MGS/STAGE.DIR") or read(fr, "STAGE.DIR"))
         print(f"  STAGE.DIR : {n} portes à carte s'ouvrent sans équiper la carte")
@@ -134,6 +138,7 @@ def main():
     ap.add_argument("--life", metavar="TEXTE", help="texte à la place de « LIFE » dans la barre de vie (ex. SNAKE)")
     ap.add_argument("--cartes", action="store_true", help="portes à carte ouvertes sans équiper la carte")
     ap.add_argument("--psg1loup", action="store_true", help="PSG1 à la place de Meryl, dans le passage de Sniper Wolf (plus de détour par l'armurerie)")
+    ap.add_argument("--bandana", action="store_true", help="le bandana se voit, avec de très longs pans (comme MGS2)")
     ap.add_argument("--vf", action="store_true", help="jeu français d'origine + options seulement (--uk1/--uk2 inutiles)")
     ap.add_argument("--vo", action="store_true", help="jeu anglais (Europe) d'origine + options seulement (--fr1/--fr2 inutiles)")
     ap.add_argument("--combine", action="store_true", help="aussi les 2 disques en une seule image (émulateurs, son allégé)")
@@ -143,7 +148,7 @@ def main():
     WORK.mkdir(exist_ok=True)
     if a.life:
         life.clean(a.life)  # erreur tout de suite si le texte ne passe pas
-    opts = (a.carre, a.m9, a.psg1, a.l2r2, a.fps, a.life, a.cartes, a.psg1loup)
+    opts = (a.carre, a.m9, a.psg1, a.l2r2, a.fps, a.life, a.cartes, a.psg1loup, a.bandana)
     if a.vf or a.vo:  # jeu d'origine + options, sans VOSTFR
         if not any(opts) and not a.combine:
             raise SystemExit("--vf / --vo sans option : rien à faire")

@@ -28,6 +28,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--life TEXTE` : ton texte à la place de « LIFE » dans la barre de vie (ex. « SNAKE ») | ✅ fait, testé (quai, version française et anglaise) |
 | Option `--cartes` : les portes à carte s'ouvrent avec la carte dans l'inventaire (plus besoin de l'équiper) | ✅ fait, testé (porte LV.6 de Blast Furnace : bloqué sans le patch, ouverte avec) |
 | Option `--psg1loup` : le PSG1 à la place de Meryl, dans le passage de Sniper Wolf (plus de détour par l'armurerie) | ✅ fait, vérifié en mémoire (PSG1 présent quand on revient dans le passage, absent avant) |
+| Option `--bandana` : le bandana se voit, avec un très long pan qui flotte derrière Snake (comme dans MGS2) | ✅ prototype, testé (Snowfield FR et anglais, Blast Furnace : pan au repos, en course, équiper / déséquiper) |
 | Page web : fabrication dans le navigateur, options à cocher, hors ligne possible | ✅ fait, mêmes images que Python octet pour octet |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Option `--combine` : les 2 disques en **une seule image** (émulateurs, son allégé) | ✅ fait, testé dans PCSX-Redux (intro, Codec des deux disques, passage au disque 2 depuis une sauvegarde, sans changer de disque) ; VOSTFR, VF et EN, toutes options |
@@ -141,6 +142,14 @@ python cartes.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOS
 python psg1loup.py "Metal Gear Solid (VOSTFR) (Disc 1).bin"
 ```
 
+Option `--bandana` (prototype) : dans le jeu d'origine, équiper le BANDANA (munitions infinies, obtenu en finissant le jeu) ne se voit presque pas : le bandeau que Snake porte déjà devient juste un peu plus foncé. Avec l'option, le bandana a un **pan de 1,30 m** noué derrière la tête, comme dans MGS2 : il pend dans le dos quand Snake est immobile, se soulève derrière lui quand il court et ondule. C'est le petit modèle de pan que Konami avait laissé sur le disque sans jamais l'afficher, rallongé et animé. Animation simple : le pan suit la tête et ignore le décor (Snake couché, il peut passer dans le sol).
+
+![Avec --bandana : Snake court au Snowfield, le pan flotte derrière lui](docs/previews/bandana_on.png) ![Vu de dos (Blast Furnace, image éclaircie)](docs/previews/bandana_dos.png)
+
+```bash
+python bandana.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
+
 ### Une seule image pour les émulateurs (« CD Combiner », option `--combine`)
 
 `--combine` ajoute une image **« (1 CD) »** : tout le jeu sur un seul disque, **sans jamais changer de disque**. Le passage au disque 2 se fait tout seul, sans écran « Insérez le disque 2 » ; une sauvegarde du disque 2 se recharge directement.
@@ -211,6 +220,7 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/life.py` | Patch optionnel : texte à la place de « LIFE » dans la barre de vie (+ aperçu) |
 | `tools/cartes.py` | Patch optionnel : portes à carte ouvertes sans équiper la carte |
 | `tools/psg1loup.py` | Patch optionnel : le PSG1 à la place de Meryl, dans le passage de Sniper Wolf |
+| `tools/bandana.py` | Patch optionnel : bandana visible, très long pan animé (comme MGS2) |
 | `tools/combine.py` | Les 2 disques en une seule image (son allégé, pas de changement de disque) ; aussi dans la page web (case « CD Combiner ») |
 | `tools/spuadpcm.py` | ADPCM du SPU : décodage, encodage, rééchantillonnage entier |
 | `tools/gcx.py` | Lecture exacte des scripts GCX de `STAGE.DIR` (codes des voix et des cinématiques) |
