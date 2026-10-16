@@ -2,8 +2,9 @@
 """
 fps.py - Patch optionnel : tirer au SOCOM / M9 en vue subjective (comme dans MGS2).
 
-SOCOM ou M9 en main, Triangle maintenu (vue subjective) : l'arme apparaît en bas à droite de
-l'écran, dans l'axe de la caméra. Carré maintenu = visée (laser du SOCOM), Carré relâché = tir.
+SOCOM ou M9 en main, Triangle maintenu (vue subjective) : vue normale, sans arme. Carré maintenu :
+l'arme apparaît en bas à droite de l'écran, dans l'axe de la caméra, avec le laser du SOCOM.
+Carré relâché = tir.
 La balle part dans la direction de la vue. Le tir reste celui du jeu (son, bruit, munitions,
 fléchette du M9 avec --m9) ; le chargeur se recharge tout seul en vue subjective.
 
@@ -14,7 +15,7 @@ bit 1 = tirer). En vue subjective, le code ajouté :
   calcule sa matrice à partir de celle de la caméra (DG_Chanls[1].eye) ; le laser et son point
   lumineux (DG_PRIM.root, rattachés à la main d'origine) suivent la matrice de l'arme ;
 - la laisse visible (le corps de Snake est caché en vue subjective) ;
-- ajoute les bits « viser » (Carré tenu) et « tirer » (Carré relâché).
+- tant que Carré est tenu : arme visible et bit « viser » (laser) ; Carré relâché : bit « tirer ».
 - rend le laser visible : vu presque de face, le trait d'origine (couleur 16,16,16, presque
   transparent) et son point rouge de 2x2 pixels ne se voyaient pas ; en vue subjective le trait
   passe en couleur LASER_RGB et le point au bout du laser en LASER_DOT x LASER_DOT pixels
@@ -79,6 +80,16 @@ fps:
     andi t1, t1, 1
     beqz t1, fps_off
     nop
+    lui t0, %hi(MENU_PAD)       # manette
+    lw t0, %lo(MENU_PAD)(t0)
+    nop
+    lhu a2, 0(t0)               # touches tenues
+    lhu a3, 4(t0)               # touches relâchées
+    nop
+    or t7, a2, a3
+    andi t7, t7, 0x80           # Carré tenu (ou relâché à l'instant) : arme en main
+    beqz t7, fps_off            # sinon vue subjective normale, sans arme
+    nop
     lw t2, 0x20(s1)             # DG_OBJS de l'arme
     nop
     beqz t2, fps_ret
@@ -108,23 +119,13 @@ WORLD
     jal laser_look
     li a1, LASER_DOT
     move ra, t8
-    lui t0, %hi(MENU_PAD)       # manette
-    lw t0, %lo(MENU_PAD)(t0)
-    nop
-    lhu t5, 0(t0)               # touches tenues
-    lhu t6, 4(t0)               # touches relâchées
-    andi t7, t5, 0x80           # Carré tenu : viser
-    beqz t7, fps_norel
-    nop
-    ori s2, s2, 1
-fps_norel:
-    andi t7, t6, 0x80           # Carré relâché : tirer
+    ori s2, s2, 1               # visée : laser
+    andi t7, a3, 0x80           # Carré relâché : tirer
     beqz t7, fps_reload
     nop
+    b fps_ret
     ori s2, s2, 3
-fps_reload:                     # chargeur vide hors visée : rechargé tout de suite
-    andi t7, t5, 0x80
-    bnez t7, fps_ret
+fps_reload:                     # chargeur vide pendant la visée : rechargé tout de suite
     lui t0, %hi(GM_Magazine)
     lh t1, %lo(GM_Magazine)(t0)
     lui t3, %hi(SOCOM_AMMO)
