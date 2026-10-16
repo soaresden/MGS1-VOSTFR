@@ -34,7 +34,7 @@ import mips, psxiso
 from cdsector import write_file_inplace
 
 LOAD = 0x80010000  # adresse de chargement de l'EXE (en-tête PS-X EXE de 0x800 octets)
-CAVE, CAVE_END = 0x800447E4, 0x80045600  # suite : fps.py (0x80045600), carre.py (0x80045900), psg1.py (0x80045a08)
+CAVE, CAVE_END = 0x800447E4, 0x80045400  # suite : fps.py (0x80045400), carre.py (0x80045900), psg1.py (0x80045a08)
 OVB = 0x800C47D8   # adresse de chargement des overlays de stage
 
 SYM = dict(
@@ -689,7 +689,7 @@ def zzz_script(stage):
     raise SystemExit("script zzz introuvable dans STAGE.DIR")
 
 
-CAVE_SHA1 = "1d2ca17daa2d3ef9fc60c73ef9acbbd1488be41d"  # menu de débogage d'origine
+CAVE_SHA1 = "38b1bbb1a550a498f5e9c7615085c0c9bf34f55b"  # menu de débogage d'origine
 
 
 def build_cave(stage, sites):

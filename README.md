@@ -93,7 +93,7 @@ python l2r2.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTF
 
 Option `--fps` : **viser et tirer en vue subjective** avec le SOCOM ou le M9, comme dans MGS2.
 - SOCOM ou M9 en main, **Triangle** maintenu (vue subjective) : l'arme apparaît en bas à droite de l'écran.
-- **Carré** maintenu : le laser s'allume ; **Carré** relâché : le coup part, dans la direction de la vue (Gauche/Droite tournent, Haut/Bas inclinent la vue comme d'habitude).
+- **Carré** maintenu : le **laser rouge** s'allume (un trait de l'arme jusqu'au point visé, avec le point rouge au bout) ; **Carré** relâché : le coup part, dans la direction de la vue (Gauche/Droite tournent, Haut/Bas inclinent la vue comme d'habitude).
 - C'est le tir normal du jeu : son, bruit, munitions ; le M9 garde son effet tranquillisant (`--m9`). Le chargeur se recharge tout seul en vue subjective.
 - Compatible avec `--m9`, `--l2r2`, `--psg1` et `--carre` (build.py applique `fps.py` après `m9.py`).
 

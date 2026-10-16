@@ -15,7 +15,11 @@ bit 1 = tirer). En vue subjective, le code ajouté :
   lumineux (DG_PRIM.root, rattachés à la main d'origine) suivent la matrice de l'arme ;
 - la laisse visible (le corps de Snake est caché en vue subjective) ;
 - ajoute les bits « viser » (Carré tenu) et « tirer » (Carré relâché).
-Code ajouté à 0x80045600-0x80045900 (menu de débogage inutilisé, voir m9.py).
+- rend le laser visible : vu presque de face, le trait d'origine (couleur 16,16,16, presque
+  transparent) et son point rouge de 2x2 pixels ne se voyaient pas ; en vue subjective le trait
+  passe en couleur LASER_RGB et le point au bout du laser en LASER_DOT x LASER_DOT pixels
+  (rendus en sortant de la vue).
+Code ajouté à 0x80045400-0x80045900 (menu de débogage inutilisé, voir m9.py).
 
   python fps.py image.bin [image2.bin ...]     patch en place (VOSTFR ou FR d'origine)
 """
@@ -26,8 +30,8 @@ import mips, psxiso
 from cdsector import write_file_inplace
 
 LOAD = 0x80010000
-CAVE, CAVE_END = 0x80045600, 0x80045900
-CAVE_SHA1 = "d8bb1f476e2609a746c25e8b9fff6dcfeeb480a6"  # octets d'origine de la zone
+CAVE, CAVE_END = 0x80045400, 0x80045900
+CAVE_SHA1 = "6e05336a974efc6b25d1a20da48670942551f4fc"  # octets d'origine de la zone
 
 # Arme dans le repère de la caméra (x droite, y bas, z avant), en unités du jeu
 OFFSET = (130, 170, 260)
@@ -39,6 +43,8 @@ SYM = dict(
     EYE=0x800B3004,            # DG_Chanls[1].eye : caméra -> monde
     GM_Magazine=0x800ACFD4, GM_MagazineMax=0x800AD014, SOCOM_AMMO=0x800B63A2,
     OX=OFFSET[0], OY=OFFSET[1], OZ=OFFSET[2],
+    LASER_RGB=0x60, LASER_RGB0=0x10,   # couleur du trait : vue subjective / d'origine
+    LASER_DOT=6, LASER_DOT0=2,          # taille du point rouge : vue subjective / d'origine
 )
 
 
@@ -97,6 +103,11 @@ fps_nolaser:
 fps_world:
     la t9, EYE
 WORLD
+    move t8, ra
+    li a0, LASER_RGB
+    jal laser_look
+    li a1, LASER_DOT
+    move ra, t8
     lui t0, %hi(MENU_PAD)       # manette
     lw t0, %lo(MENU_PAD)(t0)
     nop
@@ -153,8 +164,52 @@ fps_nolaser2:
     sw t3, 0x20(t6)
 fps_clear:
     sw zero, 0(t4)
-    jr ra
     sw zero, 4(t4)
+    li a0, LASER_RGB0           # laser d'origine
+    j laser_look
+    li a1, LASER_DOT0
+
+# laser_look(a0 = couleur du trait, a1 = taille du point) ; s1 = acteur SOCOM
+laser_look:
+    lw t0, 0x58(s1)             # trait : 10 POLY_FT4 (0x28 octets) par tampon
+    li t3, 2
+    beqz t0, laser_dot
+    addiu t0, t0, 0x40          # packs[0], packs[1]
+laser_pack:
+    lw t1, 0(t0)
+    li t2, 10
+    beqz t1, laser_next
+    nop
+laser_poly:
+    sb a0, 4(t1)
+    sb a0, 5(t1)
+    sb a0, 6(t1)
+    addiu t2, t2, -1
+    bnez t2, laser_poly
+    addiu t1, t1, 0x28
+laser_next:
+    addiu t3, t3, -1
+    bnez t3, laser_pack
+    addiu t0, t0, 4
+laser_dot:
+    lw t0, 0x10C(s1)            # point : 2 TILE (0x10 octets) par tampon, le 2e au bout
+    li t3, 2
+    beqz t0, laser_ret
+    addiu t0, t0, 0x40
+laser_dotpack:
+    lw t1, 0(t0)
+    nop
+    beqz t1, laser_dotnext
+    nop
+    sh a1, 0x1C(t1)             # w, h du 2e TILE
+    sh a1, 0x1E(t1)
+laser_dotnext:
+    addiu t3, t3, -1
+    bnez t3, laser_dotpack
+    addiu t0, t0, 4
+laser_ret:
+    jr ra
+    nop
 
 .align 2
 fps_root:
