@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-webpatches.py - Exporte les options (carre, m9, psg1, l2r2, fps) pour la page web.
+webpatches.py - Exporte les options (carre, m9, psg1, l2r2, fps, cartes, psg1loup) pour la page web.
 
 La page fabrique les images dans le navigateur (docs/mgs-vostfr.js) ; les options sont
 des différences d'octets sur l'EXE et STAGE.DIR d'origine, calculées ici avec les mêmes
@@ -22,9 +22,9 @@ combinaison = l'union des différences de chaque option) : c'est vérifié.
 import itertools, json, re, sys, zlib
 from pathlib import Path
 
-import carre, fps, l2r2, life, m9, pal, psg1, psxiso
+import carre, cartes, fps, l2r2, life, m9, pal, psg1, psg1loup, psxiso
 
-ORDER = ["carre", "m9", "psg1", "l2r2", "fps"]  # ordre de build.py
+ORDER = ["carre", "m9", "psg1", "l2r2", "fps", "cartes", "psg1loup"]  # ordre de build.py
 IDS = {"SLES_015.06": "FR1", "SLES_115.06": "FR2", "SLES_013.70": "UK1", "SLES_113.70": "UK2"}
 OUT = Path(__file__).resolve().parent.parent / "docs" / "patches.js"
 
@@ -40,6 +40,10 @@ def run(exe, stage, opts):
         exe = l2r2.patch(exe)
     if "fps" in opts:
         exe = fps.patch(exe)
+    if "cartes" in opts:
+        stage, _ = cartes.patch_stage(stage)
+    if "psg1loup" in opts:
+        stage, _ = psg1loup.patch_stage(stage)
     if not isinstance(exe, (bytes, bytearray)) or not isinstance(stage, (bytes, bytearray)):
         raise ValueError("version non gérée par le patch")
     return bytes(exe), bytes(stage)

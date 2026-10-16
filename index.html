@@ -358,6 +358,19 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
               ['docs/previews/psg1_off.png', 'Jeu d\'origine : Snake doit se coucher', 'Original game: Snake has to lie down']],
       fl: ['Snake garde sa posture en sortant le PSG1 ; couché, rien ne change.', 'Dans la lunette, <b>X</b> passe de debout à accroupi.', 'Debout ou accroupi, la lunette ne tremble pas.'],
       el: ['Snake keeps his stance when drawing the PSG1; prone, nothing changes.', 'In the scope, <b>X</b> switches between standing and crouching.', 'Standing or crouching, the scope does not sway.'] },
+    { id: 'cartes',
+      fr: 'Portes à carte sans équiper la carte', en: 'Card doors without equipping the card',
+      frS: 'La carte dans l\'inventaire suffit : plus besoin de l\'équiper devant chaque porte.', enS: 'Having the card in your inventory is enough: no need to equip it at every door.',
+      shots: [['docs/previews/cartes_on.png', 'Avec l\'option : la porte s\'ouvre', 'With the option: the door opens'],
+              ['docs/previews/cartes_off.png', 'Jeu d\'origine : il faut équiper la carte', 'Original game: you have to equip the card']],
+      fl: ['Une porte à carte s\'ouvre dès que tu as la bonne carte (ou une meilleure) dans ton inventaire.', 'Plus besoin de passer par le menu des objets devant chaque porte.'],
+      el: ['A card door opens as soon as you have the right card (or a better one) in your inventory.', 'No more going through the item menu at every door.'] },
+    { id: 'psg1loup', off: true,
+      fr: 'PSG1 à côté de Meryl', en: 'PSG1 next to Meryl',
+      frS: 'Le PSG1 t\'attend dans le passage de Sniper Wolf, près de Meryl : plus de détour par l\'armurerie.', enS: 'The PSG1 waits for you in Sniper Wolf\'s passage, next to Meryl: no more trip back to the armory.',
+      shots: [], noimg: ['Le PSG1 est posé près de Meryl, dans le passage où Sniper Wolf l\'a touchée.', 'The PSG1 lies next to Meryl, in the passage where Sniper Wolf shot her.'],
+      fl: ['Quand tu reviens dans le passage où Sniper Wolf a touché Meryl, le PSG1 est posé près d\'elle.', 'Plus besoin de retourner à l\'armurerie du bâtiment principal pour le chercher.', 'Décochée par défaut : coche-la si tu veux t\'épargner le détour.'],
+      el: ['When you come back to the passage where Sniper Wolf shot Meryl, the PSG1 lies next to her.', 'No more going back to the armory of the main building to get it.', 'Unticked by default: tick it if you want to skip the trip.'] },
     { id: 'life', text: true,
       fr: 'Barre de vie : ton texte', en: 'Life bar: your own text',
       frS: 'À la place de « LIFE » : SNAKE, ton pseudo… 15 caractères.', enS: 'Instead of "LIFE": SNAKE, your nickname… 15 characters.',
@@ -369,7 +382,7 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
   ];
   var KEY = 'mgs.vostfr.choice', st = { version: 'vostfr', mods: {} };
   try { var sv = JSON.parse(localStorage.getItem(KEY)); if (sv && sv.mods) st = sv; } catch (_) {}
-  MODS.forEach(function (m) { if (typeof st.mods[m.id] !== 'boolean') st.mods[m.id] = !m.soon && !m.text; });
+  MODS.forEach(function (m) { if (typeof st.mods[m.id] !== 'boolean') st.mods[m.id] = !m.soon && !m.text && !m.off; });
   if (typeof st.life !== 'string') st.life = 'SNAKE';
   function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (_) {} }
 
