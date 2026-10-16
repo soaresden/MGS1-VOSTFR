@@ -27,7 +27,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--fps` : viser et tirer au SOCOM / M9 en vue subjective (comme dans MGS2) | ✅ fait, testé (quai : garde endormi au M9, blessé au SOCOM, laser) |
 | Option `--life TEXTE` : ton texte à la place de « LIFE » dans la barre de vie (ex. « SNAKE ») | ✅ fait, testé (quai, version française et anglaise) |
 | Option `--cartes` : les portes à carte s'ouvrent avec la carte dans l'inventaire (plus besoin de l'équiper) | ✅ fait, testé (porte LV.6 de Blast Furnace : bloqué sans le patch, ouverte avec) |
-| Option `--psg1loup` : le PSG1 à la place de Meryl, dans le passage de Sniper Wolf (plus de détour par l'armurerie) | ✅ fait, vérifié en mémoire (PSG1 présent quand on revient dans le passage, absent avant) |
+| Option `--psg1loup` : le PSG1 dans la grotte, là où Meryl attendait (plus de détour par l'armurerie) | ✅ fait, testé en jeu (ramassage, appel de Campbell, combat sans Meryl au retour) |
 | Option `--bandana` : le bandana se voit, avec un très long pan qui flotte derrière Snake (comme dans MGS2) | ✅ prototype, testé (Snowfield FR et anglais, Blast Furnace : pan au repos, en course, équiper / déséquiper) |
 | Page web : fabrication dans le navigateur, options à cocher, hors ligne possible | ✅ fait, mêmes images que Python octet pour octet |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
@@ -133,9 +133,9 @@ Option `--cartes` : les portes à carte s'ouvrent dès que la carte est dans l'i
 
 ![Sans --cartes : porte LV.6 fermée, carte en poche](docs/previews/cartes_off.png) ![Avec --cartes : Snake passe](docs/previews/cartes_on.png)
 
-Option `--psg1loup` (désactivée par défaut) : après que Sniper Wolf a blessé Meryl dans le passage souterrain, plus besoin de retourner chercher le PSG1 à l'armurerie. Il suffit de ressortir du passage (comme dans le jeu, Wolf repousse Snake tant qu'il n'a pas de fusil) et d'y revenir : le PSG1 attend **à côté de Meryl**, là où elle est tombée. La suite est celle du jeu d'origine (cinématique, combat). Comme tous les objets du jeu, il n'existe pas en mode Extreme (le chemin par l'armurerie reste).
+Option `--psg1loup` (désactivée par défaut) : après que Sniper Wolf a blessé Meryl dans le passage souterrain, plus besoin de retourner chercher le PSG1 à l'armurerie. Après l'appel de Campbell qui envoie chercher le PSG1, il suffit de ressortir dans la grotte des chiens-loups : le PSG1 attend **là où Meryl attendait avec le chien**. En le ramassant, Campbell rappelle comme à l'armurerie (« Tu as le PSG-1 ? Utilise-le contre Sniper Wolf… »), et au retour dans le passage Meryl n'est plus là : le combat commence, comme dans le jeu d'origine. Détail visible : le PSG1 est déjà dans l'inventaire (vide) en entrant dans la grotte, et la boîte apporte les balles. Le jeu n'a pas le modèle « arme au sol » dans cette salle, seulement celui des boîtes de munitions, qu'il refuse sans l'arme. La boîte apparaît aussi en mode Extreme ; le chemin par l'armurerie reste possible.
 
-![Avec --psg1loup : retour dans le passage, le PSG1 à côté de Meryl](docs/previews/psg1loup_on.png)
+![Avec --psg1loup : appel de Campbell au ramassage dans la grotte, puis combat sans Meryl](docs/previews/psg1loup_on.png)
 
 ```bash
 python cartes.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
@@ -219,7 +219,7 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/fps.py` | Patch optionnel : tirer au SOCOM / M9 en vue subjective |
 | `tools/life.py` | Patch optionnel : texte à la place de « LIFE » dans la barre de vie (+ aperçu) |
 | `tools/cartes.py` | Patch optionnel : portes à carte ouvertes sans équiper la carte |
-| `tools/psg1loup.py` | Patch optionnel : le PSG1 à la place de Meryl, dans le passage de Sniper Wolf |
+| `tools/psg1loup.py` | Patch optionnel : le PSG1 dans la grotte, là où Meryl attendait, avant Sniper Wolf |
 | `tools/bandana.py` | Patch optionnel : bandana visible, très long pan animé (comme MGS2) |
 | `tools/combine.py` | Les 2 disques en une seule image (son allégé, pas de changement de disque) ; aussi dans la page web (case « CD Combiner ») |
 | `tools/spuadpcm.py` | ADPCM du SPU : décodage, encodage, rééchantillonnage entier |

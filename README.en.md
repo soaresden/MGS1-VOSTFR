@@ -27,7 +27,7 @@ This repository contains **no game data**: only the scripts that build the image
 | `--fps` option: aim and shoot the SOCOM / M9 in first-person view (like in MGS2) | ✅ done, tested (dock: guard put to sleep with the M9, hurt with the SOCOM, laser) |
 | `--life TEXT` option: your own text instead of "LIFE" in the life bar (e.g. "SNAKE") | ✅ done, tested (dock, French and English versions) |
 | `--cartes` option: key card doors open with the card in your inventory (no need to equip it) | ✅ done, tested (Blast Furnace LV.6 door: blocked without the patch, opens with it) |
-| `--psg1loup` option: the PSG1 where Meryl fell, in Sniper Wolf's passage (no trip back to the armory) | ✅ done, checked in memory (PSG1 there when coming back into the passage, not before) |
+| `--psg1loup` option: the PSG1 in the cave, where Meryl was waiting (no trip back to the armory) | ✅ done, tested in game (pickup, Campbell's call, fight without Meryl on the way back) |
 | `--bandana` option: the bandana shows, with a very long tail flowing behind Snake (like in MGS2) | ✅ prototype, tested (Snowfield French and English, Blast Furnace: tail at rest, running, equip / unequip) |
 | Web page: build in the browser, options to tick, works offline | ✅ done, same images as Python byte for byte |
 | French dub credits in the intro → English cast | 🔧 to do |
@@ -133,9 +133,9 @@ python life.py "SNAKE" "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Soli
 
 ![Without --cartes: LV.6 door shut, card in inventory](docs/previews/cartes_off.png) ![With --cartes: Snake walks through](docs/previews/cartes_on.png)
 
-`--psg1loup` option (off by default): after Sniper Wolf shoots Meryl in the underground passage, no need to go all the way back to the armory for the PSG1. Just step out of the passage (as in the game, Wolf pushes Snake back while he has no rifle) and come back in: the PSG1 waits **next to Meryl**, where she fell. The rest plays out as in the original game (cutscene, fight). Like every item in the game, it is not there in Extreme mode (the armory route remains).
+`--psg1loup` option (off by default): after Sniper Wolf shoots Meryl in the underground passage, no need to go all the way back to the armory for the PSG1. After Campbell's call sending Snake for the PSG1, just step back out into the wolf-dog cave: the PSG1 waits **where Meryl was waiting with the dog**. Picking it up triggers Campbell's armory call (use it on Sniper Wolf), and back in the passage Meryl is gone: the fight starts, as in the original game. One visible detail: the PSG1 is already in the inventory (empty) when you enter the cave, and the box brings the bullets. The game has no "weapon on the floor" model in that room, only the ammo box one, and it refuses ammo without the weapon. The box also shows up in Extreme mode; the armory route still works.
 
-![With --psg1loup: back in the passage, the PSG1 next to Meryl](docs/previews/psg1loup_on.png)
+![With --psg1loup: Campbell's call on pickup in the cave, then the fight without Meryl](docs/previews/psg1loup_on.png)
 
 ```bash
 python cartes.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
@@ -219,7 +219,7 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/fps.py` | Optional patch: shoot the SOCOM / M9 in first-person view |
 | `tools/life.py` | Optional patch: your text instead of "LIFE" in the life bar (+ preview) |
 | `tools/cartes.py` | Optional patch: key card doors open without equipping the card |
-| `tools/psg1loup.py` | Optional patch: the PSG1 where Meryl fell, in Sniper Wolf's passage |
+| `tools/psg1loup.py` | Optional patch: the PSG1 in the cave, where Meryl was waiting, before Sniper Wolf |
 | `tools/bandana.py` | Optional patch: visible bandana, very long animated tail (like MGS2) |
 | `tools/combine.py` | Both discs in a single image (lighter sound, no disc change); also in the web page ("CD Combiner" box) |
 | `tools/spuadpcm.py` | SPU ADPCM: decoding, encoding, integer resampling |
