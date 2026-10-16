@@ -26,7 +26,9 @@ Image pour émulateurs seulement (trop grande pour un CD-R).
    selon FS_DiskNum, reset logiciel -> MGS1.EXE, pilote de flux : fréquence 0x400 à la place
    de 0xC00 (une interruption sur quatre).
 4. Overlays abst / title / change / demosel de STAGE.DIR : pas d'attente du capot, FS_DiskNum
-   = disque voulu avant la relecture des fichiers (FS_ResetCdFilePosition).
+   = disque voulu avant la relecture des fichiers (FS_ResetCdFilePosition) ; logo METAL GEAR retiré
+   de change (fin du disque 1 : enchaînement direct sur Blast Furnace), délai porté à 160 images
+   dans title et demosel (le logo doit finir avant le chargement du stage suivant).
 Image : secteurs 0 à 202 du disque 1 (zone système, descripteurs, tables des chemins, racine
 modifiée : MGS2 ajouté, DUMMY3M.DAT retiré), fichiers du disque 1 dans MGS/, répertoire MGS2/
 et fichiers du disque 2 (BRF.DAT / FACE.DAT identiques : partagés), 150 secteurs de fin.
@@ -245,6 +247,25 @@ def patch_exe(exe):
 
 # ---- overlays ----------------------------------------------------------------------------------
 
+def remove_logo(w, ovl, ovb, name):
+    """Remplace chaque `jal NewMetalGearLogo` de l'overlay par `addu v0, zero, zero` (pas de logo).
+    NewMetalGearLogo = fonction qui charge l'adresse de la chaîne « met_logo.c » (lui r ; addiu r, r)
+    : son début est le dernier `addiu sp, sp, -X` qui précède cette référence."""
+    sa = ovb + ovl.index(b"met_logo.c\0")
+    hi, lo = (sa + 0x8000) >> 16 & 0xFFFF, sa & 0xFFFF
+    refs = [i for i in range(len(w) - 4) if w[i] >> 26 == 15 and w[i] & 0xFFFF == hi
+            and any(w[j] >> 26 == 9 and (w[j] >> 21) & 31 == (w[i] >> 16) & 31 and w[j] & 0xFFFF == lo
+                    for j in range(i + 1, i + 5))]
+    assert len(refs) == 1, f"{name} : met_logo.c"
+    f0 = next(i for i in range(refs[0], -1, -1) if w[i] >> 16 == 0x27BD and w[i] & 0x8000)
+    jal = 0x0C000000 | ((ovb + 4 * f0) & 0x3FFFFFF) >> 2
+    calls = [i for i, x in enumerate(w) if x == jal]
+    assert calls, f"{name} : appel de NewMetalGearLogo"
+    for i in calls:
+        w[i] = 0x00001021
+    return w
+
+
 def patch_overlays(st, fs, reset, ovb):
     """abst / title / change / demosel : pas de capot, FS_DiskNum = disque voulu."""
     st = bytearray(st)
@@ -288,6 +309,19 @@ def patch_overlays(st, fs, reset, ovb):
         assert len(tabs) == 1, f"{name} : table"
         e = tabs[0]
         w[e:e + 6] = [w[e + 6]] * 6
+        # logo METAL GEAR (met_logo.c) : acteur permanent dont le code est dans l'overlay ; il lui faut
+        # jusqu'à ~157 images. Sans l'attente du capot et de START (>= 160 images), le stage suivant se
+        # chargeait par-dessus l'overlay avant la fin du logo -> saut dans du code écrasé (plantage de
+        # la fin du disque 1). change : plus de logo (enchaînement direct) ; title, demosel : la suite
+        # attend 160 images au lieu de 72 (slti v1,v1,0x48 -> 0xA0) ; abst : rien (la question du
+        # journal de mission suit dans le même stage, le logo a le temps de finir).
+        if name == "change":
+            w = remove_logo(w, bytes(st[base:base + size]), ovb, name)
+        elif name in ("title", "demosel"):
+            sl = [i for i, x in enumerate(w) if x == 0x28630048]
+            assert len(sl) == (2 if name == "title" else 1), f"{name} : délai du logo"
+            for i in sl:
+                w[i] = 0x286300A0
         struct.pack_into(f"<{n}I", st, base, *w)
         done.append(name)
     assert sorted(done) == ["abst", "change", "demosel", "title"], done
