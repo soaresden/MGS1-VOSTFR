@@ -1497,6 +1497,12 @@
       files.push(fl);
     }
     shr = null;
+    // test sonore : le stage « sound » est le même sur les deux disques (même place, mêmes octets)
+    // et porte les codes du disque 2 : on recopie sur le disque 1 celui du disque 2 renuméroté
+    var st1 = files[0]['MGS/STAGE.DIR'], st2 = files[1]['MGS/STAGE.DIR'];
+    var s1 = gcxStageTable(st1).filter(function (e) { return e[0] === 'sound'; })[0];
+    var s2 = gcxStageTable(st2).filter(function (e) { return e[0] === 'sound'; })[0];
+    if (s1 && s2 && s1[1] === s2[1] && s1[2] === s2[2]) st1.set(st2.subarray(s2[1], s2[2]), s1[1]);
     var total = await cbWriteImage(d1, d2, files, writer, function (f) { progress('1 CD : écriture de l\'image', f); });
     log('  image unique : ' + total + ' secteurs (' + Math.round(total * SECTOR / 1e6) + ' Mo, max ' + (CB_LIMIT + 150) + ')');
     return total;
