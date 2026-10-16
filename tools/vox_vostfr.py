@@ -20,7 +20,7 @@ au début du fichier) changent donc : RADIO.DAT (commandes VOICE) et STAGE.DIR (
 0x09 / 0x0A) sont renumérotés sans changer de taille.
 """
 
-import collections, re, struct
+import struct
 
 import gcx, radio, vox
 
@@ -183,47 +183,23 @@ def renumber_radio(data, secmap):
     return bytes(out), n
 
 
-def stage_table(st):
-    """Répertoire de STAGE.DIR : {nom: (début, fin)} en octets."""
-    size = struct.unpack_from("<I", st, 0)[0]
-    ent = [(st[4 + 12 * k:12 + 12 * k].rstrip(b"\0").decode(), struct.unpack_from("<I", st, 12 + 12 * k)[0] * 2048)
-           for k in range(size // 12)]
-    return {n: (o, ent[k + 1][1] if k + 1 < len(ent) else len(st)) for k, (n, o) in enumerate(ent)}
-
-
-def gcl_ints(st, a, b, wanted):
-    """Entiers GCL (0x09 int / 0x0A symbole, u32 BE) de [a, b) dont la valeur est dans wanted."""
-    out = []
-    for m in re.finditer(rb"[\x09\x0a]", st[a:b - 4]):
-        i = a + m.start()
-        v = struct.unpack_from(">I", st, i + 1)[0]
-        if v and v in wanted:
-            out.append((i, v))
-    return out
-
-
-def renumber_stage(st_fr, st_uk, secmap, fr_to_uk):
-    """Codes VOX des scripts GCL de STAGE.DIR FR.
+def renumber_stage(st_fr, secmap, disc2):
+    """Codes VOX des scripts GCL de STAGE.DIR FR (taille inchangée).
 
     Les codes sont les jetons entiers (0x09 / 0x0A) des scripts GCX (gcx.codes), et non tous les
-    octets 0x09 / 0x0A du fichier : un balayage brut modifiait aussi des données d'overlays (s03b,
-    s19b). Par prudence, un code n'est renuméroté que si le même stage anglais contient le code de
-    la banque anglaise appariée. fr_to_uk : {secteur FR: secteur UK}.
-    """
+    octets 0x09 / 0x0A du fichier : un balayage brut modifiait aussi des données (overlay de s03b,
+    modèle 3D de s19b). Tout jeton « vox » est renuméroté, banques gardées en VF comprises.
+    Stage « sound » (test sonore) : il porte les codes du VOX.DAT du disque 2, sur les deux
+    disques ; renuméroté seulement si disc2, laissé tel quel sur le disque 1.
+
+    Renvoie (données, nb de codes renumérotés, nb de codes du test sonore laissés)."""
     out = bytearray(st_fr)
-    tu = stage_table(st_uk)
-    uk_secs = set(fr_to_uk.values())
-    uk_vals = {}
-    done = skipped = 0
-    for p, kind, name in gcx.codes(st_fr, set(secmap), set()):
-        if kind != "vox" or name not in tu:
+    done = left = 0
+    for p, _, name in gcx.codes(st_fr, set(secmap), set()):
+        if name == "sound" and not disc2:
+            left += 1
             continue
-        if name not in uk_vals:
-            uk_vals[name] = {v for _, v in gcl_ints(st_uk, *tu[name], uk_secs)}
         v = struct.unpack_from(">I", st_fr, p + 1)[0]
-        if fr_to_uk.get(v) in uk_vals[name]:
-            struct.pack_into(">I", out, p + 1, secmap[v])
-            done += 1
-        else:
-            skipped += 1
-    return bytes(out), done, skipped
+        struct.pack_into(">I", out, p + 1, secmap[v])
+        done += 1
+    return bytes(out), done, left

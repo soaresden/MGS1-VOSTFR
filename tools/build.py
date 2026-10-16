@@ -64,7 +64,7 @@ def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=Fal
         rep[exe] = carre.patch(read(fr, exe[4:]))
         print(f"  {exe[4:]} : Carré fait défiler le Codec")
     if not vf:
-        vostfr(fr, uk, anchors, fr_tab, uk_tab, rep)
+        vostfr(fr, uk, anchors, fr_tab, uk_tab, rep, exe == "MGS/MGS2.EXE")
     if tranq:
         rep[exe], rep["MGS/STAGE.DIR"], stages, _ = m9.patch_files(
             rep.get(exe) or read(fr, exe[4:]), rep.get("MGS/STAGE.DIR") or read(fr, "STAGE.DIR"))
@@ -91,7 +91,7 @@ def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=Fal
         f'FILE "{out_bin.name}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n', encoding="ascii")
 
 
-def vostfr(fr, uk, anchors, fr_tab, uk_tab, rep):
+def vostfr(fr, uk, anchors, fr_tab, uk_tab, rep, disc2):
     """Cinématiques, VOX.DAT, RADIO.DAT et STAGE.DIR en VOSTFR (dans rep)."""
     demo, nb, swapped = demo_vostfr.patch(read(fr, "DEMO.DAT"), read(uk, "DEMO.DAT"))
     rep["MGS/DEMO.DAT"] = demo
@@ -108,10 +108,8 @@ def vostfr(fr, uk, anchors, fr_tab, uk_tab, rep):
 
     rep["MGS/RADIO.DAT"], n = vox_vostfr.renumber_radio(radio_fr, secmap)
     print(f"  RADIO.DAT : {n} commandes VOICE renumérotées")
-    fr_to_uk = {fr_tab[a]["sec"]: uk_tab[b]["sec"] for a, b in mapping.items()}
-    rep["MGS/STAGE.DIR"], done, skipped = vox_vostfr.renumber_stage(
-        read(fr, "STAGE.DIR"), read(uk, "STAGE.DIR"), secmap, fr_to_uk)
-    print(f"  STAGE.DIR : {done} codes VOX renumérotés ({skipped} faux positifs ignorés)")
+    rep["MGS/STAGE.DIR"], done, _ = vox_vostfr.renumber_stage(read(fr, "STAGE.DIR"), secmap, disc2)
+    print(f"  STAGE.DIR : {done} codes VOX renumérotés" + ("" if disc2 else " (test sonore : codes du disque 2, laissés)"))
 
 
 def main():

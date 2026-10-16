@@ -18,7 +18,7 @@ Valeurs : 0x1X variable (4 octets), 0x01 short, 0x09 int / 0x0A symbole (u32 BE)
 Codes (vérifié sur les 4 disques FR / UK) : toujours des jetons 0x09 ou 0x0A. Cinématiques =
 commande « demo » (id 0xA242), valeur de l'option 's' -> secteur relatif à DEMO.DAT. Voix = tout
 autre jeton 0x09 / 0x0A dont la valeur est un début de banque de VOX.DAT (non nul). Le balayage
-brut d'octets (vox_vostfr.gcl_ints) attrape aussi des données d'overlays : à éviter.
+brut d'octets (ancien vox_vostfr.gcl_ints) attrapait aussi des données d'overlays et de modèles.
 """
 
 import struct
