@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Metal Gear Solid · VOSTFR</title>
+<meta name="description" content="Metal Gear Solid (PS1) avec les voix anglaises et les textes français. Choisis tes options, dépose tes disques, et la page fabrique tes images dans ton navigateur.">
 <script>
   // Langue : choix mémorisé (sb.lang) sinon langue du navigateur ; les éléments data-en passent en anglais.
   (function () {
@@ -19,491 +20,216 @@
     });
   })();
 </script>
-<meta name="description" content="Metal Gear Solid sur PlayStation avec les voix anglaises d'origine et les textes français : cinématiques, Codec, voix en jeu, deux disques. Fabrique tes images dans le navigateur, avec des options façon MGS2 à cocher.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700;800&family=Share+Tech+Mono&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@600;800&family=Share+Tech+Mono&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #020604; --panel: #06110b; --line: #1d4a32; --green: #7dffb0; --green2: #3ddc84; --dim: #5f8f74;
-    --text: #cfe9da; --teal: #34d1c4; --red: #e0453a; --amber: #ffc857;
+    --bg: #030805; --panel: #07120c; --panel2: #0b1a11; --line: #1f4a33; --green: #7dffb0; --green2: #3ddc84; --dim: #6f9c82;
+    --text: #d6eedf; --title: #edfff4; --red: #ff8b80;
     --mono: "Share Tech Mono", ui-monospace, monospace; --head: "Saira Condensed", "Arial Narrow", sans-serif;
   }
   * { box-sizing: border-box; }
-  html { scroll-behavior: smooth; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 Barlow, system-ui, sans-serif; overflow-x: hidden; }
-  /* lignes de balayage et grain d'écran cathodique */
-  body::before { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 50;
-    background: repeating-linear-gradient(0deg, rgba(0,0,0,.22) 0 1px, transparent 1px 3px); }
-  body::after { content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 49;
-    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.65) 100%); }
+  body { margin: 0; background: radial-gradient(900px 500px at 50% -200px, rgba(61,220,132,.16), transparent 70%), var(--bg);
+         color: var(--text); font: 16px/1.6 Barlow, system-ui, sans-serif; }
   a { color: var(--green); }
-  code { font-family: var(--mono); color: var(--green); background: rgba(125,255,176,.07); padding: 0 4px; border-radius: 3px; }
-  .wrap { width: min(1080px, 100% - 32px); margin: 0 auto; }
+  code { font-family: var(--mono); color: var(--green); background: rgba(125,255,176,.08); padding: 0 4px; border-radius: 3px; }
+  main { width: min(960px, 100% - 32px); margin: 0 auto; padding: 22px 0 60px; }
 
-  nav { position: sticky; top: 0; z-index: 20; background: rgba(2,6,4,.85); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
-  nav .wrap { display: flex; align-items: center; gap: 18px; height: 52px; }
-  nav .brand { font: 700 18px var(--head); letter-spacing: .12em; color: var(--teal); text-decoration: none; text-transform: uppercase; margin-right: auto; white-space: nowrap; }
-  nav .links { display: flex; gap: 16px; }
-  nav .links a { font: 13px var(--mono); color: var(--dim); text-decoration: none; text-transform: uppercase; letter-spacing: .08em; }
-  nav .links a:hover { color: var(--green); }
-  #lang, .gh { font: 13px var(--mono); color: var(--green); background: transparent; border: 1px solid var(--line); border-radius: 4px; padding: 5px 10px; cursor: pointer; text-decoration: none; white-space: nowrap; }
-  #lang:hover, .gh:hover { border-color: var(--green); }
-  @media (max-width: 760px) { nav .links { display: none; } }
+  .top { display: flex; align-items: center; gap: 10px; }
+  .top .brand { font: 15px var(--mono); color: var(--dim); letter-spacing: .12em; margin-right: auto; }
+  .top a.gh, #lang { font: 13px var(--mono); color: var(--green); background: transparent; border: 1px solid var(--line); border-radius: 4px;
+                     padding: 6px 10px; cursor: pointer; text-decoration: none; min-height: 34px; }
+  .top a.gh:hover, #lang:hover { border-color: var(--green2); }
 
-  /* ── En-tête ── */
-  header { position: relative; padding: 56px 0 40px; }
-  header .wrap { display: grid; grid-template-columns: 1.1fr .9fr; gap: 40px; align-items: center; }
-  .kicker { font: 13px var(--mono); letter-spacing: .35em; color: var(--dim); text-transform: uppercase; }
-  h1 { margin: 6px 0 0; font: 800 clamp(48px, 9vw, 92px)/.88 var(--head); letter-spacing: .02em; text-transform: uppercase; font-style: italic;
-       color: transparent; -webkit-text-stroke: 2px var(--teal); text-shadow: 0 0 22px rgba(52,209,196,.35); }
-  h1 small { display: block; font-size: .32em; letter-spacing: 1.2em; font-style: normal; -webkit-text-stroke: 1px var(--teal); margin: 6px 0 0 .2em; }
-  .vostfr { display: inline-flex; align-items: center; gap: 12px; margin-top: 22px; padding: 8px 16px; border: 1px solid var(--green2); border-radius: 4px;
-            font: 700 26px var(--mono); color: var(--green); letter-spacing: .1em; box-shadow: 0 0 18px rgba(61,220,132,.2) inset, 0 0 18px rgba(61,220,132,.15); }
-  .vostfr .bars { display: flex; gap: 3px; align-items: flex-end; height: 22px; }
-  .vostfr .bars i { width: 4px; background: var(--green2); animation: vu 1.1s ease-in-out infinite; }
-  .vostfr .bars i:nth-child(2) { animation-delay: -.3s; } .vostfr .bars i:nth-child(3) { animation-delay: -.6s; }
-  .vostfr .bars i:nth-child(4) { animation-delay: -.15s; } .vostfr .bars i:nth-child(5) { animation-delay: -.8s; }
-  @keyframes vu { 0%, 100% { height: 25%; } 50% { height: 100%; } }
-  .lead { font: 20px/1.5 var(--mono); color: var(--green); margin: 22px 0 6px; min-height: 3em; }
-  .lead .cur { display: inline-block; width: .6em; height: 1em; background: var(--green); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
-  @keyframes blink { 50% { opacity: 0; } }
-  .sub { color: var(--text); opacity: .85; max-width: 52ch; }
-  .cta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
-  .btn { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border-radius: 4px; text-decoration: none; font: 700 15px var(--head); letter-spacing: .12em; text-transform: uppercase; }
-  .btn.main { background: var(--green2); color: #021208; box-shadow: 0 0 20px rgba(61,220,132,.35); }
-  .btn.alt { border: 1px solid var(--line); color: var(--green); }
-  .btn:hover { filter: brightness(1.15); }
+  header { text-align: center; padding: 34px 0 10px; }
+  h1 { margin: 0; font: 800 clamp(40px, 8vw, 72px)/.95 var(--head); text-transform: uppercase; font-style: italic; letter-spacing: .02em;
+       color: transparent; -webkit-text-stroke: 2px #34d1c4; text-shadow: 0 0 22px rgba(52,209,196,.3); }
+  .badge-vo { display: inline-block; margin-top: 12px; padding: 4px 14px; border: 1px solid var(--green2); border-radius: 4px;
+              font: 20px var(--mono); color: var(--green); letter-spacing: .12em; }
+  header p { max-width: 640px; margin: 16px auto 0; font-size: 18px; }
+  header p b { color: var(--title); }
+  .safe { margin-top: 10px; font: 13px var(--mono); color: var(--dim); }
 
-  /* écran de jeu : 320×256 PAL affiché en 4:3, pixels nets */
-  .screen { position: relative; margin: 0; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #000; cursor: zoom-in;
-            box-shadow: 0 0 0 4px #030a06, 0 0 30px rgba(61,220,132,.12); }
-  .screen img { display: block; width: 100%; aspect-ratio: 4 / 3; image-rendering: pixelated; }
-  .screen::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px); pointer-events: none; }
-  .screen figcaption { position: relative; z-index: 1; padding: 6px 10px; font: 12px var(--mono); color: var(--green); letter-spacing: .05em;
-                       background: var(--panel); border-top: 1px solid var(--line); }
-  .hero-screen { transform: perspective(900px) rotateY(-8deg); }
-  @media (max-width: 860px) { header .wrap { grid-template-columns: 1fr; } .hero-screen { transform: none; } }
+  /* étapes */
+  .step { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px 22px; margin-top: 22px; }
+  .step h2 { display: flex; align-items: center; gap: 12px; margin: 0 0 6px; font: 800 26px/1.1 var(--head); text-transform: uppercase; letter-spacing: .05em; color: var(--title); }
+  .step h2 .n { flex: none; display: grid; place-items: center; width: 34px; height: 34px; border-radius: 50%; background: var(--green2); color: #021208; font: 800 20px var(--head); }
+  .step > p { margin: 0 0 14px; opacity: .9; }
 
-  /* ── Sections ── */
-  section { padding: 56px 0; border-top: 1px solid var(--line); }
-  .sec-head { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 8px; }
-  .freq { font: 22px var(--mono); color: var(--green); padding: 2px 10px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel); }
-  h2 { margin: 0; font: 800 clamp(28px, 4.4vw, 40px)/1 var(--head); text-transform: uppercase; letter-spacing: .06em; color: #e9fff3; }
-  .intro { max-width: 70ch; opacity: .9; margin: 10px 0 26px; }
-  .grid { display: grid; gap: 16px; }
-  .g2 { grid-template-columns: repeat(2, 1fr); } .g3 { grid-template-columns: repeat(3, 1fr); } .g4 { grid-template-columns: repeat(4, 1fr); }
-  @media (max-width: 860px) { .g3, .g4 { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 520px) { .g2, .g3, .g4 { grid-template-columns: 1fr; } }
+  /* étape 1 : choix */
+  .choose { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 20px; align-items: start; }
+  .opt { display: flex; gap: 12px; align-items: flex-start; padding: 12px; border: 1px solid transparent; border-radius: 8px; cursor: pointer; }
+  .opt + .opt { margin-top: 4px; }
+  .opt:hover, .opt.cur { background: var(--panel2); border-color: var(--line); }
+  .opt input { flex: none; width: 22px; height: 22px; margin: 3px 0 0; accent-color: var(--green2); cursor: pointer; }
+  .opt input:disabled { cursor: default; }
+  .opt b { display: block; color: var(--title); font-weight: 600; font-size: 17px; }
+  .opt small { display: block; font-size: 14.5px; opacity: .8; line-height: 1.45; }
+  .opt .always { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid var(--line); border-radius: 3px; font: 11.5px var(--mono); color: var(--dim); vertical-align: 2px; }
+  .pv { position: sticky; top: 14px; background: #020604; border: 1px solid var(--line); border-radius: 10px; padding: 12px; }
+  .screen { position: relative; margin: 0; border-radius: 6px; overflow: hidden; background: #000; border: 1px solid var(--line); }
+  .screen img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; image-rendering: pixelated; }
+  .screen::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px); }
+  .screen.dim img { filter: grayscale(.8) brightness(.4); }
+  .screen .noimg { display: none; position: absolute; inset: 0; place-items: center; padding: 20px; text-align: center; font: 14px var(--mono); color: var(--dim); }
+  .screen.empty .noimg { display: grid; }
+  .screen.empty img { visibility: hidden; }
+  .pv h3 { margin: 12px 2px 2px; font: 800 22px var(--head); text-transform: uppercase; letter-spacing: .04em; color: var(--green); }
+  .pv .state { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 3px; font: 12px var(--mono); vertical-align: 3px; }
+  .state.on { background: rgba(61,220,132,.16); color: var(--green); } .state.off { background: rgba(255,139,128,.14); color: var(--red); }
+  .pv .cap { margin: 6px 2px 0; font: 13px var(--mono); color: var(--dim); min-height: 1.4em; }
+  .pv ul { margin: 8px 0 0; padding-left: 20px; font-size: 15px; }
+  .pv li { margin: 3px 0; }
+  .thumbs { display: flex; gap: 6px; margin-top: 8px; }
+  .thumbs button { flex: 1 1 0; min-width: 0; max-width: 20%; padding: 0; border: 2px solid var(--line); border-radius: 4px; background: #000; cursor: pointer; overflow: hidden; }
+  .thumbs button.cur { border-color: var(--green2); }
+  .thumbs img { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: cover; image-rendering: pixelated; }
+  @media (max-width: 820px) { .choose { grid-template-columns: 1fr; } .pv { position: static; order: -1; } }
 
-  /* patchs */
-  .patch { display: grid; grid-template-columns: 1fr 1.15fr; gap: 28px; align-items: center; margin-bottom: 44px; }
-  .patch:nth-of-type(even) .shots { order: -1; }
-  .patch h3 { margin: 0 0 6px; font: 700 26px var(--head); letter-spacing: .06em; text-transform: uppercase; color: var(--green); }
-  .patch .tag { display: inline-block; font: 12px var(--mono); padding: 2px 8px; border-radius: 3px; margin-bottom: 10px; letter-spacing: .08em; }
-  .tag.ok { background: rgba(61,220,132,.14); color: var(--green); border: 1px solid rgba(61,220,132,.35); }
-  .tag.opt { background: rgba(255,200,87,.12); color: var(--amber); border: 1px solid rgba(255,200,87,.35); }
-  .patch p { margin: 0 0 10px; }
-  .patch ul { margin: 0; padding-left: 18px; } .patch li { margin: 3px 0; }
-  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .shots .wide { grid-column: span 2; }
-  .patch > * { min-width: 0; }
-  @media (max-width: 860px) { .patch { grid-template-columns: 1fr; } .patch:nth-of-type(even) .shots { order: 0; } }
-
-  /* démonstration du bouton Carré */
-  .carre { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px; }
-  .carre .stage { position: relative; }
-  .carre .stage img { transition: opacity .25s; }
-  .carre .ctrl { display: flex; align-items: center; gap: 12px; margin-top: 12px; flex-wrap: wrap; }
-  .pad { width: 46px; height: 46px; border-radius: 50%; border: 2px solid #ff8ad8; color: #ff8ad8; background: #12060e; font: 22px/1 sans-serif; cursor: pointer;
-         display: grid; place-items: center; box-shadow: 0 3px 0 #5a2448; }
-  .pad:active, .pad.hit { transform: translateY(2px); box-shadow: 0 1px 0 #5a2448; background: #2a0c20; }
-  .carre .msg { font: 13px var(--mono); color: var(--dim); }
-
-  /* état */
-  table { width: 100%; border-collapse: collapse; font-size: 15px; }
-  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { font: 13px var(--mono); color: var(--dim); text-transform: uppercase; letter-spacing: .1em; }
-  td:first-child { width: 2.4em; text-align: center; }
-  .tbl { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-
-  /* installation */
-  .steps { counter-reset: s; display: grid; gap: 14px; }
-  .step { min-width: 0; position: relative; padding: 16px 16px 16px 62px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
-  .step::before { counter-increment: s; content: "0" counter(s); position: absolute; left: 16px; top: 14px; font: 26px var(--mono); color: var(--green2); }
-  .step h3 { margin: 0 0 6px; font: 700 20px var(--head); letter-spacing: .06em; text-transform: uppercase; color: #e9fff3; }
-  .step p { margin: 0 0 8px; }
-  pre { margin: 8px 0 0; padding: 12px 14px; background: #000; border: 1px solid var(--line); border-radius: 6px; overflow-x: auto;
-        font: 13.5px/1.55 var(--mono); color: var(--green); }
-  pre .c { color: var(--dim); }
-  @media (max-width: 520px) { .step { padding: 46px 14px 14px; } .step::before { top: 10px; } th, td { padding: 8px 8px; } }
-  .discs td:first-child { width: auto; text-align: left; }
-  .discs code { white-space: nowrap; }
-
-  /* comment ça marche */
-  details { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 12px; }
-  summary { cursor: pointer; padding: 14px 16px; font: 700 19px var(--head); letter-spacing: .06em; text-transform: uppercase; color: var(--green); list-style: none; }
-  summary::-webkit-details-marker { display: none; }
-  summary::before { content: "▶"; display: inline-block; margin-right: 10px; font-size: 12px; transition: transform .2s; }
-  details[open] summary::before { transform: rotate(90deg); }
-  details > div { padding: 0 16px 14px; }
-  details ol { padding-left: 20px; } details li { margin: 6px 0; }
-
-  footer { padding: 34px 0 50px; border-top: 1px solid var(--line); font-size: 14px; color: var(--dim); }
-  footer p { margin: 4px 0; }
-
-  /* agrandissement */
-  dialog { padding: 0; border: 1px solid var(--green2); background: #000; max-width: min(96vw, 1000px); width: 100%; border-radius: 6px; }
-  dialog::backdrop { background: rgba(0,0,0,.85); }
-  dialog img { display: block; width: 100%; aspect-ratio: 4 / 3; image-rendering: pixelated; }
-  dialog p { margin: 0; padding: 8px 12px; font: 13px var(--mono); color: var(--green); }
-
-  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s, transform .6s; }
-  .reveal.on { opacity: 1; transform: none; }
-  @media (prefers-reduced-motion: reduce) {
-    .reveal { opacity: 1; transform: none; transition: none; }
-    .vostfr .bars i, .lead .cur { animation: none; }
-  }
-
-  /* ── patcheur ── */
-  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 16px 18px; margin-bottom: 16px; }
-  .box h3 { margin: 0 0 6px; font: 700 21px var(--head); letter-spacing: .06em; text-transform: uppercase; color: #e9fff3; }
-  .box h3 .n { display: inline-grid; place-items: center; width: 30px; height: 30px; margin-right: 10px; border-radius: 50%; background: var(--green2); color: #021208; font: 800 17px var(--head); }
-  .box > p { margin: 0 0 12px; opacity: .9; }
-  #drop { display: block; border: 2px dashed var(--line); border-radius: 8px; padding: 22px; text-align: center; cursor: pointer; font: 15px var(--mono); color: var(--green); transition: .15s; }
+  /* étape 2 : disques */
+  #drop { display: block; border: 2px dashed var(--line); border-radius: 8px; padding: 22px; text-align: center; cursor: pointer; font: 15px var(--mono); color: var(--green); }
   #drop:hover, #drop.over { border-color: var(--green2); background: rgba(61,220,132,.06); }
   #drop input { display: none; }
-  .slots { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px; }
+  .slots { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
   .slot { border: 1px solid var(--line); border-radius: 6px; padding: 9px 12px; background: #030a06; min-width: 0; }
-  .slot b { display: block; font: 600 15px Barlow, sans-serif; color: #e9fff3; }
+  .slot b { display: block; color: var(--title); font-weight: 600; }
   .slot span { display: block; font: 12.5px var(--mono); color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .slot.ok { border-color: var(--green2); } .slot.ok span { color: var(--green); }
-  .slot.bad { border-color: var(--red); } .slot.bad span { color: var(--red); }
   @media (max-width: 560px) { .slots { grid-template-columns: 1fr; } }
-  .optgrid { display: grid; grid-template-columns: 1fr 340px; gap: 18px; align-items: start; }
-  .opt { display: flex; gap: 12px; align-items: flex-start; padding: 11px 10px; border-top: 1px solid var(--line); border-radius: 6px; cursor: pointer; }
-  .opt:first-child { border-top: 0; }
-  .opt.cur { background: rgba(61,220,132,.07); }
-  .opt input { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--green2); flex: none; cursor: pointer; }
-  .opt b { display: block; color: #e9fff3; font-weight: 600; }
-  .opt span { display: block; font-size: 14.5px; opacity: .85; }
-  .opt code { font-size: 12px; }
-  .pv { position: sticky; top: 64px; background: #030a06; border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
-  .pv .screen { cursor: default; }
-  .pv .screen.dim img { filter: grayscale(.7) brightness(.45); }
-  .pv-cap { margin-top: 8px; font: 13px var(--mono); color: var(--green); }
-  .pv-cap .badge { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 3px; font-size: 12px; }
-  .badge.on { background: rgba(61,220,132,.16); color: var(--green); } .badge.off { background: rgba(224,69,58,.16); color: #ff8b80; }
-  @media (max-width: 860px) { .optgrid { grid-template-columns: 1fr; } .pv { position: static; order: -1; max-width: 420px; width: 100%; margin: 0 auto; } }
-  button.go { width: 100%; border: 0; border-radius: 6px; padding: 16px; font: 800 20px var(--head); letter-spacing: .14em; text-transform: uppercase; color: #021208; background: var(--green2);
-              box-shadow: 0 0 22px rgba(61,220,132,.35); cursor: pointer; }
-  button.go:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
-  .bar { height: 10px; margin-top: 14px; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; background: #030a06; display: none; }
+  .hint { margin: 10px 0 0; font-size: 14px; opacity: .75; }
+
+  /* étape 3 : fabriquer */
+  button.go { display: block; width: 100%; border: 0; border-radius: 8px; padding: 16px; font: 800 22px var(--head); letter-spacing: .12em; text-transform: uppercase;
+              color: #021208; background: var(--green2); box-shadow: 0 0 22px rgba(61,220,132,.35); cursor: pointer; min-height: 56px; }
+  button.go:disabled { opacity: .3; cursor: not-allowed; box-shadow: none; }
+  .summary { margin: 0 0 12px; font: 14px var(--mono); color: var(--green); }
+  .bar { display: none; height: 10px; margin-top: 14px; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; background: #030a06; }
   .bar i { display: block; height: 100%; width: 0; background: var(--green2); transition: width .2s; }
   #status { margin-top: 10px; min-height: 1.5em; font: 14px var(--mono); color: var(--green); }
-  #status.err { color: #ff8b80; }
-  #log { display: none; margin-top: 10px; max-height: 220px; overflow: auto; white-space: pre-wrap; }
-  #dl { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
-  .note { font-size: 14px; opacity: .8; border-left: 3px solid var(--line); padding-left: 10px; margin: 10px 0 0; }
+  #status.err { color: var(--red); }
+  #dl { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+  #dl a, .btn { display: inline-block; padding: 9px 14px; border: 1px solid var(--line); border-radius: 6px; color: var(--green); text-decoration: none; font: 14px var(--mono); }
+  #dl a:hover, .btn:hover { border-color: var(--green2); }
+  details.log { margin-top: 10px; } details.log summary { cursor: pointer; font: 13px var(--mono); color: var(--dim); }
+  details.log pre { max-height: 220px; overflow: auto; white-space: pre-wrap; }
+
+  /* bon à savoir */
+  .more { margin-top: 34px; }
+  .more > h2 { font: 800 24px var(--head); text-transform: uppercase; letter-spacing: .05em; color: var(--title); margin: 0 0 10px; }
+  details.faq { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; margin-bottom: 10px; }
+  details.faq summary { cursor: pointer; padding: 13px 16px; font: 600 17px Barlow, sans-serif; color: var(--green); list-style: none; }
+  details.faq summary::-webkit-details-marker { display: none; }
+  details.faq summary::before { content: "+"; display: inline-block; width: 1.2em; font-family: var(--mono); }
+  details.faq[open] summary::before { content: "−"; }
+  details.faq > div { padding: 0 16px 14px; }
+  details.faq p { margin: 0 0 10px; }
+  pre { margin: 8px 0 0; padding: 12px 14px; background: #000; border: 1px solid var(--line); border-radius: 6px; overflow-x: auto; font: 13px/1.55 var(--mono); color: var(--green); }
+  table { width: 100%; border-collapse: collapse; font-size: 15px; }
+  th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  th { font: 12.5px var(--mono); color: var(--dim); text-transform: uppercase; }
+  footer { margin-top: 36px; font-size: 14px; color: var(--dim); text-align: center; }
+  footer p { margin: 4px 0; }
 </style>
 </head>
 <body>
-
-<nav>
-  <div class="wrap">
-    <a class="brand" href="#">MGS · VOSTFR</a>
-    <div class="links">
-      <a href="#patchs" data-en="Patches">Patchs</a>
-      <a href="#options">Options</a>
-      <a href="#fabriquer" data-en="Build">Fabriquer</a>
-      <a href="#etat" data-en="Status">État</a>
-      <a href="#technique" data-en="Technical">Technique</a>
-    </div>
+<main>
+  <div class="top">
+    <span class="brand">MGS · VOSTFR</span>
     <a class="gh" href="https://github.com/soaresden/MGS1-VOSTFR">GitHub</a>
     <button id="lang" type="button" title="Français / English">🇬🇧 EN</button>
   </div>
-</nav>
 
-<header>
-  <div class="wrap">
-    <div>
-      <div class="kicker">Tactical Espionage Action · PlayStation</div>
-      <h1>Metal Gear<small>Solid</small></h1>
-      <div class="vostfr"><span class="bars"><i></i><i></i><i></i><i></i><i></i></span>VOSTFR · 140.85</div>
-      <p class="lead" id="lead" aria-live="polite"></p>
-      <p class="sub" data-en="The English voices of David Hayter, Jennifer Hale and the original cast, with the French text and subtitles: cutscenes, Codec calls, in-game voices, on both discs. The repository has <b>no game data</b>: this page builds the images from <b>your own</b> PAL discs, right in your browser. Plus a few MGS2-style options to tick or untick.">Les voix anglaises de David Hayter, Jennifer Hale et de toute la distribution d'origine, avec les textes et sous-titres français : cinématiques, appels Codec, voix en jeu, sur les deux disques. Le dépôt ne contient <b>aucune donnée du jeu</b> : cette page fabrique les images à partir de <b>tes propres</b> disques PAL, directement dans ton navigateur. En plus, quelques options façon MGS2 à cocher ou décocher.</p>
-      <div class="cta">
-        <a class="btn main" href="#fabriquer" data-en="▶ Build my discs">▶ Fabriquer mes disques</a>
-        <a class="btn alt" href="https://github.com/soaresden/MGS1-VOSTFR" data-en="Source code">Code source</a>
-      </div>
+  <header>
+    <h1>Metal Gear Solid</h1>
+    <div class="badge-vo">VOSTFR · PS1</div>
+    <p data-en="The <b>original English voices</b> with the <b>French text and subtitles</b>, on both discs. Choose what you want, drop your discs, and this page builds your images.">Les <b>voix anglaises d'origine</b> avec les <b>textes et sous-titres français</b>, sur les deux disques. Choisis ce que tu veux, dépose tes disques, et cette page fabrique tes images.</p>
+    <div class="safe" data-en="🔒 Everything happens in your browser: your discs are not sent anywhere.">🔒 Tout se passe dans ton navigateur : tes disques ne sont envoyés nulle part.</div>
+  </header>
+
+  <section class="step">
+    <h2><span class="n">1</span><span data-en="Choose what you want">Choisis ce que tu veux</span></h2>
+    <p data-en="Tick or untick the boxes; click an option to see it in the game.">Coche ou décoche les cases ; clique sur une option pour la voir en jeu.</p>
+    <div class="choose">
+      <div id="opts"></div>
+      <aside class="pv" aria-live="polite">
+        <figure class="screen" id="pv-screen"><img id="pv-img" alt=""><div class="noimg" id="pv-noimg"></div></figure>
+        <div class="thumbs" id="pv-thumbs"></div>
+        <div class="cap" id="pv-cap"></div>
+        <h3><span id="pv-title"></span><span class="state" id="pv-state"></span></h3>
+        <ul id="pv-list"></ul>
+      </aside>
     </div>
-    <figure class="screen hero-screen"><img src="docs/shots/title.png" alt="Écran titre de Metal Gear Solid" data-en-alt="Metal Gear Solid title screen"></figure>
-  </div>
-</header>
+  </section>
 
-<section id="patchs">
-  <div class="wrap">
-    <div class="sec-head"><span class="freq">140.85</span><h2 data-en="What the patch changes">Ce que change le patch</h2></div>
-    <p class="intro" data-en="Everything you hear is in English, everything you read is in French. Menus, items and text stay those of the French version.">Tout ce qu'on entend est en anglais, tout ce qu'on lit est en français. Les menus, les objets et les textes restent ceux de la version française.</p>
-
-    <article class="patch reveal">
-      <div>
-        <span class="tag ok" data-en="✔ DONE · TESTED">✔ FAIT · TESTÉ</span>
-        <h3 data-en="Cutscenes">Cinématiques</h3>
-        <p data-en="Every cutscene of the game, English voice, French subtitles, timed to the line.">Toutes les cinématiques du jeu, voix anglaise, sous-titres français calés sur la réplique.</p>
-        <ul>
-          <li data-en="Both PAL versions share exactly the same audio blocks: the English sound is copied into the French cutscenes, block by block.">Les deux versions PAL ont exactement les mêmes blocs audio : le son anglais est recopié dans les cinématiques françaises, bloc par bloc.</li>
-          <li data-en="Animations and subtitles are the French ones, untouched.">Animations et sous-titres sont ceux de la version française, intacts.</li>
-        </ul>
-      </div>
-      <div class="shots">
-        <figure class="screen"><img src="docs/shots/demo-foxhound.png" alt="Snake au téléphone avec Campbell, sous-titre : Colonel, j'ai démissionné de Fox-Hound." loading="lazy"><figcaption data-en="Intro · English voice">Intro · voix anglaise</figcaption></figure>
-        <figure class="screen"><img src="docs/shots/demo-ordres.png" alt="Sous-titre : et je n'ai plus d'ordres à recevoir, ni de toi, ni de personne." loading="lazy"><figcaption>« …ni de toi, ni de personne. »</figcaption></figure>
-      </div>
-    </article>
-
-    <article class="patch reveal">
-      <div>
-        <span class="tag ok" data-en="✔ DONE · TESTED">✔ FAIT · TESTÉ</span>
-        <h3 data-en="Codec calls">Appels Codec</h3>
-        <p data-en="The ~1,100 voice banks of each disc are paired with their French counterparts: the English voice plays, the French text follows it line by line.">Les quelque 1 100 banques de voix de chaque disque sont appariées à leur équivalent français : la voix anglaise passe, le texte français la suit réplique par réplique.</p>
-        <ul>
-          <li data-en="Campbell, Naomi, Mei Ling, Otacon, Master Miller… all frequencies.">Campbell, Naomi, Mei Ling, Otacon, Master Miller… toutes les fréquences.</li>
-          <li data-en="Subtitles keep the French font and accents, with the English timing.">Les sous-titres gardent la police et les accents français, avec le rythme de la version anglaise.</li>
-          <li data-en="The Codec memory, saves and choices work as before.">La mémoire du Codec, les sauvegardes et les choix marchent comme avant.</li>
-        </ul>
-      </div>
-      <div class="shots">
-        <figure class="screen wide"><img src="docs/shots/codec-kurdes.png" alt="Codec avec Campbell : Une triste histoire. Si on n'avait pas laissé tomber les Kurdes après la Guerre du Golfe..." loading="lazy"><figcaption>Campbell · 140.85</figcaption></figure>
-        <figure class="screen"><img src="docs/shots/codec-naomi.png" alt="Codec avec Naomi" loading="lazy"><figcaption>Naomi · 140.85</figcaption></figure>
-        <figure class="screen"><img src="docs/shots/codec-memoire.png" alt="Mémoire du Codec : Campbell, Mei Ling, Master, Otacon" loading="lazy"><figcaption>MEMORY</figcaption></figure>
-      </div>
-    </article>
-
-    <article class="patch reveal">
-      <div>
-        <span class="tag ok" data-en="✔ DONE · TESTED">✔ FAIT · TESTÉ</span>
-        <h3 data-en="In-game voices &amp; Briefing">Voix en jeu &amp; Briefing</h3>
-        <p data-en="The lines spoken during the action and the mission Briefing use the same voice banks: English voice, French subtitle drawn on screen.">Les répliques dites pendant l'action et le Briefing de mission passent par les mêmes banques de voix : voix anglaise, sous-titre français affiché à l'écran.</p>
-        <ul>
-          <li data-en="The level scripts are renumbered to point to the English voices, with a check against the English scripts to avoid touching anything else.">Les scripts des niveaux sont renumérotés vers les voix anglaises, avec une vérification sur les scripts anglais pour ne rien toucher d'autre.</li>
-        </ul>
-      </div>
-      <div class="shots">
-        <figure class="screen"><img src="docs/shots/jeu-neige.png" alt="Snake dans la cour enneigée de l'héliport" loading="lazy"><figcaption>Snowfield</figcaption></figure>
-        <figure class="screen"><img src="docs/shots/jeu-heliport.png" alt="Snake contre une porte de l'héliport, de nuit" loading="lazy"><figcaption data-en="Heliport">Héliport</figcaption></figure>
-        <figure class="screen wide"><img src="docs/shots/codec-neige.png" alt="Codec : Snake, magne-toi d'aller à la base souterraine de Metal Gear !" loading="lazy"><figcaption data-en="End of disc 1 · Snowfield">Fin du disque 1 · Snowfield</figcaption></figure>
-      </div>
-    </article>
-
-    <article class="patch reveal">
-      <div>
-        <span class="tag ok" data-en="✔ DONE · TESTED">✔ FAIT · TESTÉ</span>
-        <h3 data-en="Two discs">Deux disques</h3>
-        <p data-en="Both discs are rebuilt, with an <code>.m3u</code> file for disc swapping in emulators (Batocera, DuckStation…). Disc 2 boots and plays in English with French subtitles.">Les deux disques sont reconstruits, avec un fichier <code>.m3u</code> pour l'échange de disque dans l'émulateur (Batocera, DuckStation…). Le disque 2 démarre et passe en anglais avec les sous-titres français.</p>
-        <ul>
-          <li data-en="The bigger voice file shifts the rest of the disc: the ISO 9660 directory, sector headers and error correction are recomputed.">Le fichier de voix, plus gros, décale le reste du disque : répertoires ISO 9660, en-têtes de secteurs et correction d'erreurs sont recalculés.</li>
-          <li data-en="Swapping discs mid-game still has to be confirmed on DuckStation or a console (PCSX-Redux refuses it even with the original discs).">Le changement de disque en cours de partie reste à confirmer sur DuckStation ou console (PCSX-Redux le refuse même avec les disques d'origine).</li>
-        </ul>
-      </div>
-      <div class="shots">
-        <figure class="screen"><img src="docs/shots/disque2.png" alt="Appuyez sur la touche start après insertion du disque 2." loading="lazy"><figcaption data-en="Disc swap">Changement de disque</figcaption></figure>
-        <figure class="screen"><img src="docs/shots/menu.png" alt="Menu du niveau de difficulté, en français" loading="lazy"><figcaption data-en="French menus">Menus en français</figcaption></figure>
-      </div>
-    </article>
-
-  </div>
-</section>
-
-<section id="options">
-  <div class="wrap">
-    <div class="sec-head"><span class="freq">141.52</span><h2 data-en="Options">Options</h2></div>
-    <p class="intro" data-en="Extras inspired by MGS2, each one to tick or untick when you build your discs. Nothing changes in the game if you leave them all unticked.">Des petits plus inspirés de MGS2, chacun à cocher ou décocher au moment de fabriquer tes disques. Rien ne change dans le jeu si tu les laisses tous décochés.</p>
-
-    <article class="patch reveal" id="carre">
-      <div>
-        <span class="tag opt" data-en="★ OPTION · SQUARE">★ OPTION · CARRÉ</span>
-        <h3 data-en="Square fast-forwards the Codec">Carré fait défiler le Codec</h3>
-        <p data-en="Like in MGS2: during a call, <b>Square</b> cuts the voice and runs through all remaining lines at once. Perfect when you replay the game or call Mei Ling to save.">Comme dans MGS2 : pendant un appel, <b>Carré</b> coupe la voix et fait défiler d'un coup toutes les répliques restantes. Idéal quand on refait le jeu ou qu'on appelle Mei Ling pour sauvegarder.</p>
-        <ul>
-          <li data-en="X keeps its original role: it cuts the voice, then one line per press.">X garde son rôle d'origine : il coupe la voix, puis une réplique par appui.</li>
-          <li data-en="Choices (save, yes/no) are never skipped.">Les choix (sauvegarde, oui/non) ne sont jamais sautés.</li>
-          <li data-en="28 instructions of the game code rewritten in place, original bytes checked first.">28 instructions du code du jeu réécrites en place, octets d'origine vérifiés avant.</li>
-        </ul>
-      </div>
-      <div class="carre">
-        <div class="stage"><figure class="screen"><img id="carreImg" src="docs/shots/codec-kurdes.png" alt="Démonstration du bouton Carré dans le Codec"><figcaption id="carreCap">Campbell · 140.85</figcaption></figure></div>
-        <div class="ctrl">
-          <button class="pad" id="carreBtn" type="button" aria-label="Carré">□</button>
-          <span class="msg" id="carreMsg" data-en="Press Square: a 6-line call goes by in about a second.">Appuie sur Carré : un appel de 6 répliques passe en une seconde environ.</span>
-        </div>
-      </div>
-    </article>
-
-    <article class="patch reveal" id="m9">
-      <div>
-        <span class="tag opt" data-en="★ OPTION · M9">★ OPTION · M9</span>
-        <h3 data-en="Tranquilizer M9 &amp; PSG1-T">M9 tranquillisant &amp; PSG1-T</h3>
-        <p data-en="To finish the game without killing: in the weapon menu (R2), <b>Triangle</b> turns the SOCOM into the <b>M9</b> and the PSG1 into the <b>PSG1-T</b> (bluish icon), and back.">Pour finir le jeu sans tuer : dans le menu des armes (R2), <b>Triangle</b> transforme le SOCOM en <b>M9</b> et le PSG1 en <b>PSG1-T</b> (icône bleutée), et inversement.</p>
-        <ul>
-          <li data-en="Patrolling guard: asleep after one shot, for good, with <b>zzz</b> above his head. No blood, not counted as a kill.">Garde en ronde : endormi en un tir, pour de bon, avec des <b>zzz</b> au-dessus de la tête. Pas de sang, pas compté comme tué.</li>
-          <li data-en="During an alert: the first shot shakes him, he falls asleep 8 s later, or right away on the second shot.">En alerte : le premier tir le secoue, il s'endort 8 s plus tard, ou tout de suite au deuxième tir.</li>
-          <li data-en="Ammo shared with the original weapon, one dart at a time. Bosses: normal damage.">Munitions communes avec l'arme d'origine, une fléchette à la fois. Boss : dégâts normaux.</li>
-        </ul>
-      </div>
-      <div class="shots">
-        <figure class="screen"><img src="docs/previews/m9_menu.png" alt="Menu des armes : M9 avec son icône bleutée" data-en-alt="Weapon menu: M9 with its bluish icon" loading="lazy"><figcaption data-en="R2 menu · M9">Menu R2 · M9</figcaption></figure>
-        <figure class="screen"><img src="docs/previews/m9_zzz.png" alt="Garde endormi avec des zzz" data-en-alt="Guard asleep with zzz" loading="lazy"><figcaption data-en="Guard asleep · zzz">Garde endormi · zzz</figcaption></figure>
-      </div>
-    </article>
-
-    <article class="patch reveal" id="clay">
-      <div>
-        <span class="tag opt" data-en="★ OPTION · M9">★ OPTION · M9</span>
-        <h3 data-en="Silent zzz claymores">Claymores zzz silencieuses</h3>
-        <p data-en="On the CLAYMORE slot, <b>Triangle</b> switches to <b>CLAY.ZZZ</b> claymores: a soldier who steps on one falls asleep at once, even during an alert.">Sur la case CLAYMORE, <b>Triangle</b> passe aux claymores <b>CLAY.ZZZ</b> : un soldat qui marche dessus s'endort aussitôt, même en alerte.</p>
-        <ul>
-          <li data-en="Silent: no blast and no flash, just a small &quot;pfft&quot; and a puff of smoke. The other guards hear nothing.">Silencieuses : pas de détonation ni de flash, juste un petit « pfft » et une bouffée de fumée. Les autres gardes n'entendent rien.</li>
-          <li data-en="What counts is the mode when the mine is planted. Normal claymores are as loud as ever.">Le mode compte au moment où on pose la mine. Les claymores normales font toujours le même boucan.</li>
-        </ul>
-      </div>
-      <div class="shots">
-        <figure class="screen"><img src="docs/previews/clay_menu.png" alt="Menu des armes : CLAY.ZZZ" data-en-alt="Weapon menu: CLAY.ZZZ" loading="lazy"><figcaption data-en="R2 menu · CLAY.ZZZ">Menu R2 · CLAY.ZZZ</figcaption></figure>
-        <figure class="screen"><img src="docs/previews/clay_pfft.png" alt="Bouffée de fumée d'une claymore zzz" data-en-alt="Puff of smoke from a zzz claymore" loading="lazy"><figcaption data-en="&quot;pfft&quot;">« pfft »</figcaption></figure>
-      </div>
-    </article>
-
-    <article class="patch reveal" id="psg1">
-      <div>
-        <span class="tag opt" data-en="★ OPTION · PSG1">★ OPTION · PSG1</span>
-        <h3 data-en="PSG1 standing or crouching">PSG1 debout ou accroupi</h3>
-        <p data-en="The sniper rifle can be used <b>standing or crouching</b>, without Snake lying down. Prone, nothing changes.">Le fusil de précision s'utilise <b>debout ou accroupi</b>, sans que Snake se couche. Couché, rien ne change.</p>
-        <ul>
-          <li data-en="In the scope, <b>X</b> switches between standing and crouching.">Dans la lunette, <b>X</b> passe de debout à accroupi.</li>
-          <li data-en="Standing or crouching, the scope does not sway; the heartbeat is still felt in the controller.">Debout ou accroupi, la lunette ne tremble pas ; le cœur bat toujours dans la manette.</li>
-        </ul>
-      </div>
-      <div class="shots">
-        <figure class="screen"><img src="docs/previews/psg1_off.png" alt="PSG1 couché, comme dans le jeu d'origine" data-en-alt="PSG1 prone, as in the original game" loading="lazy"><figcaption data-en="Without the option · prone">Sans l'option · couché</figcaption></figure>
-        <figure class="screen"><img src="docs/previews/psg1_on.png" alt="PSG1 debout" data-en-alt="PSG1 standing" loading="lazy"><figcaption data-en="With the option · standing">Avec l'option · debout</figcaption></figure>
-      </div>
-    </article>
-
-    <article class="patch reveal" id="l2r2">
-      <div>
-        <span class="tag opt" data-en="★ OPTION · L2/R2">★ OPTION · L2/R2</span>
-        <h3 data-en="Lean in first-person view">Se pencher en vue subjective</h3>
-        <p data-en="In first-person view (holding Triangle), <b>L2</b> makes Snake lean left and <b>R2</b> lean right to look around a corner, like in MGS2.">En vue subjective (Triangle maintenu), <b>L2</b> penche Snake à gauche et <b>R2</b> à droite pour regarder derrière un coin, comme dans MGS2.</p>
-        <ul>
-          <li data-en="While leaning, the arrows still turn the view.">Penché, les flèches tournent toujours la vue.</li>
-          <li data-en="<b>L2 + R2</b> together: Snake stands on tiptoe to look over an obstacle."><b>L2 + R2</b> ensemble : Snake se hisse sur la pointe des pieds pour regarder par-dessus un obstacle.</li>
-        </ul>
-      </div>
-      <div class="shots">
-        <figure class="screen"><img src="docs/previews/l2r2_on.png" alt="Snake penché en vue subjective" data-en-alt="Snake leaning in first-person view" loading="lazy"><figcaption data-en="Leaning · L2">Penché · L2</figcaption></figure>
-        <figure class="screen"><img src="docs/previews/l2r2_pointe.png" alt="Vue sur la pointe des pieds" data-en-alt="View on tiptoe" loading="lazy"><figcaption data-en="Tiptoe · L2+R2">Pointe des pieds · L2+R2</figcaption></figure>
-      </div>
-    </article>
-
-    <article class="patch reveal" id="fps">
-      <div>
-        <span class="tag opt" data-en="★ OPTION · AIMING">★ OPTION · VISÉE</span>
-        <h3 data-en="Aim in first-person view">Viser en vue subjective</h3>
-        <p data-en="With the SOCOM or the M9, aim and shoot from the first-person view, like in MGS2.">Avec le SOCOM ou le M9, on vise et on tire depuis la vue subjective, comme dans MGS2.</p>
-        <ul>
-          <li data-en="Hold <b>Triangle</b>: first-person view. Hold <b>Square</b>: the weapon shows with its <b>red laser</b>; release Square: the shot goes off where you look."><b>Triangle</b> maintenu : vue subjective. <b>Carré</b> maintenu : l'arme apparaît avec son <b>laser rouge</b> ; Carré relâché : le coup part dans la direction de la vue.</li>
-          <li data-en="It is the game's normal shot (sound, noise, ammo); the M9 keeps its tranquilizer effect.">C'est le tir normal du jeu (son, bruit, munitions) ; le M9 garde son effet tranquillisant.</li>
-        </ul>
-      </div>
-      <div class="shots">
-        <figure class="screen"><img src="docs/previews/fps_off.png" alt="Vue subjective d'origine" data-en-alt="Original first-person view" loading="lazy"><figcaption data-en="Triangle · first-person view">Triangle · vue subjective</figcaption></figure>
-        <figure class="screen"><img src="docs/previews/fps_on.png" alt="Vue subjective avec l'arme et le laser" data-en-alt="First-person view with the weapon and laser" loading="lazy"><figcaption data-en="Square · weapon and laser">Carré · arme et laser</figcaption></figure>
-      </div>
-    </article>
-
-  </div>
-</section>
-
-<section id="etat">
-  <div class="wrap">
-    <div class="sec-head"><span class="freq">141.12</span><h2 data-en="Mission log">Journal de mission</h2></div>
-    <p class="intro" data-en="Everything has been tested in PCSX-Redux with automatic screenshots: first Codec at the dock, Campbell and Naomi at the Snowfield, the Briefing of both discs, Game Over, the attract demo.">Tout a été testé dans PCSX-Redux avec des captures automatiques : premier Codec du quai, Campbell et Naomi au Snowfield, Briefing des deux disques, Game Over, démo d'attraction.</p>
-    <div class="tbl reveal">
-      <table>
-        <tr><th></th><th data-en="Part">Partie</th><th data-en="Status">État</th></tr>
-        <tr><td>✅</td><td data-en="Cutscenes">Cinématiques</td><td data-en="done, tested">fait, testé</td></tr>
-        <tr><td>✅</td><td data-en="Codec calls">Appels Codec</td><td data-en="done, tested">fait, testé</td></tr>
-        <tr><td>✅</td><td data-en="In-game voices, Briefing">Voix en jeu, Briefing</td><td data-en="done, tested on both discs">fait, testé sur les deux disques</td></tr>
-        <tr><td>✅</td><td data-en="Disc 2">Disque 2</td><td data-en="boots, English voices and French subtitles">démarre, voix anglaises et sous-titres français</td></tr>
-        <tr><td>✅</td><td data-en="<code>--carre</code> option">Option <code>--carre</code></td><td data-en="done, tested">fait, testé</td></tr>
-        <tr><td>✅</td><td data-en="<code>--m9</code> option: tranquilizer M9, PSG1-T, silent zzz claymores">Option <code>--m9</code> : M9, PSG1-T, claymores zzz tranquillisants et silencieuses</td><td data-en="done, tested">fait, testé</td></tr>
-        <tr><td>✅</td><td data-en="<code>--psg1</code> option: PSG1 standing or crouching">Option <code>--psg1</code> : PSG1 debout ou accroupi</td><td data-en="done, tested">fait, testé</td></tr>
-        <tr><td>✅</td><td data-en="<code>--l2r2</code> option: lean with L2/R2 in first-person view">Option <code>--l2r2</code> : pencher avec L2/R2 en vue subjective</td><td data-en="done, tested">fait, testé</td></tr>
-        <tr><td>✅</td><td data-en="<code>--fps</code> option: aim and shoot the SOCOM / M9 in first-person view">Option <code>--fps</code> : viser et tirer au SOCOM / M9 en vue subjective</td><td data-en="done, tested">fait, testé</td></tr>
-        <tr><td>✅</td><td data-en="This page: build in the browser, options to tick">Cette page : fabrication dans le navigateur, options à cocher</td><td data-en="done, same images as Python byte for byte">fait, mêmes images que Python octet pour octet</td></tr>
-        <tr><td>⚠️</td><td data-en="Disc swap during the game">Changement de disque en cours de partie</td><td data-en="to confirm on DuckStation or console">à confirmer sur DuckStation ou console</td></tr>
-        <tr><td>🔧</td><td data-en="French dub credits in the intro → English cast">Crédits du doublage FR dans l'intro → distribution anglaise</td><td data-en="to do">à faire</td></tr>
-        <tr><td>💡</td><td data-en="&quot;2 discs in 1&quot; version">Version « 2 disques en 1 »</td><td data-en="next phase">prochaine phase</td></tr>
-      </table>
+  <section class="step">
+    <h2><span class="n">2</span><span data-en="Drop your discs">Dépose tes disques</span></h2>
+    <p data-en="The French and European (English) PAL versions, discs 1 and 2, as <b>CHD</b> (like in Batocera) or <b>BIN</b>. All four at once.">Les versions PAL française et européenne (anglaise), disques 1 et 2, en <b>CHD</b> (comme dans Batocera) ou en <b>BIN</b>. Les quatre d'un coup.</p>
+    <label id="drop">
+      <input id="files" type="file" accept=".chd,.bin,.iso,.img" multiple>
+      <span data-en="📂 Drop the 4 files here, or click to choose them">📂 Glisse les 4 fichiers ici, ou clique pour les choisir</span>
+    </label>
+    <div class="slots">
+      <div class="slot" id="slot-FR1"><b data-en="France · disc 1">France · disque 1</b><span>SLES-01506</span></div>
+      <div class="slot" id="slot-UK1"><b data-en="Europe (English) · disc 1">Europe (anglais) · disque 1</b><span>SLES-01370</span></div>
+      <div class="slot" id="slot-FR2"><b data-en="France · disc 2">France · disque 2</b><span>SLES-11506</span></div>
+      <div class="slot" id="slot-UK2"><b data-en="Europe (English) · disc 2">Europe (anglais) · disque 2</b><span>SLES-11370</span></div>
     </div>
-  </div>
-</section>
+    <p class="hint" data-en="Only one disc? The French + English pair of the same disc is enough.">Un seul disque ? La paire française + anglaise d'un même disque suffit.</p>
+  </section>
 
-<section id="fabriquer">
-  <div class="wrap">
-    <div class="sec-head"><span class="freq">140.15</span><h2 data-en="Build your discs">Fabriquer ses disques</h2></div>
-    <p class="intro" data-en="Everything happens <b>in your browser, on your computer</b>: your discs are not sent anywhere. Chrome or Edge recommended, with about 3 GB of free memory; count a few minutes.">Tout se passe <b>dans ton navigateur, sur ton ordinateur</b> : tes disques ne sont envoyés nulle part. Chrome ou Edge conseillé, avec environ 3 Go de mémoire libre ; compter quelques minutes.</p>
+  <section class="step">
+    <h2><span class="n">3</span><span data-en="Build">Fabrique</span></h2>
+    <p class="summary" id="summary"></p>
+    <button class="go" id="go" type="button" disabled data-en="▶ Build my discs">▶ Fabriquer mes disques</button>
+    <p class="hint" id="out-note" data-en="You will be asked for a folder: the images are written straight into it. Count a few minutes and about 3 GB of free memory (Chrome or Edge recommended).">On va te demander un dossier : les images y sont écrites directement. Compte quelques minutes et environ 3 Go de mémoire libre (Chrome ou Edge conseillé).</p>
+    <div class="bar" id="bar"><i></i></div>
+    <div id="status"></div>
+    <div id="dl"></div>
+    <details class="log" id="logbox" hidden><summary data-en="Details">Détails</summary><pre id="log"></pre></details>
+  </section>
 
-    <div class="box">
-      <h3><span class="n">1</span><span data-en="Your four discs">Tes quatre disques</span></h3>
-      <p data-en="The French and European (English) PAL versions, discs 1 and 2, as <b>CHD</b> (like in Batocera) or <b>BIN</b>. Drop all four files here at once.">Les versions PAL française et européenne (anglaise), disques 1 et 2, en <b>CHD</b> (comme dans Batocera) ou en <b>BIN</b>. Dépose les quatre fichiers ici d'un coup.</p>
-      <label id="drop">
-        <input id="files" type="file" accept=".chd,.bin,.iso,.img" multiple>
-        <span data-en="📂 Drop the 4 files here, or click to choose them">📂 Glisse les 4 fichiers ici, ou clique pour les choisir</span>
-      </label>
-      <div class="slots">
-        <div class="slot" id="slot-FR1"><b data-en="France · disc 1">France · disque 1</b><span>SLES-01506 · <i data-en="missing">manquant</i></span></div>
-        <div class="slot" id="slot-UK1"><b data-en="Europe · disc 1">Europe · disque 1</b><span>SLES-01370 · <i data-en="missing">manquant</i></span></div>
-        <div class="slot" id="slot-FR2"><b data-en="France · disc 2">France · disque 2</b><span>SLES-11506 · <i data-en="missing">manquant</i></span></div>
-        <div class="slot" id="slot-UK2"><b data-en="Europe · disc 2">Europe · disque 2</b><span>SLES-11370 · <i data-en="missing">manquant</i></span></div>
-      </div>
-      <p class="note" data-en="Only one disc? The French + European pair of the same disc is enough, but give all four if you have them: disc 2 helps pair disc 1's voices exactly.">Un seul disque ? La paire française + européenne d'un même disque suffit, mais donne les quatre si tu les as : le disque 2 aide à apparier exactement les voix du disque 1.</p>
-    </div>
-
-    <div class="box">
-      <h3><span class="n">2</span><span data-en="Options">Options</span></h3>
-      <p data-en="Tick what you want; hover an option to see it in the game. The English voices and French text are always included.">Coche ce que tu veux ; survole une option pour la voir en jeu. Les voix anglaises et le texte français sont toujours inclus.</p>
-      <div class="optgrid">
-        <div id="opts"></div>
-        <aside class="pv" aria-live="polite">
-          <figure class="screen" id="pv-screen"><img id="pv-img" alt=""></figure>
-          <div class="pv-cap"><span id="pv-title"></span><span class="badge" id="pv-state"></span></div>
-        </aside>
-      </div>
-    </div>
-
-    <div class="box">
-      <h3><span class="n">3</span><span data-en="Build">Fabriquer</span></h3>
-      <p id="out-note" data-en="You will be asked for a folder: the images are written straight into it (Disc 1, Disc 2, .cue and .m3u).">On va te demander un dossier : les images y sont écrites directement (Disc 1, Disc 2, .cue et .m3u).</p>
-      <button class="go" id="go" type="button" disabled data-en="▶ Build my discs">▶ Fabriquer mes disques</button>
-      <div class="bar" id="bar"><i></i></div>
-      <div id="status"></div>
-      <div id="dl"></div>
-      <pre id="log"></pre>
-      <p class="note" data-en="Then open the <code>.m3u</code> file in your emulator (Batocera, DuckStation…) so it can swap discs. With a new version of the images, resume from a memory card save, not from an emulator save state.">Ensuite, ouvre le fichier <code>.m3u</code> dans ton émulateur (Batocera, DuckStation…) pour qu'il puisse changer de disque. Avec une nouvelle version des images, reprends ta partie depuis une sauvegarde de la carte mémoire, pas depuis une sauvegarde d'état de l'émulateur.</p>
-    </div>
-
-    <details class="reveal">
-      <summary data-en="Offline, on your computer">Hors ligne, sur ton ordinateur</summary>
+  <section class="more">
+    <h2 data-en="Good to know">Bon à savoir</h2>
+    <details class="faq">
+      <summary data-en="How do I play afterwards?">Comment jouer ensuite ?</summary>
       <div>
-        <p data-en="The page works without internet: download the project, unzip it and double-click <code>index.html</code>. Same page, same result, nothing to install.">La page marche sans internet : télécharge le projet, décompresse-le et double-clique sur <code>index.html</code>. Même page, même résultat, rien à installer.</p>
-        <p><a class="btn alt" href="https://github.com/soaresden/MGS1-VOSTFR/archive/refs/heads/main.zip" data-en="⬇ Download the page (zip)">⬇ Télécharger la page (zip)</a></p>
+        <p data-en="You get <code>Metal Gear Solid (VOSTFR) (Disc 1).bin/.cue</code>, <code>(Disc 2)</code> and a <code>.m3u</code>. Open the <code>.m3u</code> in your emulator (Batocera, DuckStation…): it can then swap discs.">Tu obtiens <code>Metal Gear Solid (VOSTFR) (Disc 1).bin/.cue</code>, <code>(Disc 2)</code> et un <code>.m3u</code>. Ouvre le <code>.m3u</code> dans ton émulateur (Batocera, DuckStation…) : il pourra changer de disque.</p>
+        <p data-en="With a new version of the images, resume your game from a <b>memory card save</b>, not from an emulator save state (a save state keeps the old version).">Avec une nouvelle version des images, reprends ta partie depuis une <b>sauvegarde de la carte mémoire</b>, pas depuis une sauvegarde d'état de l'émulateur (elle garde l'ancienne version).</p>
       </div>
     </details>
-    <details class="reveal">
-      <summary data-en="With Python, from the command line">Avec Python, en ligne de commande</summary>
+    <details class="faq">
+      <summary data-en="Which discs exactly?">Quels disques exactement ?</summary>
       <div>
-        <p data-en="The page is a faithful port of the Python scripts: same images, byte for byte. With Python 3.10+ and numpy:">La page est un portage fidèle des scripts Python : mêmes images, octet pour octet. Avec Python 3.10+ et numpy :</p>
+        <table>
+          <tr><th>Version</th><th data-en="Disc 1">Disque 1</th><th data-en="Disc 2">Disque 2</th></tr>
+          <tr><td>France</td><td><code>SLES-01506</code></td><td><code>SLES-11506</code></td></tr>
+          <tr><td data-en="Europe (English)">Europe (anglais)</td><td><code>SLES-01370</code></td><td><code>SLES-11370</code></td></tr>
+        </table>
+        <p style="margin-top:10px" data-en="No game data is distributed: you need your own discs, dumped as CHD or BIN.">Aucune donnée du jeu n'est distribuée : il faut tes propres disques, en CHD ou en BIN.</p>
+      </div>
+    </details>
+    <details class="faq">
+      <summary data-en="Use it offline">L'utiliser hors ligne</summary>
+      <div>
+        <p data-en="Download the project, unzip it and double-click <code>index.html</code>: same page, same result, no internet and nothing to install.">Télécharge le projet, décompresse-le et double-clique sur <code>index.html</code> : même page, même résultat, sans internet et sans rien installer.</p>
+        <a class="btn" href="https://github.com/soaresden/MGS1-VOSTFR/archive/refs/heads/main.zip" data-en="⬇ Download (zip)">⬇ Télécharger (zip)</a>
+      </div>
+    </details>
+    <details class="faq">
+      <summary data-en="How does it work?">Comment ça marche ?</summary>
+      <div>
+        <p data-en="<b>Cutscenes</b>: both PAL versions have exactly the same audio blocks, so the English sound is copied into the French cutscenes, under the French subtitles.">
+          <b>Cinématiques</b> : les deux versions PAL ont exactement les mêmes blocs audio, le son anglais est donc recopié dans les cinématiques françaises, sous les sous-titres français.</p>
+        <p data-en="<b>Codec and in-game voices</b>: the ~1,100 voice banks of each disc are paired with their French counterparts; the English voice plays and the French text follows it line by line. The disc image is rebuilt (the English voices take more room).">
+          <b>Codec et voix en jeu</b> : les quelque 1 100 banques de voix de chaque disque sont appariées à leur équivalent français ; la voix anglaise passe et le texte français la suit réplique par réplique. L'image du disque est reconstruite (les voix anglaises prennent plus de place).</p>
+        <p data-en="This page runs the same build as the project's Python scripts, rewritten in JavaScript: the images are identical, byte for byte. Details on <a href=&quot;https://github.com/soaresden/MGS1-VOSTFR&quot;>GitHub</a>.">Cette page fait la même fabrication que les scripts Python du projet, réécrite en JavaScript : les images sont identiques, octet pour octet. Les détails sont sur <a href="https://github.com/soaresden/MGS1-VOSTFR">GitHub</a>.</p>
+      </div>
+    </details>
+    <details class="faq">
+      <summary data-en="From the command line (Python)">En ligne de commande (Python)</summary>
+      <div>
+        <p data-en="Same result with Python 3.10+ and numpy; each option is a flag.">Même résultat avec Python 3.10+ et numpy ; chaque option est un argument.</p>
         <pre>git clone https://github.com/soaresden/MGS1-VOSTFR
 cd MGS1-VOSTFR/tools
 pip install numpy
@@ -513,273 +239,223 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
   --out ../work/out</pre>
       </div>
     </details>
-  </div>
-</section>
+    <details class="faq">
+      <summary data-en="What is left to do?">Ce qui reste à faire</summary>
+      <div>
+        <p data-en="Confirm the disc swap mid-game on DuckStation or a console; replace the French dub credits shown in the intro with the English cast; a &quot;2 discs in 1&quot; version.">Confirmer le changement de disque en cours de partie sur DuckStation ou console ; remplacer les crédits du doublage français affichés dans l'intro par la distribution anglaise ; une version « 2 disques en 1 ».</p>
+      </div>
+    </details>
+  </section>
 
-<section id="technique">
-  <div class="wrap">
-    <div class="sec-head"><span class="freq">141.80</span><h2 data-en="How it works">Comment ça marche</h2></div>
-    <p class="intro" data-en="The details for the curious, and for whoever wants to do the same with another game.">Les détails pour les curieux, et pour qui voudrait faire pareil avec un autre jeu.</p>
-    <details class="reveal">
-      <summary data-en="Cutscenes: the same blocks on both sides">Cinématiques : les mêmes blocs des deux côtés</summary>
-      <div><p data-en="In both PAL versions, every cutscene in <code>DEMO.DAT</code> has exactly the same sequence of audio blocks (same count, same size): the French dub was fitted to the length of the scenes. The French <code>DEMO.DAT</code> is kept (subtitles, animations) and the English audio is copied into it block by block. The French subtitles land right on the English lines.">Dans les deux versions PAL, chaque cinématique de <code>DEMO.DAT</code> a exactement la même suite de blocs audio (même nombre, même taille) : le doublage français a été calé sur la durée des scènes. On garde le <code>DEMO.DAT</code> français (sous-titres, animations) et on y recopie l'audio anglais bloc par bloc. Les sous-titres français tombent pile sur les répliques anglaises.</p></div>
-    </details>
-    <details class="reveal">
-      <summary data-en="Codec: pairing 1,100 voices">Codec : apparier 1 100 voix</summary>
-      <div><ol>
-        <li data-en="<b>Pairing</b>: both <code>VOX.DAT</code> files store their banks in the same order, with a few extra on the English side. The game's sound test table (<code>vc000101</code> → bank) has the same names in both languages: exact pairing on disc 2, carried over to disc 1 through the banks both discs share. The rest is aligned by dynamic programming (audio length, subtitle count), then checked against the Codec script.">
-          <b>Appariement</b> : les deux <code>VOX.DAT</code> rangent leurs banques dans le même ordre, avec quelques-unes de plus côté anglais. La table du test sonore du jeu (<code>vc000101</code> → banque) a les mêmes noms dans les deux langues : appariement exact sur le disque 2, reporté sur le disque 1 par les banques communes aux deux disques. Le reste est aligné par programmation dynamique (durée audio, nombre de sous-titres), puis vérifié par le script du Codec.</li>
-        <li data-en="<b>New <code>VOX.DAT</code></b>: each English bank (voice and lip movements) gets the French subtitles (same number of lines as the French bank, French font) with the English timing. In the Codec, each subtitle moves the French <code>RADIO.DAT</code> script to its next line: the text follows the English voice.">
-          <b>Nouveau <code>VOX.DAT</code></b> : chaque banque anglaise (voix et mouvements des lèvres) reçoit les sous-titres français (autant de répliques que la banque française, police française) avec les horaires de la version anglaise. Dans le Codec, chaque sous-titre fait passer le script <code>RADIO.DAT</code> français à la réplique suivante : le texte suit la voix anglaise.</li>
-        <li data-en="<b>Renumbering</b>: the voice codes (position in the file) are rewritten in <code>RADIO.DAT</code> and in the level scripts of <code>STAGE.DIR</code>, only where the matching English stage holds the matching code.">
-          <b>Renumérotation</b> : les codes de voix (position dans le fichier) sont réécrits dans <code>RADIO.DAT</code> et dans les scripts des niveaux de <code>STAGE.DIR</code>, seulement là où le niveau anglais correspondant contient le code correspondant.</li>
-        <li data-en="<b>Disc image</b>: the bigger <code>VOX.DAT</code> shifts <code>ZMOVIE.STR</code> and <code>DUMMY3M.DAT</code>; the ISO 9660 records, volume size and EDC/ECC are rewritten. The game finds its files by name at boot: no other address to fix.">
-          <b>Image disque</b> : le <code>VOX.DAT</code> plus gros décale <code>ZMOVIE.STR</code> et <code>DUMMY3M.DAT</code> ; enregistrements ISO 9660, taille du volume et EDC/ECC sont réécrits. Le jeu retrouve ses fichiers par leur nom au démarrage : aucune autre adresse à corriger.</li>
-      </ol>
-      <p data-en="Two lines of disc 2 only exist in French (one of them left in German on the French disc): they stay dubbed.">Deux répliques du disque 2 n'existent qu'en français (dont une restée en allemand sur le disque français) : elles gardent la VF.</p></div>
-    </details>
-    <details class="reveal">
-      <summary data-en="Square: 28 instructions in the Codec loop">Carré : 28 instructions dans la boucle du Codec</summary>
-      <div><p data-en="In the Codec loop of the French executable, the voice-cut test also accepts Square, and the line-waiting state is rewritten in place: Square held sets a flag that moves to the next line at once, until the end of the call. The flag lives with the call, so the next call is normal. The patch checks the original bytes before writing and can be applied twice without harm.">Dans la boucle du Codec de l'exécutable français, le test de coupure de la voix accepte aussi Carré, et l'état d'attente des répliques est réécrit en place : Carré enfoncé pose un drapeau qui passe aussitôt à la réplique suivante, jusqu'à la fin de l'appel. Le drapeau vit avec l'appel : l'appel suivant est normal. Le patch vérifie les octets d'origine avant d'écrire et peut être appliqué deux fois sans risque.</p></div>
-    </details>
-    <details class="reveal">
-      <summary data-en="This page: everything in the browser">Cette page : tout dans le navigateur</summary>
-      <div><p data-en="<code>docs/mgs-vostfr.js</code> is a JavaScript port of the Python scripts: CHD reading (its own LZMA and deflate decoders), ISO 9660, EDC/ECC, voice pairing, new <code>VOX.DAT</code> and image rebuild. On the same discs it writes exactly the same images as <code>build.py</code>, checked byte for byte. The options are byte differences on the French executable and <code>STAGE.DIR</code>, exported by <code>webpatches.py</code> (only our own code, checked against the CRC32 of the original files). Your files are read in place and the images are written straight into the folder you choose: nothing leaves your computer.">
-        <code>docs/mgs-vostfr.js</code> est un portage en JavaScript des scripts Python : lecture des CHD (avec ses propres décodeurs LZMA et deflate), ISO 9660, EDC/ECC, appariement des voix, nouveau <code>VOX.DAT</code> et reconstruction de l'image. Sur les mêmes disques, il écrit exactement les mêmes images que <code>build.py</code>, vérifié octet pour octet. Les options sont des différences d'octets sur l'exécutable français et <code>STAGE.DIR</code>, exportées par <code>webpatches.py</code> (uniquement notre propre code, vérifié avec le CRC32 des fichiers d'origine). Tes fichiers sont lus sur place et les images écrites directement dans le dossier choisi : rien ne quitte ton ordinateur.</p></div>
-    </details>
-    <details class="reveal">
-      <summary data-en="The tools">Les outils</summary>
-      <div class="tbl" style="margin:0 16px 14px"><table>
-        <tr><th>Script</th><th data-en="Role">Rôle</th></tr>
-        <tr><td><code>build.py</code></td><td data-en="Builds the VOSTFR images">Construit les images VOSTFR</td></tr>
-        <tr><td><code>chd2bin.py</code></td><td data-en="CHD v5 → BIN/CUE, SHA-1 check">CHD v5 → BIN/CUE, vérification SHA-1</td></tr>
-        <tr><td><code>psxiso.py</code></td><td data-en="List, extract, check a PS1 image">Liste, extraction, vérification d'une image PS1</td></tr>
-        <tr><td><code>cdsector.py</code></td><td data-en="Mode 2 EDC/ECC">EDC/ECC Mode 2</td></tr>
-        <tr><td><code>isorebuild.py</code></td><td data-en="Rebuilds an image with resized files">Reconstruit une image avec des fichiers de taille différente</td></tr>
-        <tr><td><code>vox.py</code> · <code>voxalign.py</code> · <code>vox_vostfr.py</code></td><td data-en="Voice banks: reading, pairing, new <code>VOX.DAT</code>">Banques de voix : lecture, appariement, nouveau <code>VOX.DAT</code></td></tr>
-        <tr><td><code>radio.py</code></td><td data-en="Codec script <code>RADIO.DAT</code>">Script Codec <code>RADIO.DAT</code></td></tr>
-        <tr><td><code>demo_vostfr.py</code></td><td data-en="Cutscene audio">Audio des cinématiques</td></tr>
-        <tr><td><code>carre.py</code></td><td data-en="Square option">Option Carré</td></tr>
-        <tr><td><code>m9.py</code> · <code>mips.py</code></td><td data-en="Tranquilizer weapons · small MIPS assembler">Armes tranquillisantes · petit assembleur MIPS</td></tr>
-        <tr><td><code>psg1.py</code> · <code>l2r2.py</code> · <code>fps.py</code></td><td data-en="PSG1 standing, leaning, first-person shooting">PSG1 debout, pencher, tir en vue subjective</td></tr>
-        <tr><td><code>docs/mgs-vostfr.js</code> · <code>webpatches.py</code> · <code>webtest.js</code></td><td data-en="This page: build in the browser, options export, Node test">Cette page : fabrication dans le navigateur, export des options, test sous Node</td></tr>
-        <tr><td><code>emu.py</code> · <code>emu_drive.lua</code></td><td data-en="Automatic tests in PCSX-Redux">Tests automatiques dans PCSX-Redux</td></tr>
-      </table></div>
-    </details>
-  </div>
-</section>
-
-<footer>
-  <div class="wrap">
-    <p data-en="A fan project by <a href=&quot;https://github.com/soaresden&quot;>soaresden</a>. No game data is distributed: you need your own discs.">Projet de fan par <a href="https://github.com/soaresden">soaresden</a>. Aucune donnée du jeu n'est distribuée : il faut tes propres disques.</p>
-    <p data-en="Metal Gear Solid © 1998 Konami. Screenshots taken from the patched game, for illustration.">Metal Gear Solid © 1998 Konami. Captures d'écran du jeu patché, pour illustration.</p>
-  </div>
-</footer>
-
-<dialog id="zoom"><img alt=""><p></p></dialog>
+  <footer>
+    <p data-en="A fan project by <a href=&quot;https://github.com/soaresden&quot;>soaresden</a>. No game data is distributed.">Projet de fan par <a href="https://github.com/soaresden">soaresden</a>. Aucune donnée du jeu n'est distribuée.</p>
+    <p data-en="Metal Gear Solid © 1998 Konami. Screenshots taken from the patched game.">Metal Gear Solid © 1998 Konami. Captures d'écran du jeu patché.</p>
+  </footer>
+</main>
 
 <script src="docs/patches.js"></script>
 <script src="docs/mgs-vostfr.js"></script>
-
 <script>
-  // Texte d'accroche tapé comme dans le Codec
-  (function () {
-    var el = document.getElementById('lead');
-    var txt = SBT('Voix anglaises. Textes français.\nComme au cinéma.', 'English voices. French text.\nLike at the movies.');
-    var reduce = matchMedia('(prefers-reduced-motion: reduce)').matches, i = 0;
-    function draw(n) { el.innerHTML = txt.slice(0, n).replace(/\n/g, '<br>') + '<span class="cur"></span>'; }
-    if (reduce) return draw(txt.length);
-    (function tick() { draw(i); if (i++ < txt.length) setTimeout(tick, txt[i - 1] === '\n' ? 380 : 42); })();
-  })();
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
 
-  // Captures pas encore prises : on masque la vignette plutôt qu'une image cassée
-  document.querySelectorAll('.shots img').forEach(function (i) {
-    function hide() { i.closest('figure').style.display = 'none'; }
-    if (i.complete && !i.naturalWidth && i.src) hide(); else i.addEventListener('error', hide);
-  });
+  // ── Étape 1 : ce qu'on peut choisir ──
+  var OPTIONS = [
+    { id: 'vostfr', always: true,
+      fr: 'Voix anglaises, textes français', en: 'English voices, French text',
+      frS: 'Cinématiques, appels Codec et voix en jeu, sur les deux disques.', enS: 'Cutscenes, Codec calls and in-game voices, on both discs.',
+      shots: [['docs/shots/demo-foxhound.png', 'Intro · voix anglaise, sous-titre français', 'Intro · English voice, French subtitle'],
+              ['docs/shots/codec-kurdes.png', 'Codec · Campbell', 'Codec · Campbell'],
+              ['docs/shots/codec-naomi.png', 'Codec · Naomi', 'Codec · Naomi'],
+              ['docs/shots/jeu-neige.png', 'Snowfield', 'Snowfield']],
+      fl: ['Les voix de David Hayter, Jennifer Hale et de toute la distribution d\'origine.', 'Le texte du Codec suit la voix anglaise, réplique par réplique.', 'Menus, objets et textes : ceux de la version française.'],
+      el: ['The voices of David Hayter, Jennifer Hale and the whole original cast.', 'The Codec text follows the English voice, line by line.', 'Menus, items and text: those of the French version.'] },
+    { id: 'carre',
+      fr: 'Carré fait défiler le Codec', en: 'Square skips through the Codec',
+      frS: 'Pratique quand on refait le jeu ou qu\'on appelle Mei Ling pour sauvegarder.', enS: 'Handy when replaying the game or calling Mei Ling to save.',
+      shots: [['docs/previews/carre_on.png', 'Codec en cours', 'Codec call']],
+      fl: ['Pendant un appel, <b>Carré</b> coupe la voix et fait défiler toutes les répliques d\'un coup, comme dans MGS2.', 'X garde son rôle d\'origine : une réplique par appui.', 'Les choix (sauvegarde, oui/non) ne sont jamais sautés.'],
+      el: ['During a call, <b>Square</b> cuts the voice and runs through all the lines at once, like in MGS2.', 'X keeps its original role: one line per press.', 'Choices (save, yes/no) are never skipped.'] },
+    { id: 'm9',
+      fr: 'Armes tranquillisantes', en: 'Tranquilizer weapons',
+      frS: 'M9, PSG1-T et claymores zzz silencieuses : pour finir le jeu sans tuer.', enS: 'M9, PSG1-T and silent zzz claymores: to finish the game without killing.',
+      shots: [['docs/previews/m9_texte.png', 'Menu R2 · Triangle passe au M9', 'R2 menu · Triangle switches to the M9'],
+              ['docs/previews/m9_zzz.png', 'Garde endormi · zzz', 'Guard asleep · zzz'],
+              ['docs/previews/clay_texte.png', 'Menu R2 · CLAY.ZZZ', 'R2 menu · CLAY.ZZZ'],
+              ['docs/previews/clay_pfft.png', 'Claymore zzz : un « pfft », pas d\'explosion', 'zzz claymore: a "pfft", no blast'],
+              ['docs/previews/psg1t_texte.png', 'Menu R2 · PSG1-T', 'R2 menu · PSG1-T']],
+      fl: ['Dans le menu des armes (R2), <b>Triangle</b> change le SOCOM en <b>M9</b>, le PSG1 en <b>PSG1-T</b> et les claymores en <b>CLAY.ZZZ</b>.', 'Un tir endort un garde pour de bon, avec des zzz. En alerte, il s\'endort 8 s plus tard.', 'Les claymores zzz ne font aucun bruit : les autres gardes n\'entendent rien.', 'Boss : dégâts normaux.'],
+      el: ['In the weapon menu (R2), <b>Triangle</b> turns the SOCOM into the <b>M9</b>, the PSG1 into the <b>PSG1-T</b> and the claymores into <b>CLAY.ZZZ</b>.', 'One shot puts a guard to sleep for good, with zzz. During an alert, he falls asleep 8 s later.', 'zzz claymores make no noise: the other guards hear nothing.', 'Bosses: normal damage.'] },
+    { id: 'fps',
+      fr: 'Viser en vue subjective', en: 'Aim in first-person view',
+      frS: 'Tirer au SOCOM ou au M9 depuis la vue subjective, comme dans MGS2.', enS: 'Shoot the SOCOM or the M9 from the first-person view, like in MGS2.',
+      shots: [['docs/previews/fps_on.png', 'Carré maintenu : l\'arme et son laser', 'Square held: the weapon and its laser'],
+              ['docs/previews/fps_off.png', 'Triangle seul : la vue subjective', 'Triangle alone: the first-person view']],
+      fl: ['<b>Triangle</b> maintenu : vue subjective.', '<b>Carré</b> maintenu : l\'arme apparaît avec son laser rouge ; Carré relâché : le coup part là où tu regardes.', 'Avec les armes tranquillisantes, le M9 endort aussi en vue subjective.'],
+      el: ['Hold <b>Triangle</b>: first-person view.', 'Hold <b>Square</b>: the weapon shows with its red laser; release Square: the shot goes where you look.', 'With the tranquilizer weapons, the M9 also puts guards to sleep in first-person view.'] },
+    { id: 'l2r2',
+      fr: 'Se pencher avec L2 / R2', en: 'Lean with L2 / R2',
+      frS: 'En vue subjective, regarder derrière un coin ou par-dessus un obstacle.', enS: 'In first-person view, look around a corner or over an obstacle.',
+      shots: [['docs/previews/l2r2_on.png', 'Penché à gauche · L2', 'Leaning left · L2']],
+      fl: ['En vue subjective, <b>L2</b> penche Snake à gauche et <b>R2</b> à droite, comme dans MGS2.', 'Penché, les flèches tournent toujours la vue.', '<b>L2 + R2</b> ensemble : Snake se met sur la pointe des pieds.'],
+      el: ['In first-person view, <b>L2</b> makes Snake lean left and <b>R2</b> right, like in MGS2.', 'While leaning, the arrows still turn the view.', '<b>L2 + R2</b> together: Snake stands on tiptoe.'] },
+    { id: 'psg1',
+      fr: 'PSG1 debout ou accroupi', en: 'PSG1 standing or crouching',
+      frS: 'Le fusil de précision sans avoir à se coucher.', enS: 'The sniper rifle without having to lie down.',
+      shots: [],
+      noimg: ['Dans la lunette, l\'image est la même debout ou couché : c\'est Snake qui ne se couche plus.', 'In the scope, the picture is the same standing or prone: Snake just no longer lies down.'],
+      fl: ['Snake garde sa posture en sortant le PSG1 ; couché, rien ne change.', 'Dans la lunette, <b>X</b> passe de debout à accroupi.', 'Debout ou accroupi, la lunette ne tremble pas.'],
+      el: ['Snake keeps his stance when drawing the PSG1; prone, nothing changes.', 'In the scope, <b>X</b> switches between standing and crouching.', 'Standing or crouching, the scope does not sway.'] }
+  ];
+  var KEY = 'mgs.vostfr.opts', state = {};
+  try { state = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (_) { state = {}; }
+  var cur = null, shot = 0;
 
-  // Textes alternatifs en anglais
-  if (SB_LANG === 'en') document.querySelectorAll('[data-en-alt]').forEach(function (e) { e.alt = e.getAttribute('data-en-alt'); });
-
-  // Agrandissement des captures
-  var zoom = document.getElementById('zoom');
-  document.querySelectorAll('.screen').forEach(function (f) {
-    if (f.closest('.carre')) return;
-    f.addEventListener('click', function () {
-      var img = f.querySelector('img'), cap = f.querySelector('figcaption');
-      zoom.querySelector('img').src = img.src; zoom.querySelector('img').alt = img.alt;
-      zoom.querySelector('p').textContent = cap ? cap.textContent : '';
-      zoom.showModal();
+  // captures absentes (pas encore prises) : retirées de la galerie
+  OPTIONS.forEach(function (o) {
+    o.shots.slice().forEach(function (s) {
+      var probe = new Image();
+      probe.onerror = function () {
+        o.shots = o.shots.filter(function (x) { return x !== s; });
+        if (cur === o.id) show(o.id);
+      };
+      probe.src = s[0];
     });
   });
-  zoom.addEventListener('click', function () { zoom.close(); });
 
-  // Démonstration du bouton Carré : le Codec défile puis se ferme
-  (function () {
-    var img = document.getElementById('carreImg'), cap = document.getElementById('carreCap'), msg = document.getElementById('carreMsg'), btn = document.getElementById('carreBtn');
-    var frames = [
-      ['docs/shots/codec-kurdes.png', 'Campbell · 140.85'],
-      ['docs/shots/carre-2.png', 'Naomi · 140.85'],
-      ['docs/shots/carre-3.png', SBT('Fin de l’appel', 'Call ended')]
-    ];
-    frames.forEach(function (f) { new Image().src = f[0]; });
-    var busy = false;
-    function show(k) { img.src = frames[k][0]; cap.textContent = frames[k][1]; }
-    btn.addEventListener('click', function () {
-      if (busy) return; busy = true; btn.classList.add('hit');
-      msg.textContent = SBT('□ … les répliques défilent', '□ … lines fly by');
-      setTimeout(function () { show(1); }, 300);
-      setTimeout(function () { show(2); btn.classList.remove('hit'); msg.textContent = SBT('Appel terminé. Rappuie pour recommencer.', 'Call over. Press again to replay.'); }, 1000);
-      setTimeout(function () { show(0); busy = false; }, 3200);
+  OPTIONS.forEach(function (o) {
+    if (o.always) state[o.id] = true;
+    else if (typeof state[o.id] !== 'boolean') state[o.id] = true;
+    var d = document.createElement('div');
+    d.className = 'opt'; d.dataset.id = o.id;
+    d.innerHTML = '<input type="checkbox" aria-label="' + SBT(o.fr, o.en) + '"' + (state[o.id] ? ' checked' : '') + (o.always ? ' disabled' : '') + '>' +
+      '<div><b>' + SBT(o.fr, o.en) + (o.always ? '<span class="always">' + SBT('toujours', 'always') + '</span>' : '') + '</b>' +
+      '<small>' + SBT(o.frS, o.enS) + '</small></div>';
+    d.addEventListener('mouseenter', function () { show(o.id); });
+    d.addEventListener('focusin', function () { show(o.id); });
+    d.addEventListener('click', function () { show(o.id); });
+    var box = d.querySelector('input');
+    box.addEventListener('change', function () {
+      state[o.id] = box.checked;
+      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) {}
+      show(o.id); summary();
     });
-  })();
-
-
-  // ── Fabricant : disques, options, fabrication dans le navigateur ──
-  (function () {
-    var $ = function (id) { return document.getElementById(id); };
-    var OPTIONS = [
-      { id: 'carre', fr: 'Carré fait défiler le Codec', en: 'Square fast-forwards the Codec',
-        frD: 'Pendant un appel, Carré coupe la voix et fait défiler toutes les répliques d\'un coup.', enD: 'During a call, Square cuts the voice and runs through all the lines at once.',
-        on: 'docs/previews/carre_on.png', off: 'docs/shots/codec-kurdes.png' },
-      { id: 'm9', fr: 'M9, PSG1-T et claymores zzz', en: 'M9, PSG1-T and zzz claymores',
-        frD: 'Armes tranquillisantes (Triangle dans le menu R2) ; claymores zzz silencieuses. Pour finir le jeu sans tuer.', enD: 'Tranquilizer weapons (Triangle in the R2 menu); silent zzz claymores. To finish the game without killing.',
-        on: 'docs/previews/m9_zzz.png', on2: 'docs/previews/m9_menu.png', off: 'docs/shots/jeu-quai.png' },
-      { id: 'psg1', fr: 'PSG1 debout ou accroupi', en: 'PSG1 standing or crouching',
-        frD: 'Le fusil de précision sans se coucher ; X passe de debout à accroupi dans la lunette.', enD: 'The sniper rifle without lying down; X switches between standing and crouching in the scope.',
-        on: 'docs/previews/psg1_on.png', off: 'docs/previews/psg1_off.png' },
-      { id: 'l2r2', fr: 'Se pencher en vue subjective (L2/R2)', en: 'Lean in first-person view (L2/R2)',
-        frD: 'L2/R2 penchent Snake, L2+R2 le met sur la pointe des pieds, comme dans MGS2.', enD: 'L2/R2 make Snake lean, L2+R2 puts him on tiptoe, like in MGS2.',
-        on: 'docs/previews/l2r2_on.png', off: 'docs/previews/fps_off.png' },
-      { id: 'fps', fr: 'Viser en vue subjective (SOCOM / M9)', en: 'Aim in first-person view (SOCOM / M9)',
-        frD: 'Triangle + Carré : l\'arme et son laser apparaissent, Carré relâché tire, comme dans MGS2.', enD: 'Triangle + Square: the weapon and its laser show, releasing Square shoots, like in MGS2.',
-        on: 'docs/previews/fps_on.png', off: 'docs/previews/fps_off.png' }
-    ];
-    var KEY = 'mgs.vostfr.opts', state = {};
-    try { state = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (_) { state = {}; }
-    var box = $('opts'), cur = null;
-    OPTIONS.forEach(function (o) {
-      if (state[o.id] === undefined) state[o.id] = true;
-      var d = document.createElement('label');
-      d.className = 'opt'; d.dataset.id = o.id;
-      d.innerHTML = '<input type="checkbox"' + (state[o.id] ? ' checked' : '') + '><div><b>' + SBT(o.fr, o.en) + '</b><span>' + SBT(o.frD, o.enD) + '</span></div>';
-      d.addEventListener('mouseenter', function () { show(o.id); });
-      d.addEventListener('focusin', function () { show(o.id); });
-      d.querySelector('input').addEventListener('change', function (e) {
-        state[o.id] = e.target.checked;
-        try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) {}
-        show(o.id);
-      });
-      box.appendChild(d);
+    $('opts').appendChild(d);
+  });
+  function opt(id) { return OPTIONS.filter(function (x) { return x.id === id; })[0]; }
+  function show(id, k) {
+    var o = opt(id);
+    if (id !== cur) shot = 0;
+    if (k !== undefined) shot = k;
+    if (shot >= o.shots.length) shot = 0;
+    cur = id;
+    document.querySelectorAll('#opts .opt').forEach(function (d) { d.classList.toggle('cur', d.dataset.id === id); });
+    var scr = $('pv-screen'), img = $('pv-img'), s = o.shots[shot];
+    scr.classList.toggle('empty', !s);
+    scr.classList.toggle('dim', !state[id]);
+    $('pv-noimg').textContent = o.noimg ? SBT(o.noimg[0], o.noimg[1]) : '';
+    if (s) { img.src = s[0]; img.alt = SBT(s[1], s[2]); }
+    $('pv-cap').textContent = s ? SBT(s[1], s[2]) : '';
+    var th = $('pv-thumbs');
+    th.innerHTML = '';
+    if (o.shots.length > 1) o.shots.forEach(function (t, k2) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = k2 === shot ? 'cur' : '';
+      b.setAttribute('aria-label', SBT(t[1], t[2]));
+      b.innerHTML = '<img src="' + t[0] + '" alt="">';
+      b.addEventListener('click', function () { show(id, k2); });
+      th.appendChild(b);
     });
-    function show(id) {
-      var o = OPTIONS.filter(function (x) { return x.id === id; })[0], on = state[id];
-      cur = id;
-      document.querySelectorAll('#opts .opt').forEach(function (d) { d.classList.toggle('cur', d.dataset.id === id); });
-      var img = $('pv-img');
-      img.onerror = function () { if (o.on2 && img.src.indexOf(o.on2) < 0 && on) img.src = o.on2; else if (img.src.indexOf(o.off) < 0) img.src = o.off; };
-      img.src = on ? o.on : o.off;
-      img.alt = SBT(o.fr, o.en);
-      $('pv-screen').classList.toggle('dim', !on);
-      $('pv-title').textContent = SBT(o.fr, o.en);
-      var b = $('pv-state');
-      b.textContent = on ? SBT('activée', 'on') : SBT('désactivée', 'off');
-      b.className = 'badge ' + (on ? 'on' : 'off');
-    }
-    show(OPTIONS[0].id);
+    $('pv-title').textContent = SBT(o.fr, o.en);
+    var st = $('pv-state');
+    st.textContent = o.always ? SBT('toujours inclus', 'always included') : state[id] ? SBT('choisie', 'chosen') : SBT('non choisie', 'not chosen');
+    st.className = 'state ' + (state[id] ? 'on' : 'off');
+    $('pv-list').innerHTML = (SB_LANG === 'en' ? o.el : o.fl).map(function (t) { return '<li>' + t + '</li>'; }).join('');
+  }
+  function chosen() { return OPTIONS.filter(function (o) { return !o.always && state[o.id]; }); }
+  function summary() {
+    var c = chosen().map(function (o) { return SBT(o.fr, o.en); });
+    $('summary').textContent = SBT('Tu vas obtenir : voix anglaises et textes français', 'You will get: English voices and French text') +
+      (c.length ? ' + ' + c.join(' + ') : SBT(', sans option', ', no option')) + '.';
+  }
+  show('vostfr'); summary();
 
-    // disques déposés
-    var M = window.MGSVOSTFR, discs = {}, busy = false;
-    var LABELS = { FR1: 'SLES-01506', UK1: 'SLES-01370', FR2: 'SLES-11506', UK2: 'SLES-11370' };
-    function wrap(file) {
-      return { name: file.name, size: file.size,
-        read: function (off, len) { return file.slice(off, off + len).arrayBuffer().then(function (b) { return new Uint8Array(b); }); } };
-    }
-    function slot(id, cls, text) {
-      var el = $('slot-' + id);
-      el.className = 'slot ' + (cls || '');
-      el.querySelector('span').textContent = LABELS[id] + ' · ' + text;
-    }
-    function ready() {
-      var pair1 = discs.FR1 && discs.UK1, pair2 = discs.FR2 && discs.UK2;
-      $('go').disabled = busy || !(pair1 || pair2);
-    }
-    function status(text, err) { var s = $('status'); s.textContent = text; s.className = err ? 'err' : ''; }
-    async function addFiles(list) {
-      for (var i = 0; i < list.length; i++) {
-        var f = list[i];
-        if (/\.(cue|m3u|sbi)$/i.test(f.name)) continue;
-        status(SBT('Lecture de ', 'Reading ') + f.name + '…');
-        try {
-          var r = await M.identify(wrap(f));
-          if (!r.id) { status(f.name + SBT(' : ce n\'est pas un des quatre disques attendus (' + r.exe + ').', ': not one of the four expected discs (' + r.exe + ').'), true); continue; }
-          discs[r.id] = r.disc;
-          slot(r.id, 'ok', '✔ ' + f.name);
-          status('');
-        } catch (e) {
-          status(f.name + ' : ' + e.message, true);
-        }
-      }
-      ready();
-    }
-    var drop = $('drop');
-    $('files').addEventListener('change', function (e) { addFiles(e.target.files); });
-    ['dragenter', 'dragover'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
-    ['dragleave', 'drop'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove('over'); }); });
-    drop.addEventListener('drop', function (e) { addFiles(e.dataTransfer.files); });
-
-    var canPick = 'showDirectoryPicker' in window;
-    if (!canPick) $('out-note').textContent = SBT('Ton navigateur ne sait pas écrire dans un dossier : les images seront proposées en téléchargement à la fin (ça demande plus de mémoire ; Chrome ou Edge font mieux).',
-      'Your browser cannot write to a folder: the images will be offered as downloads at the end (this needs more memory; Chrome or Edge do better).');
-
-    $('go').addEventListener('click', async function () {
-      var opts = OPTIONS.filter(function (o) { return state[o.id]; }).map(function (o) { return o.id; });
-      var dir = null, blobs = [];
-      if (canPick) {
-        try { dir = await window.showDirectoryPicker({ mode: 'readwrite', id: 'mgs-vostfr' }); }
-        catch (e) { if (e.name === 'AbortError') return; dir = null; }
-      }
-      busy = true; ready();
-      var logEl = $('log'), bar = $('bar');
-      logEl.style.display = 'block'; logEl.textContent = ''; bar.style.display = 'block'; $('dl').innerHTML = '';
-      var t0 = Date.now();
-      function log(t) { logEl.textContent += t + '\n'; logEl.scrollTop = logEl.scrollHeight; }
-      function progress(step, f) {
-        status(step + (f ? ' · ' + Math.round(f * 100) + ' %' : '') + ' · ' + Math.round((Date.now() - t0) / 1000) + ' s');
-        bar.firstElementChild.style.width = Math.round((f || 0) * 100) + '%';
-      }
-      async function openWriter(name) {
-        if (dir) {
-          var fh = await dir.getFileHandle(name, { create: true }), w = await fh.createWritable();
-          return { write: function (b) { return w.write(b); }, close: function () { return w.close(); } };
-        }
-        var parts = [];
-        return { write: function (b) { parts.push(b); return Promise.resolve(); },
-                 close: function () { blobs.push([name, new Blob(parts)]); parts = null; return Promise.resolve(); } };
-      }
+  // ── Étape 2 : les disques ──
+  var M = window.MGSVOSTFR, discs = {}, busy = false;
+  function wrap(file) {
+    return { name: file.name, size: file.size,
+      read: function (off, len) { return file.slice(off, off + len).arrayBuffer().then(function (b) { return new Uint8Array(b); }); } };
+  }
+  function ready() { $('go').disabled = busy || !((discs.FR1 && discs.UK1) || (discs.FR2 && discs.UK2)); }
+  function status(text, err) { var s = $('status'); s.textContent = text; s.className = err ? 'err' : ''; }
+  async function addFiles(list) {
+    for (var i = 0; i < list.length; i++) {
+      var f = list[i];
+      if (/\.(cue|m3u|sbi)$/i.test(f.name)) continue;
+      status(SBT('Lecture de ', 'Reading ') + f.name + '…');
       try {
-        await M.build(discs, opts, openWriter, log, progress);
-        bar.firstElementChild.style.width = '100%';
-        status(SBT('Terminé en ', 'Done in ') + Math.round((Date.now() - t0) / 1000) + ' s. ' +
-          (dir ? SBT('Les fichiers sont dans le dossier choisi.', 'The files are in the folder you chose.') : SBT('Télécharge les fichiers ci-dessous.', 'Download the files below.')));
-        blobs.forEach(function (nb) {
-          var a = document.createElement('a');
-          a.className = 'btn alt'; a.href = URL.createObjectURL(nb[1]); a.download = nb[0]; a.textContent = '⬇ ' + nb[0];
-          $('dl').appendChild(a);
-        });
-      } catch (e) {
-        console.error(e);
-        status(SBT('Erreur : ', 'Error: ') + (e && e.message || e), true);
-      }
-      busy = false; ready();
-    });
-  })();
+        var r = await M.identify(wrap(f));
+        if (!r.id) { status(f.name + SBT(' : ce n\'est pas un des quatre disques attendus (' + r.exe + ').', ': not one of the four expected discs (' + r.exe + ').'), true); continue; }
+        discs[r.id] = r.disc;
+        var el = $('slot-' + r.id);
+        el.className = 'slot ok';
+        el.querySelector('span').textContent = '✔ ' + f.name;
+        status('');
+      } catch (e) { status(f.name + ' : ' + e.message, true); }
+    }
+    ready();
+  }
+  var drop = $('drop');
+  $('files').addEventListener('change', function (e) { addFiles(e.target.files); });
+  ['dragenter', 'dragover'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.add('over'); }); });
+  ['dragleave', 'drop'].forEach(function (t) { drop.addEventListener(t, function (e) { e.preventDefault(); drop.classList.remove('over'); }); });
+  drop.addEventListener('drop', function (e) { addFiles(e.dataTransfer.files); });
 
-  // Apparition au défilement
-  var io = 'IntersectionObserver' in window ? new IntersectionObserver(function (es) {
-    es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('on'); io.unobserve(e.target); } });
-  }, { threshold: .12 }) : null;
-  document.querySelectorAll('.reveal').forEach(function (r) { io ? io.observe(r) : r.classList.add('on'); });
+  // ── Étape 3 : fabrication ──
+  var canPick = 'showDirectoryPicker' in window;
+  if (!canPick) $('out-note').textContent = SBT('Les images te seront proposées en téléchargement à la fin. Compte quelques minutes et beaucoup de mémoire libre ; Chrome ou Edge font mieux (ils écrivent directement dans un dossier).',
+    'The images will be offered as downloads at the end. Count a few minutes and plenty of free memory; Chrome or Edge do better (they write straight into a folder).');
+  $('go').addEventListener('click', async function () {
+    var opts = chosen().map(function (o) { return o.id; }), dir = null, blobs = [];
+    if (canPick) {
+      try { dir = await window.showDirectoryPicker({ mode: 'readwrite', id: 'mgs-vostfr' }); }
+      catch (e) { if (e.name === 'AbortError') return; dir = null; }
+    }
+    busy = true; ready();
+    var logEl = $('log'), bar = $('bar'), t0 = Date.now();
+    $('logbox').hidden = false; logEl.textContent = ''; bar.style.display = 'block'; $('dl').innerHTML = '';
+    function log(t) { logEl.textContent += t + '\n'; logEl.scrollTop = logEl.scrollHeight; }
+    function progress(step, f) {
+      status(step + (f ? ' · ' + Math.round(f * 100) + ' %' : '') + ' · ' + Math.round((Date.now() - t0) / 1000) + ' s');
+      bar.firstElementChild.style.width = Math.round((f || 0) * 100) + '%';
+    }
+    async function openWriter(name) {
+      if (dir) {
+        var fh = await dir.getFileHandle(name, { create: true }), w = await fh.createWritable();
+        return { write: function (b) { return w.write(b); }, close: function () { return w.close(); } };
+      }
+      var parts = [];
+      return { write: function (b) { parts.push(b); return Promise.resolve(); },
+               close: function () { blobs.push([name, new Blob(parts)]); parts = null; return Promise.resolve(); } };
+    }
+    try {
+      await M.build(discs, opts, openWriter, log, progress);
+      bar.firstElementChild.style.width = '100%';
+      status('✔ ' + SBT('Terminé en ', 'Done in ') + Math.round((Date.now() - t0) / 1000) + ' s. ' +
+        (dir ? SBT('Tes images sont dans le dossier choisi : ouvre le .m3u dans ton émulateur.', 'Your images are in the folder you chose: open the .m3u in your emulator.')
+             : SBT('Télécharge les fichiers ci-dessous, puis ouvre le .m3u dans ton émulateur.', 'Download the files below, then open the .m3u in your emulator.')));
+      blobs.forEach(function (nb) {
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(nb[1]); a.download = nb[0]; a.textContent = '⬇ ' + nb[0];
+        $('dl').appendChild(a);
+      });
+    } catch (e) {
+      console.error(e);
+      status(SBT('Erreur : ', 'Error: ') + (e && e.message || e), true);
+    }
+    busy = false; ready();
+  });
+})();
 </script>
 </body>
 </html>
