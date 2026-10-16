@@ -1288,6 +1288,25 @@
     put(tail, 0x2C420001);
     return exe;
   }
+  // Remplace chaque « jal NewMetalGearLogo » de l'overlay par « addu v0, zero, zero » (pas de logo) ;
+  // la fonction est celle qui charge l'adresse de « met_logo.c » (début : dernier addiu sp, sp, -X avant).
+  function cbRemoveLogo(w, ovl, ovb, name) {
+    var key = 'met_logo.c\0', at = -1, i, j;
+    for (i = 0; i + key.length <= ovl.length && at < 0; i++) if (ascii(ovl, i, i + key.length) === key) at = i;
+    if (at < 0) throw new Error(name + ' : met_logo.c');
+    var sa = ovb + at, hi = Math.floor((sa + 0x8000) / 65536) & 0xFFFF, lo = sa & 0xFFFF, refs = [];
+    for (i = 0; i < w.length - 4; i++) {
+      if (w[i] >>> 26 !== 15 || (w[i] & 0xFFFF) !== hi) continue;
+      var r = (w[i] >>> 16) & 31;
+      for (j = i + 1; j < i + 5; j++) if (w[j] >>> 26 === 9 && ((w[j] >>> 21) & 31) === r && (w[j] & 0xFFFF) === lo) { refs.push(i); break; }
+    }
+    if (refs.length !== 1) throw new Error(name + ' : met_logo.c');
+    var f0 = -1;
+    for (i = refs[0]; i >= 0; i--) if (w[i] >>> 16 === 0x27BD && (w[i] & 0x8000)) { f0 = i; break; }
+    var jal = (0x0C000000 | (((ovb + 4 * f0) & 0x3FFFFFF) >>> 2)) >>> 0, n = 0;
+    for (i = 0; i < w.length; i++) if (w[i] === jal) { w[i] = 0x00001021; n++; }
+    if (!n) throw new Error(name + ' : appel de NewMetalGearLogo');
+  }
   function cbPatchOverlays(st0, fs, reset, ovb) {
     var st = st0.slice(), hi = Math.floor((fs + 0x8000) / 65536) & 0xFFFF, lo = fs & 0xFFFF;
     var jal = (0x0C000000 | ((reset & 0x3FFFFFF) >>> 2)) >>> 0, done = [];
@@ -1323,6 +1342,13 @@
       if (tabs.length !== 1) throw new Error(name + ' : table');
       var e6 = w[tabs[0] + 6];
       for (q = 0; q < 6; q++) w[tabs[0] + q] = e6;
+      // logo METAL GEAR : change sans logo (enchaînement direct) ; title / demosel : 160 images au lieu de 72
+      if (name === 'change') cbRemoveLogo(w, st.subarray(base, base + size), ovb, name);
+      else if (name === 'title' || name === 'demosel') {
+        var sl = 0;
+        for (q = 0; q < n; q++) if (w[q] === 0x28630048) { w[q] = 0x286300A0; sl++; }
+        if (sl !== (name === 'title' ? 2 : 1)) throw new Error(name + ' : délai du logo');
+      }
       for (k = 0; k < n; k++) w32(st, base + 4 * k, w[k]);
       done.push(name);
     });
