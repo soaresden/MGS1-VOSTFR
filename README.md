@@ -27,7 +27,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--fps` : viser et tirer au SOCOM / M9 en vue subjective (comme dans MGS2) | ✅ fait, testé (quai : garde endormi au M9, blessé au SOCOM, laser) |
 | Option `--life TEXTE` : ton texte à la place de « LIFE » dans la barre de vie (ex. « SNAKE ») | ✅ fait, testé (quai, version française et anglaise) |
 | Option `--cartes` : les portes à carte s'ouvrent avec la carte dans l'inventaire (plus besoin de l'équiper) | ✅ fait, testé (porte LV.6 de Blast Furnace : bloqué sans le patch, ouverte avec) |
-| Option `--psg1loup` : le PSG1 dans la grotte, à côté de la porte du passage, juste avant Sniper Wolf | ✅ fait, vérifié en mémoire (objet PSG1 présent après le tir sur Meryl) |
+| Option `--psg1loup` : le PSG1 à la place de Meryl, dans le passage de Sniper Wolf (plus de détour par l'armurerie) | ✅ fait, vérifié en mémoire (PSG1 présent quand on revient dans le passage, absent avant) |
 | Page web : fabrication dans le navigateur, options à cocher, hors ligne possible | ✅ fait, mêmes images que Python octet pour octet |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Option `--combine` : les 2 disques en **une seule image** (émulateurs, son allégé) | ✅ fait, testé dans PCSX-Redux (intro, Codec des deux disques, passage au disque 2 depuis une sauvegarde, sans changer de disque) ; VOSTFR, VF et EN, toutes options |
@@ -132,7 +132,9 @@ Option `--cartes` : les portes à carte s'ouvrent dès que la carte est dans l'i
 
 ![Sans --cartes : porte LV.6 fermée, carte en poche](docs/previews/cartes_off.png) ![Avec --cartes : Snake passe](docs/previews/cartes_on.png)
 
-Option `--psg1loup` (désactivée par défaut) : après que Sniper Wolf a blessé Meryl dans le passage souterrain, plus besoin de retourner chercher le PSG1 à l'armurerie. Il attend dans la grotte (celle du chien-loup), juste à côté de la porte du passage et de la ration. Il n'apparaît qu'une fois Meryl touchée : on ressort du passage, on prend le PSG1, on revient, et la suite se déroule comme dans le jeu d'origine (Meryl n'est plus là, cinématique, combat).
+Option `--psg1loup` (désactivée par défaut) : après que Sniper Wolf a blessé Meryl dans le passage souterrain, plus besoin de retourner chercher le PSG1 à l'armurerie. Il suffit de ressortir du passage (comme dans le jeu, Wolf repousse Snake tant qu'il n'a pas de fusil) et d'y revenir : le PSG1 attend **à côté de Meryl**, là où elle est tombée. La suite est celle du jeu d'origine (cinématique, combat). Comme tous les objets du jeu, il n'existe pas en mode Extreme (le chemin par l'armurerie reste).
+
+![Avec --psg1loup : retour dans le passage, le PSG1 à côté de Meryl](docs/previews/psg1loup_on.png)
 
 ```bash
 python cartes.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
@@ -208,7 +210,7 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/fps.py` | Patch optionnel : tirer au SOCOM / M9 en vue subjective |
 | `tools/life.py` | Patch optionnel : texte à la place de « LIFE » dans la barre de vie (+ aperçu) |
 | `tools/cartes.py` | Patch optionnel : portes à carte ouvertes sans équiper la carte |
-| `tools/psg1loup.py` | Patch optionnel : le PSG1 dans la grotte, juste avant Sniper Wolf |
+| `tools/psg1loup.py` | Patch optionnel : le PSG1 à la place de Meryl, dans le passage de Sniper Wolf |
 | `tools/combine.py` | Les 2 disques en une seule image (son allégé, pas de changement de disque) ; aussi dans la page web (case « CD Combiner ») |
 | `tools/spuadpcm.py` | ADPCM du SPU : décodage, encodage, rééchantillonnage entier |
 | `tools/gcx.py` | Lecture exacte des scripts GCX de `STAGE.DIR` (codes des voix et des cinématiques) |
