@@ -9,7 +9,7 @@ pilote emu_drive.lua de ce dépôt).
   python emu.py cmd quit
 
 Commandes (exécutées à la suite, « wait N » attend N images) : press BOUTON [images], wait,
-shot nom, save nom, load chemin.sstate, dump chemin, quit.
+shot nom, save nom, load chemin.sstate, dump chemin, vram nom (VRAM 1024x512 brute), quit.
 Boutons : START, SELECT, CIRCLE (valider dans MGS PAL), CROSS, UP, DOWN...
 Les captures sont écrites en PNG dans work/emu/. Chemin du harnais : variable REDUX_TESTS.
 """
@@ -19,7 +19,7 @@ from pathlib import Path
 
 TESTS = Path(os.environ.get("REDUX_TESTS", r"D:\DOCS\Documents\GitHub\Resident Evil 1 Hotkey\tools\emu-tests"))
 HERE = Path(__file__).resolve().parent
-OUT = HERE.parent / "work" / "emu"
+OUT = Path(os.environ.get("EMU_OUT", HERE.parent / "work" / "emu"))  # autre dossier : 2 émulateurs à la fois
 
 
 def launch(cue, gui=False):

@@ -25,6 +25,7 @@ This repository contains **no game data**: only the scripts that build the image
 | `--psg1` option: PSG1 (and PSG1-T) usable standing or crouching | ✅ done, tested (dock: standing, crouching, prone, shooting a guard) |
 | `--l2r2` option: in first-person view, L2/R2 lean, L2+R2 tiptoe (like in MGS2) | ✅ done, tested |
 | `--fps` option: aim and shoot the SOCOM / M9 in first-person view (like in MGS2) | ✅ done, tested (dock: guard put to sleep with the M9, hurt with the SOCOM, laser) |
+| `--life TEXT` option: your own text instead of "LIFE" in the life bar (e.g. "SNAKE") | ✅ done, tested (dock, French and English versions) |
 | Web page: build in the browser, options to tick, works offline | ✅ done, same images as Python byte for byte |
 | French dub credits in the intro → English cast | 🔧 to do |
 | "2 discs in 1" version | 💡 phase 3 |
@@ -114,6 +115,17 @@ python l2r2.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTF
 python fps.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
+`--life TEXT` option: replaces the word **"LIFE"** of the life bar with the text of your choice, for example `--life SNAKE`. Without the option (or with `LIFE`), nothing changes.
+- Same font and same frame as the original "LIFE" (the frame grows with the text). The text also shows on the life bar of the weapon and item menus.
+- **15 characters at most**: letters (shown in capitals; accents are removed: "é" becomes "E"), digits, space and `. : ! ? + - = % ( )`. The game's font has nothing else.
+- Works with all the other options (it only changes text).
+
+```bash
+python life.py "SNAKE" "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
+
+![Life bar "SNAKE"](docs/previews/life_snake.png) ![15 characters](docs/previews/life_max.png)
+
 Give **both discs**: disc 2's sound test table is also used to pair disc 1's voices exactly.
 
 ## How it works
@@ -152,6 +164,7 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/psg1.py` | Optional patch: PSG1 standing or crouching |
 | `tools/l2r2.py` | Optional patch: first-person view, L2/R2 lean, L2+R2 tiptoe |
 | `tools/fps.py` | Optional patch: shoot the SOCOM / M9 in first-person view |
+| `tools/life.py` | Optional patch: your text instead of "LIFE" in the life bar (+ preview) |
 | `tools/mips.py` | Small MIPS (R3000) assembler for the patches |
 | `tools/pal.py` | EXE version (PAL France or PAL Europe English) and translation of the patch addresses |
 | `tools/palmap.py` | Development tool: generates `tools/pal_uk.py` (FR → UK addresses) |

@@ -1,5 +1,5 @@
 -- Pilote PCSX-Redux pour emu.py : lit CMD_FILE et exécute les commandes à la suite.
--- press BOUTON [images], shot nom, wait images, save nom, load chemin, dump chemin, quit
+-- press BOUTON [images], shot nom, wait images, save nom, load chemin, dump chemin, vram nom, quit
 -- r16/r32 adresse (valeur écrite dans le journal), w16/w32 adresse valeur,
 -- poke fichier (enregistrements : u32 adresse, u32 longueur, octets ; voir emu.py)
 local CMD = os.getenv('CMD_FILE') or 'cmd.txt'
@@ -32,6 +32,7 @@ local function step(n, a)
     elseif op == 'save' then a.save(arg1)
     elseif op == 'load' then a.load(arg1)
     elseif op == 'dump' then a.dump(arg1)
+    elseif op == 'vram' then a.vram(arg1)
     elseif op == 'quit' then a.quit()
     elseif op == 'r16' then a.L(string.format('R16 %s %04x', arg1, a.r16(tonumber(arg1))))
     elseif op == 'r32' then a.L(string.format('R32 %s %08x', arg1, a.r32(tonumber(arg1))))

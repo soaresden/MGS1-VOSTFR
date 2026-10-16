@@ -25,6 +25,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--psg1` : PSG1 (et PSG1-T) utilisable debout ou accroupi | ✅ fait, testé (quai : debout, accroupi, couché, tir sur un garde) |
 | Option `--l2r2` : en vue subjective, L2/R2 penchent Snake, L2+R2 pointe des pieds (comme dans MGS2) | ✅ fait, testé |
 | Option `--fps` : viser et tirer au SOCOM / M9 en vue subjective (comme dans MGS2) | ✅ fait, testé (quai : garde endormi au M9, blessé au SOCOM, laser) |
+| Option `--life TEXTE` : ton texte à la place de « LIFE » dans la barre de vie (ex. « SNAKE ») | ✅ fait, testé (quai, version française et anglaise) |
 | Page web : fabrication dans le navigateur, options à cocher, hors ligne possible | ✅ fait, mêmes images que Python octet pour octet |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Version « 2 disques en 1 » | 💡 phase 3 |
@@ -114,6 +115,17 @@ Option `--fps` : **viser et tirer en vue subjective** avec le SOCOM ou le M9, co
 python fps.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
+Option `--life TEXTE` : remplace le mot **« LIFE »** de la barre de vie par le texte de ton choix, par exemple `--life SNAKE`. Sans l'option (ou avec `LIFE`), rien ne change.
+- Même police et même cadre que le « LIFE » d'origine (le cadre s'allonge avec le texte). Le texte apparaît aussi sur la barre de vie des menus d'armes et d'objets.
+- **15 caractères au plus** : lettres (affichées en capitales ; les accents sont enlevés : « é » devient « E »), chiffres, espace et `. : ! ? + - = % ( )`. La police du jeu n'a rien d'autre.
+- Compatible avec toutes les autres options (ne touche qu'à du texte).
+
+```bash
+python life.py "SNAKE" "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
+
+![Barre de vie « SNAKE »](docs/previews/life_snake.png) ![15 caractères](docs/previews/life_max.png)
+
 Donne les **deux disques** : la table du test sonore du disque 2 sert aussi à apparier exactement les voix du disque 1.
 
 ## Comment ça marche
@@ -152,6 +164,7 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/psg1.py` | Patch optionnel : PSG1 debout ou accroupi |
 | `tools/l2r2.py` | Patch optionnel : vue subjective, L2/R2 penchent, L2+R2 pointe des pieds |
 | `tools/fps.py` | Patch optionnel : tirer au SOCOM / M9 en vue subjective |
+| `tools/life.py` | Patch optionnel : texte à la place de « LIFE » dans la barre de vie (+ aperçu) |
 | `tools/mips.py` | Petit assembleur MIPS (R3000) pour les patchs |
 | `tools/pal.py` | Version de l'EXE (PAL France ou PAL Europe anglaise) et traduction des adresses des patchs |
 | `tools/palmap.py` | Outil de développement : génère `tools/pal_uk.py` (adresses FR → UK) |

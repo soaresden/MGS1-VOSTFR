@@ -6,7 +6,7 @@ build.py - Construit les images VOSTFR de MGS1 PS1 à partir des CHD (ou BIN) FR
 - Codec et voix en jeu (VOX.DAT) : banques anglaises avec les sous-titres FR, codes VOX
   renumérotés dans RADIO.DAT et STAGE.DIR, image ISO reconstruite (VOX.DAT grossit).
 
-  python build.py --fr1 FR_D1.chd --uk1 UK_D1.chd --fr2 FR_D2.chd --uk2 UK_D2.chd --out sortie [--carre] [--m9] [--psg1] [--l2r2] [--fps]
+  python build.py --fr1 FR_D1.chd --uk1 UK_D1.chd --fr2 FR_D2.chd --uk2 UK_D2.chd --out sortie [--carre] [--m9] [--psg1] [--l2r2] [--fps] [--life SNAKE]
   python build.py --vf --fr1 FR_D1.chd --fr2 FR_D2.chd --out sortie --m9 ...   (jeu français + options)
   python build.py --vo --uk1 UK_D1.chd --uk2 UK_D2.chd --out sortie --m9 ...   (jeu anglais + options)
 
@@ -15,6 +15,7 @@ build.py - Construit les images VOSTFR de MGS1 PS1 à partir des CHD (ou BIN) FR
 --psg1  : patch optionnel, PSG1 utilisable debout ou accroupi (voir psg1.py).
 --l2r2  : patch optionnel, L2/R2 penchent la vue subjective comme dans MGS2 (voir l2r2.py).
 --fps   : patch optionnel, viser et tirer au SOCOM / M9 en vue subjective (voir fps.py).
+--life TEXTE : patch optionnel, texte à la place de « LIFE » dans la barre de vie (voir life.py).
 
 Donner les deux disques permet un appariement exact des banques (table de test sonore du
 disque 2, reportée sur le disque 1). Les fichiers intermédiaires vont dans ./work (ignoré).
@@ -23,7 +24,7 @@ disque 2, reportée sur le disque 1). Les fichiers intermédiaires vont dans ./w
 import argparse, sys
 from pathlib import Path
 
-import carre, chd2bin, demo_vostfr, fps, isorebuild, l2r2, m9, psg1, psxiso, vox_vostfr, voxalign
+import carre, chd2bin, demo_vostfr, fps, isorebuild, l2r2, life, m9, psg1, psxiso, vox_vostfr, voxalign
 
 ROOT = Path(__file__).resolve().parent.parent
 WORK = ROOT / "work"
@@ -53,7 +54,7 @@ def tables(path):
             voxalign.sound_test_table(read(path, "STAGE.DIR")))
 
 
-def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=False, rifle=False, lean=False, aim=False, vf=False):
+def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=False, rifle=False, lean=False, aim=False, name=None, vf=False):
     """vf : garde les voix françaises (pas de VOSTFR), seulement les options ; uk inutile."""
     rep = {}
     exe = next(f for f in psxiso.Disc(fr).files() if f in ("MGS/MGS1.EXE", "MGS/MGS2.EXE"))
@@ -75,6 +76,11 @@ def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=Fal
     if aim:  # après m9 (qui vérifie tout le menu de débogage)
         rep[exe] = fps.patch(rep.get(exe) or read(fr, exe[4:]))
         print(f"  {exe[4:]} : tir au SOCOM / M9 en vue subjective")
+    if name:
+        new = life.patch(rep.get(exe) or read(fr, exe[4:]), name)
+        if new is not None:
+            rep[exe] = new
+            print(f"  {exe[4:]} : barre de vie « {life.clean(name)} »")
 
     print(f"  Image -> {out_bin.name}")
     new = isorebuild.rebuild(fr, out_bin, rep)
@@ -117,13 +123,16 @@ def main():
     ap.add_argument("--psg1", action="store_true", help="PSG1 utilisable debout ou accroupi")
     ap.add_argument("--l2r2", action="store_true", help="L2/R2 penchent la vue subjective (comme MGS2)")
     ap.add_argument("--fps", action="store_true", help="viser et tirer au SOCOM / M9 en vue subjective")
+    ap.add_argument("--life", metavar="TEXTE", help="texte à la place de « LIFE » dans la barre de vie (ex. SNAKE)")
     ap.add_argument("--vf", action="store_true", help="jeu français d'origine + options seulement (--uk1/--uk2 inutiles)")
     ap.add_argument("--vo", action="store_true", help="jeu anglais (Europe) d'origine + options seulement (--fr1/--fr2 inutiles)")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     WORK.mkdir(exist_ok=True)
-    opts = (a.carre, a.m9, a.psg1, a.l2r2, a.fps)
+    if a.life:
+        life.clean(a.life)  # erreur tout de suite si le texte ne passe pas
+    opts = (a.carre, a.m9, a.psg1, a.l2r2, a.fps, a.life)
     if a.vf or a.vo:  # jeu d'origine + options, sans VOSTFR
         if not any(opts):
             raise SystemExit("--vf / --vo sans option : rien à faire")
