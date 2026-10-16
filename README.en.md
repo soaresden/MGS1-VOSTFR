@@ -21,6 +21,7 @@ This repository contains **no game data**: only the scripts that build the image
 | Disc swap during the game | ⚠️ to be checked on console or DuckStation: PCSX-Redux refuses it, even with the original discs |
 | `--carre` option: Square fast-forwards Codec dialogue (like in MGS2) | ✅ done, tested |
 | `--m9` option: tranquilizer M9 and PSG1-T (guards fall asleep, zzz) | ✅ done, tested (dock: patrolling guard, alert, 2nd shot, PSG1-T) |
+| `--m9` option: zzz claymores ("CLAY.ZZZ") | ✅ done, tested (dock: zzz claymore = guard asleep, normal claymore = guard killed) |
 | `--psg1` option: PSG1 (and PSG1-T) usable standing or crouching | ✅ done, tested (dock: standing, crouching, prone, shooting a guard) |
 | French dub credits in the intro → English cast | 🔧 to do |
 | "2 discs in 1" version | 💡 phase 3 |
@@ -58,6 +59,7 @@ python carre.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOST
 - Patrolling guard: asleep after **1 shot**, for good (he does not wake up), with **zzz** above him. No blood, no life lost, not counted as a kill.
 - During an alert or a search: the 1st shot **shakes** him; he falls asleep **8 s** later, or right away on the 2nd shot.
 - Bosses, cameras, etc.: same damage as the original weapon (Sniper Wolf with the PSG1-T, for example).
+- **Zzz claymores**: on the CLAYMORE slot, Triangle switches to zzz claymores ("CLAY.ZZZ" name, bluish icon) and back. Shared ammo ("CLAYMORE + ZZZ" message on pickup). What counts is the mode when the mine is **planted**: a planted zzz claymore stays zzz. A soldier who sets it off (or is caught in the blast) falls asleep at once, even during an alert, for good and without losing life. Other targets (Raven, Snake...) take normal claymore damage.
 - The soldier code is patched in 33 of the 36 stages that have soldiers (3 stages with no recognised "knocked down" soldier: s03c, s12b, s12c).
 
 ```bash

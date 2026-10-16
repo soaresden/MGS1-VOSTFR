@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-m9.py - Patch optionnel : M9 tranquillisant (et PSG1-T) pour MGS1 PAL France.
+m9.py - Patch optionnel : M9 tranquillisant (et PSG1-T, claymores zzz) pour MGS1 PAL France.
 
 Le M9 partage la case du SOCOM : dans le menu des armes (R2), sur le SOCOM, Triangle
 passe du SOCOM au M9 (icône bleue, toujours silencieux) et inversement. Même
@@ -13,6 +13,10 @@ Effet d'une fléchette sur un soldat (cible qu'on peut saisir) :
 - en alerte ou en recherche (évasion) : le 1er tir le secoue, il s'endort 8 s plus tard,
   ou tout de suite au 2e tir.
 Sur les autres cibles (boss, caméras...) : mêmes dégâts que l'arme d'origine.
+
+Claymores zzz : même bascule (Triangle) sur la case CLAYMORE (« CLAY.ZZZ »). Le mode est lu à la
+pose de la mine ; à l'explosion (souffle et éclats), un soldat s'endort tout de suite, même en
+alerte ; les autres cibles (Raven, Snake...) prennent les dégâts normaux.
 
 Le code ajouté va dans le menu de débogage de l'EXE (écrans mem/pow/ply/obj/tex et
 menu_viewer_act, jamais appelés : 0x800447e4-0x80045c08). Le sommeil sans réveil et les zzz
@@ -32,7 +36,7 @@ CAVE, CAVE_END = 0x800447E4, 0x80045C08
 OVB = 0x800C47D8   # adresse de chargement des overlays de stage
 
 SYM = dict(
-    MODES=0x800B6426,        # linkvar 83 : bit 0 = M9, bit 1 = PSG1-T
+    MODES=0x800B6426,        # linkvar 83 : bit 0 = M9, bit 1 = PSG1-T, bit 2 = claymore zzz
     GM_Weapon=0x800B639C,
     GM_Magazine=0x800ACFD4, GM_MagazineMax=0x800AD014,
     GM_AlertMode=0x800ACFE8,
@@ -43,7 +47,10 @@ SYM = dict(
     GET_RPK_NEXT=0x8003EF50, GET_RPK_SOCOM=0x8003EF38, ITEMS_SOCOM2=0x800BEE74,
     INIT_SPRT=0x8003E0F0, GET_RPK=0x8003EF30, NAVIGATE=0x8003E714,
     SOCOM_RES_DONE=0x80066AE0, POWER_NEXT=0x8002E420,
+    GM_PowerTarget=0x8002E264, NewJirai=0x8006C4F8, NewClaymore=0x80074EB0,
     M9CODE=0x19,             # a_mode des fléchettes (inutilisé par le jeu)
+    CLAYCODE=0x1A,           # a_mode des claymores zzz (inutilisé par le jeu)
+    CLAYMARK=0x4D39CCCC,     # marque d'une mine zzz (JiraiWork +0x110)
     M9FAINT=-32000,          # faint d'un soldat endormi par fléchette
     MARK=0x4D39AAAA,         # marques dans TARGET.field_18 (inutilisé par les soldats) :
     SLEEP=0x4D395A5A,        #   « secoué » (minuteur en cours) et « endormi »
@@ -59,8 +66,11 @@ is_tranq:
     li v0, 1
     beqz a0, it_bit
     li t0, 9
-    bne a0, t0, it_no
+    beq a0, t0, it_bit
     li v0, 2
+    li t0, 5                    # claymore -> bit 2
+    bne a0, t0, it_no
+    li v0, 4
 it_bit:
     lui t0, %hi(MODES)
     lhu t0, %lo(MODES)(t0)
@@ -97,11 +107,14 @@ cave_name:                      # a0 = id
     nop
     move ra, t8
     beqz v0, cave_name_go
-    li t0, 2
+    li t0, 1
     la s7, name_m9
-    bne v0, t0, cave_name_go
-    nop
+    beq v0, t0, cave_name_go
+    li t0, 2
     la s7, name_psg1t
+    beq v0, t0, cave_name_go
+    nop
+    la s7, name_clay
 cave_name_go:
     j GET_RPK
     nop
@@ -130,7 +143,7 @@ cave_sprt_go:
     j INIT_SPRT
     nop
 
-# ---- menu : Triangle sur SOCOM ou PSG1 -> bascule du mode ----------------
+# ---- menu : Triangle sur SOCOM, PSG1 ou CLAYMORE -> bascule du mode ------
 cave_nav:                       # a0 = menu armes, a1 = manette
     lhu t0, 2(a1)
     nop
@@ -148,8 +161,11 @@ cave_nav:                       # a0 = menu armes, a1 = manette
     li t0, 1
     beqz t4, cave_nav_toggle
     li t5, 9
-    bne t4, t5, cave_nav_go
+    beq t4, t5, cave_nav_toggle
     li t0, 2
+    li t5, 5
+    bne t4, t5, cave_nav_go
+    li t0, 4
 cave_nav_toggle:
     lui t1, %hi(MODES)
     lhu t2, %lo(MODES)(t1)
@@ -206,9 +222,12 @@ cave_pickup:                    # v0 est posé dans le délai : ne pas y toucher
     la t2, str_get_m9
     beqz t0, cave_pickup_set
     li t1, 9
+    la t2, str_get_psg1t
+    beq t0, t1, cave_pickup_set
+    li t1, 5
     bne t0, t1, cave_pickup_ret
     nop
-    la t2, str_get_psg1t
+    la t2, str_get_clay
 cave_pickup_set:
     move v1, t2
     sw v1, 0x118(s1)
@@ -276,19 +295,39 @@ cave_bullet_ret:
 cave_power:
     lh t0, 0x3E(s2)
     li t1, M9CODE
+    beq t0, t1, cave_power_tranq
+    li t2, 1                    # a_mode normal : balle
+    li t1, CLAYCODE
     bne t0, t1, cave_power_orig
+    li t2, 2                    # a_mode normal : claymore
+cave_power_tranq:
     lhu t0, 0(s3)
+    lhu t1, 2(s3)
+    andi t0, t0, 2              # TARGET_CAPTURE...
+    beqz t0, cave_power_other
+    li t0, 2
+    beq t1, t0, cave_power_soldier  # ... et camp ennemi : soldat (Snake aussi est saisissable)
     nop
-    andi t0, t0, 2              # TARGET_CAPTURE : soldat
-    bnez t0, cave_power_soldier
-    li t1, 1
-    sh t1, 0x3E(s2)             # autre cible : balle normale
+cave_power_other:
+    sh t2, 0x3E(s2)             # autre cible : dégâts normaux
 cave_power_orig:
     lhu v0, -0x26(s0)           # instructions remplacées
     lh v1, -8(s0)
     jr ra
     nop
 cave_power_soldier:
+    lw t1, 0x18(s3)
+    li t2, SLEEP
+    bne t1, t2, cave_power_awake
+    lh t0, 0x2A(s3)             # faint
+    nop
+    bltz t0, cave_power_next    # déjà endormi : rien (éclats suivants, fléchette de trop)
+    nop
+cave_power_awake:
+    lh t0, 0x3E(s2)
+    li t1, CLAYCODE
+    beq t0, t1, cave_power_knock  # claymore : endormi tout de suite, même en alerte
+    nop
     lui t0, %hi(GM_AlertMode)
     lw t0, %lo(GM_AlertMode)(t0)
     lw t1, 0x18(s3)
@@ -339,6 +378,70 @@ knock:
     li t1, SLEEP
     jr ra
     sw t1, 0x18(a0)             # marque « endormi »
+
+# ---- claymores zzz -----------------------------------------------------------
+# pose (acteur mine.c) : NewJirai(a0, a1) ; mine zzz si le mode est actif à la pose
+cave_mine:
+    addiu sp, sp, -0x18
+    sw ra, 0x10(sp)
+    jal NewJirai
+    nop
+    beqz v0, cave_mine_ret
+    lui t0, %hi(MODES)
+    lhu t0, %lo(MODES)(t0)
+    nop
+    andi t0, t0, 4
+    beqz t0, cave_mine_ret
+    nop
+    li t1, CLAYMARK
+    sw t1, 0x110(v0)            # JiraiWork +0x110, inutilisé (mis à zéro par GV_NewActor)
+cave_mine_ret:
+    lw ra, 0x10(sp)
+    jr ra
+    addiu sp, sp, 0x18
+
+# explosion (jirai.c, s0 = mine) : souffle sur place, a0 = TARGET local
+cave_jblast:
+    lw t0, 0x110(s0)
+    li t1, CLAYMARK
+    bne t0, t1, cave_jblast_go
+    li t0, CLAYCODE
+    sh t0, 0x3E(a0)
+cave_jblast_go:
+    j GM_PowerTarget
+    nop
+
+# explosion : éclats (NewClaymore), marqués pendant leur création
+cave_newclay:
+    lw t0, 0x110(s0)
+    li t1, CLAYMARK
+    xor t0, t0, t1
+    sltiu t0, t0, 1
+    lui t1, %hi(clay_flag)
+    sw t0, %lo(clay_flag)(t1)
+    addiu sp, sp, -0x18
+    sw ra, 0x10(sp)
+    jal NewClaymore
+    nop
+    lui t1, %hi(clay_flag)
+    sw zero, %lo(clay_flag)(t1)
+    lw ra, 0x10(sp)
+    jr ra
+    addiu sp, sp, 0x18
+
+# éclat (claymore.c, s0 = éclat, TARGET en +0x3c) : weapon = WP_Claymore
+cave_claytgt:
+    li v0, 5                    # instructions remplacées
+    sw v0, 0x80(s0)
+    lui t0, %hi(clay_flag)
+    lw t0, %lo(clay_flag)(t0)
+    nop
+    beqz t0, cave_claytgt_ret
+    li t0, CLAYCODE
+    sh t0, 0x7A(s0)             # TARGET.a_mode
+cave_claytgt_ret:
+    jr ra
+    nop
 
 # minuteur : endort le soldat secoué au bout de 8 s
 timer_act:                      # a0 = acteur
@@ -459,6 +562,8 @@ name_m9:
     .word str_m9, 2
 name_psg1t:
     .word str_psg1t, 4
+name_clay:
+    .word str_clay, 8
 str_m9:
     .asciiz "M9"
 str_psg1t:
@@ -467,9 +572,15 @@ str_get_m9:
     .asciiz "SOCOM + M9"
 str_get_psg1t:
     .asciiz "PSG1 + PSG1-T"
+str_clay:
+    .asciiz "CLAY.ZZZ"
+str_get_clay:
+    .asciiz "CLAYMORE + ZZZ"
 timer_name:
     .asciiz "m9.c"
 .align 2
+clay_flag:                      # 1 pendant la création des éclats d'une claymore zzz
+    .word 0
 anm_zzz:                        # ANIMATION de AN_Sleep, script recopié de STAGE.DIR
     .half TEX_ZZZ, 1, 1, 1, 1, 0, 1, 2, 2, 0
     .word 0, anm_zzz_script
@@ -486,6 +597,10 @@ HOOKS = [
     (0x80077B44, "440112ae340114ae", "jal cave_bullet\nsw s2, 0x144(s0)"),  # NewBullet
     (0x8002E2E4, "daff0296f8ff0386", "jal cave_power\nnop"),          # GM_PowerTarget
     (0x80034A7C, "1801238e", "jal cave_pickup"),       # objet ramassé : message
+    (0x80068578, "3eb1010c", "jal cave_mine"),         # mine.c : pose d'une claymore
+    (0x8006BFC0, "99b8000c", "jal cave_jblast"),       # jirai.c : souffle de l'explosion
+    (0x8006C010, "acd3010c", "jal cave_newclay"),      # jirai.c : éclats (NewClaymore)
+    (0x80074CEC, "05000224800002ae", "jal cave_claytgt\nnop"),  # claymore.c : cible d'un éclat
     (0x80066DA0, "0b80013c14d023a40b80013cd4cf24a4", "jal cave_mag\nnop\nnop\nnop"),  # NewSOCOM : chargeur
     (0x8006697C, "0c000424", "jal cave_magmax"),       # SOCOM Act : chargeur après un tir
 ]

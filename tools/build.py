@@ -9,7 +9,7 @@ build.py - Construit les images VOSTFR de MGS1 PS1 à partir des CHD (ou BIN) FR
   python build.py --fr1 FR_D1.chd --uk1 UK_D1.chd --fr2 FR_D2.chd --uk2 UK_D2.chd --out sortie [--carre] [--m9] [--psg1]
 
 --carre : patch optionnel, Carré fait défiler les dialogues du Codec (voir carre.py).
---m9    : patch optionnel, M9 et PSG1-T tranquillisants (voir m9.py).
+--m9    : patch optionnel, M9, PSG1-T et claymores tranquillisants (voir m9.py).
 --psg1  : patch optionnel, PSG1 utilisable debout ou accroupi (voir psg1.py).
 
 Donner les deux disques permet un appariement exact des banques (table de test sonore du
@@ -77,7 +77,7 @@ def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=Fal
     if tranq:
         rep[exe], rep["MGS/STAGE.DIR"], stages, _ = m9.patch_files(
             rep.get(exe) or read(fr, exe[4:]), rep["MGS/STAGE.DIR"])
-        print(f"  {exe[4:]} : M9 et PSG1-T tranquillisants (soldats endormis dans {len(stages)} stages)")
+        print(f"  {exe[4:]} : M9, PSG1-T et claymores zzz (soldats endormis dans {len(stages)} stages)")
     if rifle:  # après m9 (qui vérifie tout le menu de débogage)
         rep[exe] = psg1.patch(rep.get(exe) or read(fr, exe[4:]))
         print(f"  {exe[4:]} : PSG1 debout ou accroupi")
@@ -96,7 +96,7 @@ def main():
         ap.add_argument(f"--{k}")
     ap.add_argument("--out", default=str(WORK / "out"))
     ap.add_argument("--carre", action="store_true", help="Carré fait défiler les dialogues du Codec")
-    ap.add_argument("--m9", action="store_true", help="M9 et PSG1-T tranquillisants")
+    ap.add_argument("--m9", action="store_true", help="M9, PSG1-T et claymores tranquillisants")
     ap.add_argument("--psg1", action="store_true", help="PSG1 utilisable debout ou accroupi")
     a = ap.parse_args()
     out = Path(a.out)
