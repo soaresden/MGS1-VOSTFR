@@ -19,7 +19,7 @@ pose de la mine ; à l'explosion (souffle et éclats), un soldat s'endort tout d
 alerte ; les autres cibles (Raven, Snake...) prennent les dégâts normaux.
 
 Le code ajouté va dans le menu de débogage de l'EXE (écrans mem/pow/ply/obj/tex et
-menu_viewer_act, jamais appelés : 0x800447e4-0x80045c08). Le sommeil sans réveil et les zzz
+menu_viewer_act, jamais appelés : 0x800447e4-0x80045900 pour m9 ; la fin sert à carre.py et psg1.py). Le sommeil sans réveil et les zzz
 demandent aussi de retoucher le code des soldats dans chaque overlay de STAGE.DIR.
 Toutes les retouches vérifient les octets d'origine (motifs) avant d'écrire.
 
@@ -32,7 +32,7 @@ import mips, psxiso
 from cdsector import write_file_inplace
 
 LOAD = 0x80010000  # adresse de chargement de l'EXE (en-tête PS-X EXE de 0x800 octets)
-CAVE, CAVE_END = 0x800447E4, 0x80045C08
+CAVE, CAVE_END = 0x800447E4, 0x80045900  # suite : carre.py (0x80045900), psg1.py (0x80045a08)
 OVB = 0x800C47D8   # adresse de chargement des overlays de stage
 
 SYM = dict(
@@ -627,7 +627,7 @@ def zzz_script(stage):
     raise SystemExit("script zzz introuvable dans STAGE.DIR")
 
 
-CAVE_SHA1 = "c25c35d567e32e9ae9acd5088f88c6a7e9ebf33f"  # menu de débogage d'origine
+CAVE_SHA1 = "685292e372c782221799b5376a664a1b149904bc"  # menu de débogage d'origine
 
 
 def build_cave(stage, sites):

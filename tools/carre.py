@@ -12,14 +12,18 @@ dans la boucle Codec (menu/radio.c de la décompilation) :
 - état 5 « appel en cours » : la coupure de voix réagit aussi à Carré enfoncé ;
 - état 4 « attente d'une touche » : Carré enfoncé pose un drapeau (bits 0x8000 = défilement,
   0x100 = voix coupée pour la suite) dans les drapeaux de l'appel ; tant qu'il est posé,
-  chaque réplique passe aussitôt. Le drapeau disparaît avec l'appel.
+  chaque réplique passe aussitôt. Le drapeau disparaît avec l'appel ;
+- état 7 « fin d'appel » : un appel passé au Carré referme le Codec (retour au jeu), même
+  s'il a été décroché par le joueur (sinon le jeu reste sur l'écran des fréquences, qu'on
+  quitte d'habitude sans s'en rendre compte en martelant X). Petit code ajouté à la fin du
+  menu de débogage inutilisé (0x80045900-0x80045a08, voir m9.py).
 
   python carre.py image.bin [image2.bin ...]     patch en place (VOSTFR ou FR d'origine)
 """
 
-import struct, sys
+import hashlib, struct, sys
 
-import psxiso
+import mips, psxiso
 from cdsector import write_file_inplace
 
 LOAD = 0x80010000  # adresse de chargement, en-tête PS-X EXE de 0x800 octets
@@ -137,6 +141,46 @@ ORIG = {
 }
 
 
+# État 7 : fin d'appel. Code ajouté (gp+0x828 = octet du menu de débogage, jamais lu)
+CAVE, CAVE_END = 0x80045900, 0x80045A08
+CAVE_SHA1 = "f5d7152a60d954f968ff8eda79668077764decc6"
+END_CHECK = 0x8004A384   # menu_radio_end_check
+CAVE_SRC = '''
+# remplace l'appel à menu_radio_end_check : l'appel finissant a-t-il été sauté au Carré ?
+end_check:
+    lw t0, 0x218(s3)            # appel en cours
+    nop
+    lhu t0, 0x18(t0)
+    nop
+    andi t0, t0, 0x8000
+    beqz t0, end_check_go
+    li t1, 1
+    sb t1, 0x828(gp)
+end_check_go:
+    j END_CHECK
+    nop
+
+# remplace « lhu v0, type de l'appel » au choix fermeture / écran des fréquences :
+# appel sauté au Carré -> type 2 (comme un appel entrant) pour ce test seulement
+call_type:
+    lhu v0, 0x814(gp)
+    lbu t0, 0x828(gp)
+    nop
+    beqz t0, call_type_ret
+    nop
+    sb zero, 0x828(gp)
+    andi v0, v0, 0xFFF0
+    ori v0, v0, 2
+call_type_ret:
+    jr ra
+    nop
+'''
+HOOKS = [
+    (0x80042EB8, "e128010c", "jal end_check"),
+    (0x80042EE8, "14088297", "jal call_type"),   # le délai (li v1, 2) reste
+]
+
+
 def words(lst):
     return b"".join(struct.pack("<I", w) for w in lst)
 
@@ -152,6 +196,23 @@ def patch(exe):
         if cur != orig:
             raise SystemExit(f"EXE inattendu à {addr:08x} (pas la version PAL France ?)")
         out[off:off + len(orig)] = words(new)
+    code, sym = mips.assemble(CAVE_SRC, CAVE, {"END_CHECK": END_CHECK})
+    assert CAVE + len(code) <= CAVE_END
+    off = 0x800 + CAVE - LOAD
+    cur = bytes(out[off:off + CAVE_END - CAVE])
+    if cur[:len(code)] != code:
+        if hashlib.sha1(cur).hexdigest() != CAVE_SHA1:
+            raise SystemExit(f"EXE inattendu à {CAVE:08x} (pas la version PAL France ?)")
+        out[off:off + len(code)] = code
+    for addr, orig, src in HOOKS:
+        new, _ = mips.assemble(src, addr, sym)
+        o = 0x800 + addr - LOAD
+        cur = bytes(out[o:o + len(new)])
+        if cur == new:
+            continue
+        if cur != bytes.fromhex(orig):
+            raise SystemExit(f"EXE inattendu à {addr:08x} (pas la version PAL France ?)")
+        out[o:o + len(new)] = new
     return bytes(out)
 
 
