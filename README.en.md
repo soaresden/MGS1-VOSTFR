@@ -23,7 +23,7 @@ This repository contains **no game data**: only the scripts that build the image
 | `--m9` option: tranquilizer M9 and PSG1-T (guards fall asleep, zzz) | ✅ done, tested (dock: patrolling guard, alert, 2nd shot, PSG1-T) |
 | `--m9` option: zzz claymores ("CLAY.ZZZ") | ✅ done, tested (dock: zzz claymore = guard asleep, normal claymore = guard killed) |
 | `--psg1` option: PSG1 (and PSG1-T) usable standing or crouching | ✅ done, tested (dock: standing, crouching, prone, shooting a guard) |
-| `--l2r2` option: in first-person view, L2/R2 make Snake lean (like in MGS2) | ✅ done, tested |
+| `--l2r2` option: in first-person view, L2/R2 lean, L2+R2 tiptoe (like in MGS2) | ✅ done, tested |
 | French dub credits in the intro → English cast | 🔧 to do |
 | "2 discs in 1" version | 💡 phase 3 |
 
@@ -70,7 +70,8 @@ python m9.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR)
 
 `--psg1` option: the **PSG1** (and the `--m9` PSG1-T) can be used **standing or crouching**, without Snake lying down.
 - Standing, Snake shoulders the rifle and the scope is at eye level (like the Triangle first-person view). Crouching, the scope is lower. Prone, nothing changes from the original game.
-- Snake keeps the stance he had when drawing the PSG1. To aim prone: lie down first, then draw the PSG1. To change stance: put the PSG1 away (R1), change stance, draw it again (R1).
+- Snake keeps the stance he had when drawing the PSG1. In the scope, **X** switches between standing and crouching. To aim prone: lie down first, then draw the PSG1.
+- The original game also put Snake back on his belly after some scenes (end of a scripted scene, back from a call…) when the PSG1 was in hand: not anymore.
 - Standing or crouching, you can aim a bit higher and lower than prone, and the scope **does not sway** (in the game, the sway is a prone animation). The heartbeat is still felt in the controller.
 - With `--m9`, apply `m9.py` **before** `psg1.py` (build.py does it in the right order).
 
@@ -78,7 +79,11 @@ python m9.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR)
 python psg1.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
-`--l2r2` option: in first-person view (holding Triangle), **L2** makes Snake lean left and **R2** lean right to look around a corner, like in MGS2. In the original game only L1/R1 do it (they still work with the patch).
+`--l2r2` option: first-person view (holding Triangle) like in MGS2.
+- **L2** makes Snake lean left and **R2** lean right to look around a corner. In the original game only L1/R1 do it (they still work).
+- While leaning, the **arrows still turn the view** (the original game locked it).
+- **L2 + R2 together**: Snake stands on **tiptoe**, the view rises about 20 cm to look over an obstacle.
+- X crouches / stands up in first-person view: the original game already did that.
 
 ```bash
 python l2r2.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
@@ -120,6 +125,6 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/carre.py` | Optional patch: Square fast-forwards the Codec |
 | `tools/m9.py` | Optional patch: tranquilizer M9 and PSG1-T |
 | `tools/psg1.py` | Optional patch: PSG1 standing or crouching |
-| `tools/l2r2.py` | Optional patch: L2/R2 lean in first-person view |
+| `tools/l2r2.py` | Optional patch: first-person view, L2/R2 lean, L2+R2 tiptoe |
 | `tools/mips.py` | Small MIPS (R3000) assembler for the patches |
 | `tools/emu.py`, `tools/emu_drive.lua` | Automated testing in PCSX-Redux (screenshots) |

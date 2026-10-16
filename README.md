@@ -23,7 +23,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--m9` : M9 et PSG1-T tranquillisants (les gardes s'endorment, zzz) | ✅ fait, testé (quai, garde en ronde, en alerte, 2e tir, PSG1-T) |
 | Option `--m9` : claymores zzz (« CLAY.ZZZ ») | ✅ fait, testé (quai : claymore zzz = garde endormi, claymore normale = garde tué) |
 | Option `--psg1` : PSG1 (et PSG1-T) utilisable debout ou accroupi | ✅ fait, testé (quai : debout, accroupi, couché, tir sur un garde) |
-| Option `--l2r2` : en vue subjective, L2/R2 penchent Snake (comme dans MGS2) | ✅ fait, testé |
+| Option `--l2r2` : en vue subjective, L2/R2 penchent Snake, L2+R2 pointe des pieds (comme dans MGS2) | ✅ fait, testé |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Version « 2 disques en 1 » | 💡 phase 3 |
 
@@ -70,7 +70,8 @@ python m9.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR)
 
 Option `--psg1` : le **PSG1** (et le PSG1-T de `--m9`) s'utilise **debout ou accroupi**, sans que Snake se couche.
 - Debout, Snake épaule le fusil et la lunette est à hauteur des yeux (comme la vue subjective Triangle). Accroupi, la lunette est plus basse. Couché, rien ne change par rapport au jeu d'origine.
-- Snake garde la posture qu'il avait en sortant le PSG1. Pour viser couché : se coucher d'abord, puis sortir le PSG1. Pour changer de posture : ranger le PSG1 (R1), changer de posture, le ressortir (R1).
+- Snake garde la posture qu'il avait en sortant le PSG1. Dans la lunette, **X** le fait passer de debout à accroupi et inversement. Pour viser couché : se coucher d'abord, puis sortir le PSG1.
+- Le jeu d'origine remettait aussi Snake à plat ventre après certaines scènes (fin d'une scène scriptée, retour d'un appel…) quand le PSG1 était en main : ce n'est plus le cas.
 - Debout ou accroupi, on vise un peu plus haut et plus bas que couché, et la lunette **ne tremble pas** (dans le jeu, le tremblement est une animation couchée). Le cœur bat toujours dans la manette.
 - Avec `--m9`, appliquer `m9.py` **avant** `psg1.py` (build.py le fait dans le bon ordre).
 
@@ -78,7 +79,11 @@ Option `--psg1` : le **PSG1** (et le PSG1-T de `--m9`) s'utilise **debout ou acc
 python psg1.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
-Option `--l2r2` : en vue subjective (Triangle maintenu), **L2** penche Snake à gauche et **R2** à droite pour regarder derrière un coin, comme dans MGS2. Dans le jeu d'origine, seuls L1/R1 le font (ils marchent toujours avec le patch).
+Option `--l2r2` : la vue subjective (Triangle maintenu) comme dans MGS2.
+- **L2** penche Snake à gauche et **R2** à droite pour regarder derrière un coin. Dans le jeu d'origine, seuls L1/R1 le font (ils marchent toujours).
+- Penché, les **flèches tournent toujours la vue** (le jeu d'origine la bloquait).
+- **L2 + R2 ensemble** : Snake se hisse sur la **pointe des pieds**, la vue monte d'environ 20 cm pour regarder par-dessus un obstacle.
+- X s'accroupit / se relève en vue subjective : c'était déjà le cas dans le jeu d'origine.
 
 ```bash
 python l2r2.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
@@ -120,6 +125,6 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/carre.py` | Patch optionnel : Carré fait défiler le Codec |
 | `tools/m9.py` | Patch optionnel : M9 et PSG1-T tranquillisants |
 | `tools/psg1.py` | Patch optionnel : PSG1 debout ou accroupi |
-| `tools/l2r2.py` | Patch optionnel : L2/R2 penchent la vue subjective |
+| `tools/l2r2.py` | Patch optionnel : vue subjective, L2/R2 penchent, L2+R2 pointe des pieds |
 | `tools/mips.py` | Petit assembleur MIPS (R3000) pour les patchs |
 | `tools/emu.py`, `tools/emu_drive.lua` | Test automatique dans PCSX-Redux (captures d'écran) |

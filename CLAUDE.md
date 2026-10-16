@@ -83,18 +83,22 @@ Pièges de test : **un état d'émulateur contient l'EXE de l'image qui l'a cré
 Travail de Snake (sna_init, s0 ; décalages PAL = Integral − 4) : +0x9b0 actpack, +0xa22 posture (0 debout, 1 accroupi, 2 couché), +0xa36 état de la visée (field_A3A), +0xaa action en cours, +0x9cc tableau de visée (field_9D0). Sur la sauvegarde du quai : travail à 0x8016caa8 (mov 0x8016cac8, rot.vy 0x8016cad2, turn.vy 0x8016cb16, action 0x8016cb52, posture 0x8016d4ca, état 0x8016d4de, actpack 0x8016d458, caméra field_A60 0x8016d504). GM_Magazine 0x800acfd4.
 Tables : gSnakeWeapons 0x800a0560 (PSG1 : NewRifle 0x80069158, sna_anim_psg1 0x80057fc0 ; Stinger 0x80058290), weapon_actions 0x800a03b8 (pas 28 ; PSG1 0x800a04b4, move = NULL, attack 0x800a0368 = {44, 136...}), FamasMove 0x800a02a8, GM_WeaponTypes 0x8009eb98 (PSG1 0x9220 : 0x20 = l'état d'attaque démarre dès qu'on équipe). Fonction de visée PSG1 (field_9C8) 0x800590dc.
 Pourquoi Snake se couche : sna_anim_psg1, image 0, posture debout -> accroupi (état 0-1) -> couché (état 2) -> visée (état 3, action attack->aim = 44, couchée). Sauter seulement les états 0-2 ne suffit pas : l'animation 44 garde la caméra au ras du sol (mesuré : 189 contre 1371 en vue Triangle debout).
-Patch (grotte 0x80045a08-0x80045c08, fin du menu de débogage ; m9.py vérifie tout le menu -> appliquer m9 avant psg1) :
+Patch (grotte 0x80045a08-0x80045bb8, fin du menu de débogage ; m9.py vérifie tout le menu -> appliquer m9 avant psg1) :
 - 0x80058014 : état 3 tout de suite quelle que soit la posture ; actpack = copie du PSG1 avec attack->aim 5 (set_up_famas) debout, 15 (squat_socom) accroupi, move = FamasMove ; couché : actpack d'origine.
 - 0x800581a8 : état 3, accroupi -> ne pas effacer PLAYER_SQUAT (0x20).
 - 0x800581e4 : état 4 et suivants (visée en cours), caméra field_A60 = main (os 4) + (5,500,80) seulement couché ; sinon la tête (os 6), comme la vue Triangle.
 - 0x800592a4 : limite de visée verticale 0x78 couché, 0x200 sinon (bornée ensuite par le jeu : −188..+222 mesuré debout).
 - 0x80059418 : animation de tremblement 122 (couchée) seulement couché.
+- 0x80059108 (fonction de visée, chaque image) : X (press 0x40) -> posture 0 <-> 1, actpack, PLAYER_SQUAT (GM_PlayerStatus 0x800ad038), SetAction(aim), son 8 (SE_CHANGE_STANCE). Couché : rien.
+- 0x80055f50, 0x800562b0, 0x80056b8c : « arme = PSG1 -> posture = couché » après une scène (sna_init.c, réglage d'arme/objet par message, cf. Integral l. 4565/4708/5067) -> nop. Pas testé en jeu (pas de scène sous la main) ; c'est sans doute ce que Denis a vu avec le PSG1-T (le menu, lui, marche : testé sur out_complet).
+Grotte du PSG1 : 0x80045a08-0x80045bb8 (428 octets utilisés), puis l2r2.
 Testé (PCSX-Redux, quai, poke en RAM) : debout (caméra 1362), accroupi (816), tir sur un garde (vie 192 -> −64), touché en visant (reste debout), couché identique à l'original (44 puis 122), R1 range / ressort, marche après rangement.
 
 ## Patch « L2/R2 » (option --l2r2, tools/l2r2.py)
 
-Jeu d'origine : Triangle maintenu, **L1/R1** penchent Snake à gauche/droite (sna_80051BA4, PAL 0x80057294, aussi dos au mur) ; L2/R2 ne font rien dans cette vue (pas de menu non plus). Denis veut L2/R2 comme dans MGS2. Patch : 5 andi élargis (status 0xc -> 0xf, R1 8 -> 0xa, L1 4 -> 5, en press et release) ; L1/R1 marchent toujours.
-Testé (quai) : caméra décalée de ±830 en x avec L2 / R2, comme L1 ; arme toujours en main, pas de menu.
+Jeu d'origine : Triangle maintenu, **L1/R1** penchent Snake à gauche/droite (sna_80051BA4, PAL 0x8005726c, aussi dos au mur) ; L2/R2 ne font rien dans cette vue (pas de menu non plus) ; X s'accroupit / se relève (déjà dans le jeu PAL : vue subjective sna_fn_80052120 = 0x800577ec). Penché, la vue subjective sort avant la rotation (0x800578b0 : bnez -> retour).
+Patch (Denis, comme MGS2) : 5 andi élargis (status 0xc -> 0xf, R1 8 -> 0xa, L1 4 -> 5, en press et release) ; 0x800578b0 : penché -> sna_80051DA0 (0x8005746c) + sna_80051FD0 (0x800576a0) puis retour ; 0x800573ac (choix du côté) : un bouton gauche (0x5) et un droit (0xa) tenus -> field_A60.vy (+0xa5e, caméra, y vers le haut) += 200 au lieu du décalage latéral (pointe des pieds). Grotte 0x80045bb8-0x80045c08 (80 octets, tout pris).
+Testé (quai) : L2 / R2 / L1 = caméra ±830 en x ; penché + Droite : rot.vy 0 -> −1239, la vue tourne ; L2+R2 : caméra centrée, y 1371 -> 1571, retour à 1371 au relâchement. Arme toujours en main, pas de menu.
 
 ## Tests
 
