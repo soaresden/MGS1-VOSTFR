@@ -13,6 +13,8 @@ local function poke(a, path)
     for k = 0, len - 1 do a.w8(addr + k, data:byte(i + 8 + k)) end
     i = i + 8 + len; n = n + 1
   end
+  -- le recompilateur garderait l'ancien code : on vide son cache
+  if PCSX.invalidateCache then PCSX.invalidateCache() end
   a.L('POKED '..n)
 end
 local function step(n, a)

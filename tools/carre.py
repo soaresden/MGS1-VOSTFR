@@ -14,7 +14,9 @@ dans la boucle Codec (menu/radio.c de la décompilation) :
 - état 4 « attente d'une touche » : Carré enfoncé pose un drapeau (bits 0x8000 = défilement,
   0x100 = voix coupée pour la suite) dans les drapeaux de l'appel ; tant qu'il est posé,
   chaque réplique passe aussitôt. Le drapeau disparaît avec l'appel ;
-- état 7 « fin d'appel » : un appel passé au Carré referme le Codec (retour au jeu), même
+- état 7 « fin d'appel » : un appel passé au Carré referme ses deux portraits d'office (le
+  jeu attend qu'ils soient fermés, et un défilement très rapide peut en rouvrir un après la
+  fermeture : Codec figé au premier appel de l'intro), puis referme le Codec (retour au jeu), même
   s'il a été décroché par le joueur (sinon le jeu reste sur l'écran des fréquences, qu'on
   quitte d'habitude sans s'en rendre compte en martelant X). Petit code ajouté à la fin du
   menu de débogage inutilisé (0x80045900-0x80045a08, voir m9.py).
@@ -149,15 +151,22 @@ CAVE_SHA1 = "f5d7152a60d954f968ff8eda79668077764decc6"
 END_CHECK = 0x8004A384   # menu_radio_end_check
 CAVE_SRC = '''
 # remplace l'appel à menu_radio_end_check : l'appel finissant a-t-il été sauté au Carré ?
+# Le jeu attend que les deux portraits soient refermés (field_3C[i].field_4 == 0). Après
+# un défilement très rapide (premier appel de l'intro), une ouverture de portrait demandée
+# par le script peut arriver après la fermeture : on referme alors d'office.
 end_check:
     lw t0, 0x218(s3)            # appel en cours
     nop
-    lhu t0, 0x18(t0)
+    lhu t1, 0x18(t0)
     nop
-    andi t0, t0, 0x8000
-    beqz t0, end_check_go
+    andi t1, t1, 0x8000
+    beqz t1, end_check_go
     li t1, 1
     sb t1, 0x828(gp)
+    sh zero, 0x40(t0)           # portrait 0 : ouverture = 0
+    sh zero, 0x42(t0)           #              vitesse = 0
+    sh zero, 0x58(t0)           # portrait 1
+    sh zero, 0x5A(t0)
 end_check_go:
     j END_CHECK
     nop
