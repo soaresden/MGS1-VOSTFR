@@ -28,7 +28,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--life TEXTE` : ton texte à la place de « LIFE » dans la barre de vie (ex. « SNAKE ») | ✅ fait, testé (quai, version française et anglaise) |
 | Page web : fabrication dans le navigateur, options à cocher, hors ligne possible | ✅ fait, mêmes images que Python octet pour octet |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
-| Version « 2 disques en 1 » | 💡 phase 3 |
+| Option `--combine` : les 2 disques en **une seule image** (émulateurs, son allégé) | ✅ fait, testé dans PCSX-Redux (intro, Codec des deux disques, passage au disque 2 depuis une sauvegarde, sans changer de disque) ; VOSTFR, VF et EN, toutes options |
 
 ## Disques nécessaires
 
@@ -126,6 +126,28 @@ python life.py "SNAKE" "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Soli
 
 ![Barre de vie « SNAKE »](docs/previews/life_snake.png) ![15 caractères](docs/previews/life_max.png)
 
+### Une seule image pour les émulateurs (« CD Combiner », option `--combine`)
+
+`--combine` ajoute une image **« (1 CD) »** : tout le jeu sur un seul disque, **sans jamais changer de disque**. Le passage au disque 2 se fait tout seul, sans écran « Insérez le disque 2 » ; une sauvegarde du disque 2 se recharge directement.
+
+⚠️ **Pour émulateurs seulement** (Batocera, DuckStation, SwanStation, RetroArch…) : l'image fait **~990 Mo**, elle ne tient pas sur un CD gravé (700 Mo). Sur une vraie PS1, garde les images 2 disques.
+
+⚠️ **Le son est allégé**. Un CD ne peut pas dépasser 99 minutes : c'est la limite de l'adresse que le jeu donne au lecteur (et DuckStation refuse au-delà). Les deux disques font ~1,17 Go même en partageant ce qui est commun, alors qu'il faut tenir sous ~1,05 Go. Pour gagner la place :
+- **voix** (Codec, voix en jeu) : 22 kHz → **11 kHz** ; on entend la différence (un peu plus étouffé), sans que ce soit gênant ;
+- **cinématiques** : 33 kHz → **22 kHz** ; quasiment inaudible (elles n'ont presque rien au-dessus de 11 kHz) ;
+- films (images d'archives), textes, sous-titres, graphismes : **inchangés**.
+
+À écouter (même passage, avant / après) : voix du Codec [original](docs/previews/combine_codec_original.wav) · [allégé](docs/previews/combine_codec_allege.wav) — cinématique d'intro [original](docs/previews/combine_cinematique_original.wav) · [allégé](docs/previews/combine_cinematique_allege.wav).
+
+```bash
+python build.py --fr1 ... --uk1 ... --fr2 ... --uk2 ... --out ../work/out --combine      # VOSTFR (+ options au choix)
+python combine.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"   # à partir de 2 images déjà faites
+```
+
+Résultat : `Metal Gear Solid (VOSTFR) (1 CD).bin/.cue` (ou `(VF)`, `(EN)`), en plus des deux disques. Marche avec les trois versions et toutes les options. Compter 3 à 4 minutes de plus (réencodage du son). Les sauvegardes de la carte mémoire des images 2 disques marchent telles quelles.
+
+![Sauvegarde du disque 2 rechargée sur l'image unique](docs/previews/combine_on.png) ![Codec du disque 2 sur l'image unique](docs/previews/combine_codec_d2.png)
+
 Donne les **deux disques** : la table du test sonore du disque 2 sert aussi à apparier exactement les voix du disque 1.
 
 ## Comment ça marche
@@ -144,6 +166,13 @@ Là, les doublages n'ont pas la même durée : `VOX.DAT` anglais fait 196 Mo con
 4. **Image disque** : `VOX.DAT` grossit, donc `ZMOVIE.STR` et `DUMMY3M.DAT` sont décalés (secteurs bruts recopiés), les enregistrements de répertoire ISO 9660 et la taille du volume réécrits, EDC/ECC recalculés. Le jeu retrouve ses fichiers par leur nom au démarrage : aucune autre adresse à corriger.
 
 Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en allemand dans le disque FR) : elles restent en VF.
+
+### Une seule image (`combine.py`)
+
+1. **Son** : chaque banque de `VOX.DAT` et `DEMO.DAT` est décodée (ADPCM du SPU), filtrée et rééchantillonnée (filtre à coefficients entiers, résultat identique en Python et en JavaScript), réencodée, puis recollée avec ses sous-titres, mouvements de lèvres et données d'animation, qui ne changent pas. Les sous-titres sont calés sur une horloge, pas sur les échantillons : ils restent synchrones.
+2. **Codes** : les voix et cinématiques sont désignées par leur position dans le fichier ; elles bougent, donc les codes de `RADIO.DAT` et des scripts de `STAGE.DIR` sont réécrits. Les scripts (bytecode GCL) sont lus exactement (`tools/gcx.py`) : aucun faux positif.
+3. **Deux répertoires** : `MGS/` (disque 1) et `MGS2/` (disque 2) sur la même image. Le jeu cherche ses fichiers par nom au démarrage et à chaque changement de disque : l'EXE choisit le répertoire d'après le numéro de disque en cours. L'écran de changement de disque (overlays `change`, `abst`, `title`, `demosel`) n'attend plus le capot et donne au jeu le disque voulu. Le lecteur de voix du jeu ne connaissait pas 11 kHz : deux instructions retouchées.
+4. **Image** : fichiers des deux disques à la suite (BRF.DAT et FACE.DAT, identiques, partagés), `DUMMY3M.DAT` (remplissage) retiré, tables ISO 9660 mises à jour : 420 719 secteurs, sous la limite de 449 850.
 
 ## Outils
 
@@ -165,6 +194,9 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/l2r2.py` | Patch optionnel : vue subjective, L2/R2 penchent, L2+R2 pointe des pieds |
 | `tools/fps.py` | Patch optionnel : tirer au SOCOM / M9 en vue subjective |
 | `tools/life.py` | Patch optionnel : texte à la place de « LIFE » dans la barre de vie (+ aperçu) |
+| `tools/combine.py` | Les 2 disques en une seule image (son allégé, pas de changement de disque) |
+| `tools/spuadpcm.py` | ADPCM du SPU : décodage, encodage, rééchantillonnage entier |
+| `tools/gcx.py` | Lecture exacte des scripts GCX de `STAGE.DIR` (codes des voix et des cinématiques) |
 | `tools/mips.py` | Petit assembleur MIPS (R3000) pour les patchs |
 | `tools/pal.py` | Version de l'EXE (PAL France ou PAL Europe anglaise) et traduction des adresses des patchs |
 | `tools/palmap.py` | Outil de développement : génère `tools/pal_uk.py` (adresses FR → UK) |

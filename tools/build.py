@@ -16,6 +16,8 @@ build.py - Construit les images VOSTFR de MGS1 PS1 à partir des CHD (ou BIN) FR
 --l2r2  : patch optionnel, L2/R2 penchent la vue subjective comme dans MGS2 (voir l2r2.py).
 --fps   : patch optionnel, viser et tirer au SOCOM / M9 en vue subjective (voir fps.py).
 --life TEXTE : patch optionnel, texte à la place de « LIFE » dans la barre de vie (voir life.py).
+--combine : en plus des 2 disques, une image unique « (1 CD) » pour émulateurs (voir combine.py :
+            son allégé pour tenir sous 99 minutes, pas de changement de disque).
 
 Donner les deux disques permet un appariement exact des banques (table de test sonore du
 disque 2, reportée sur le disque 1). Les fichiers intermédiaires vont dans ./work (ignoré).
@@ -24,7 +26,7 @@ disque 2, reportée sur le disque 1). Les fichiers intermédiaires vont dans ./w
 import argparse, sys
 from pathlib import Path
 
-import carre, chd2bin, demo_vostfr, fps, isorebuild, l2r2, life, m9, psg1, psxiso, vox_vostfr, voxalign
+import carre, chd2bin, combine, demo_vostfr, fps, isorebuild, l2r2, life, m9, psg1, psxiso, vox_vostfr, voxalign
 
 ROOT = Path(__file__).resolve().parent.parent
 WORK = ROOT / "work"
@@ -126,6 +128,7 @@ def main():
     ap.add_argument("--life", metavar="TEXTE", help="texte à la place de « LIFE » dans la barre de vie (ex. SNAKE)")
     ap.add_argument("--vf", action="store_true", help="jeu français d'origine + options seulement (--uk1/--uk2 inutiles)")
     ap.add_argument("--vo", action="store_true", help="jeu anglais (Europe) d'origine + options seulement (--fr1/--fr2 inutiles)")
+    ap.add_argument("--combine", action="store_true", help="aussi les 2 disques en une seule image (émulateurs, son allégé)")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -134,7 +137,7 @@ def main():
         life.clean(a.life)  # erreur tout de suite si le texte ne passe pas
     opts = (a.carre, a.m9, a.psg1, a.l2r2, a.fps, a.life)
     if a.vf or a.vo:  # jeu d'origine + options, sans VOSTFR
-        if not any(opts):
+        if not any(opts) and not a.combine:
             raise SystemExit("--vf / --vo sans option : rien à faire")
         side, tag = ("fr", "VF") if a.vf else ("uk", "EN")
         names = []
@@ -147,6 +150,7 @@ def main():
             names.append(out_bin.with_suffix(".cue").name)
         if len(names) == 2:
             (out / f"Metal Gear Solid ({tag}).m3u").write_text("\n".join(names) + "\n", encoding="utf-8")
+            combine_discs(a, out, tag)
         print("Terminé :", out)
         return
     imgs = {d: (to_bin(getattr(a, f"fr{d}"), f"FR{d}"), to_bin(getattr(a, f"uk{d}"), f"UK{d}"))
@@ -167,7 +171,16 @@ def main():
         names.append(out_bin.with_suffix(".cue").name)
     if len(names) == 2:
         (out / "Metal Gear Solid (VOSTFR).m3u").write_text("\n".join(names) + "\n", encoding="utf-8")
+        combine_discs(a, out, "VOSTFR")
     print("Terminé :", out)
+
+
+def combine_discs(a, out, tag):
+    """--combine : les 2 disques construits -> « Metal Gear Solid (TAG) (1 CD).bin »."""
+    if a.combine:
+        print("Une seule image (CD Combiner)")
+        combine.combine(out / f"Metal Gear Solid ({tag}) (Disc 1).bin", out / f"Metal Gear Solid ({tag}) (Disc 2).bin",
+                        out / f"Metal Gear Solid ({tag}) (1 CD).bin", log=lambda m: print("  " + m))
 
 
 if __name__ == "__main__":

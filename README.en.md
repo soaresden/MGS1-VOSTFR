@@ -28,7 +28,7 @@ This repository contains **no game data**: only the scripts that build the image
 | `--life TEXT` option: your own text instead of "LIFE" in the life bar (e.g. "SNAKE") | ✅ done, tested (dock, French and English versions) |
 | Web page: build in the browser, options to tick, works offline | ✅ done, same images as Python byte for byte |
 | French dub credits in the intro → English cast | 🔧 to do |
-| "2 discs in 1" version | 💡 phase 3 |
+| `--combine` option: both discs in **a single image** (emulators, lighter sound) | ✅ done, tested in PCSX-Redux (intro, Codec on both discs, switch to disc 2 from a save, no disc change); VOSTFR, VF and EN, all options |
 
 ## Required discs
 
@@ -126,6 +126,28 @@ python life.py "SNAKE" "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Soli
 
 ![Life bar "SNAKE"](docs/previews/life_snake.png) ![15 characters](docs/previews/life_max.png)
 
+### One image for emulators ("CD Combiner", `--combine` option)
+
+`--combine` adds a **"(1 CD)"** image: the whole game on one disc, **no disc change ever**. The game moves on to disc 2 by itself, without the "Insert disc 2" screen; a disc 2 save loads directly.
+
+⚠️ **Emulators only** (Batocera, DuckStation, SwanStation, RetroArch…): the image is **~990 MB**, too big for a burnt CD (700 MB). On a real PS1, keep the 2-disc images.
+
+⚠️ **The sound is lighter.** A CD cannot go past 99 minutes: that is the limit of the address the game sends to the drive (and DuckStation refuses anything beyond). Both discs take ~1.17 GB even when sharing what they have in common, and the image must stay under ~1.05 GB. To make room:
+- **voices** (Codec, in-game voices): 22 kHz → **11 kHz**; you can hear it (a bit more muffled), but it does not get in the way;
+- **cutscenes**: 33 kHz → **22 kHz**; almost inaudible (they have next to nothing above 11 kHz);
+- movies (archive footage), texts, subtitles, graphics: **unchanged**.
+
+Listen (same passage, before / after): Codec voice [original](docs/previews/combine_codec_original.wav) · [lighter](docs/previews/combine_codec_allege.wav) — intro cutscene [original](docs/previews/combine_cinematique_original.wav) · [lighter](docs/previews/combine_cinematique_allege.wav).
+
+```bash
+python build.py --fr1 ... --uk1 ... --fr2 ... --uk2 ... --out ../work/out --combine      # VOSTFR (+ any options)
+python combine.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"   # from 2 existing images
+```
+
+Result: `Metal Gear Solid (VOSTFR) (1 CD).bin/.cue` (or `(VF)`, `(EN)`), on top of the two discs. Works with the three versions and all options. Allow 3 to 4 extra minutes (sound re-encoding). Memory card saves from the 2-disc images work as they are.
+
+![Disc 2 save loaded on the single image](docs/previews/combine_on.png) ![Disc 2 Codec on the single image](docs/previews/combine_codec_d2.png)
+
 Give **both discs**: disc 2's sound test table is also used to pair disc 1's voices exactly.
 
 ## How it works
@@ -144,6 +166,13 @@ Here the two dubs have different lengths: the English `VOX.DAT` is 196 MB agains
 4. **Disc image**: `VOX.DAT` grows, so `ZMOVIE.STR` and `DUMMY3M.DAT` are shifted (raw sectors copied), the ISO 9660 directory records and the volume size are rewritten, and EDC/ECC recomputed. The game finds its files by name at boot: no other address to fix.
 
 Two lines on disc 2 only exist in French (one of them a German leftover on the French disc): they stay in French.
+
+### One image (`combine.py`)
+
+1. **Sound**: every bank of `VOX.DAT` and `DEMO.DAT` is decoded (SPU ADPCM), filtered and resampled (integer-coefficient filter, same result in Python and JavaScript), re-encoded, then put back together with its subtitles, lip movements and animation data, which do not change. Subtitles follow a clock, not the samples: they stay in sync.
+2. **Codes**: voices and cutscenes are referred to by their position in the file; they move, so the codes in `RADIO.DAT` and in the `STAGE.DIR` scripts are rewritten. The scripts (GCL bytecode) are parsed exactly (`tools/gcx.py`): no false positives.
+3. **Two directories**: `MGS/` (disc 1) and `MGS2/` (disc 2) on the same image. The game finds its files by name at boot and at each disc change: the EXE picks the directory from the current disc number. The disc change screen (`change`, `abst`, `title`, `demosel` overlays) no longer waits for the lid and hands the game the disc it wants. The game's voice player did not know 11 kHz: two instructions patched.
+4. **Image**: files of both discs one after the other (BRF.DAT and FACE.DAT, identical, shared), `DUMMY3M.DAT` (padding) dropped, ISO 9660 tables updated: 420,719 sectors, under the 449,850 limit.
 
 ## Tools
 
@@ -165,6 +194,9 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/l2r2.py` | Optional patch: first-person view, L2/R2 lean, L2+R2 tiptoe |
 | `tools/fps.py` | Optional patch: shoot the SOCOM / M9 in first-person view |
 | `tools/life.py` | Optional patch: your text instead of "LIFE" in the life bar (+ preview) |
+| `tools/combine.py` | Both discs in a single image (lighter sound, no disc change) |
+| `tools/spuadpcm.py` | SPU ADPCM: decoding, encoding, integer resampling |
+| `tools/gcx.py` | Exact parsing of the `STAGE.DIR` GCX scripts (voice and cutscene codes) |
 | `tools/mips.py` | Small MIPS (R3000) assembler for the patches |
 | `tools/pal.py` | EXE version (PAL France or PAL Europe English) and translation of the patch addresses |
 | `tools/palmap.py` | Development tool: generates `tools/pal_uk.py` (FR → UK addresses) |
