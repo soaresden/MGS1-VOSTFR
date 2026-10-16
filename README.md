@@ -88,7 +88,7 @@ Option `--psg1` : le **PSG1** (et le PSG1-T de `--m9`) s'utilise **debout ou acc
 - Debout, Snake épaule le fusil et la lunette est à hauteur des yeux (comme la vue subjective Triangle). Accroupi, la lunette est plus basse. Couché, rien ne change par rapport au jeu d'origine.
 - Snake garde la posture qu'il avait en sortant le PSG1. Dans la lunette, **X** le fait passer de debout à accroupi et inversement. Pour viser couché : se coucher d'abord, puis sortir le PSG1.
 - Le jeu d'origine remettait aussi Snake à plat ventre après certaines scènes (fin d'une scène scriptée, retour d'un appel…) quand le PSG1 était en main : ce n'est plus le cas.
-- Debout ou accroupi, on vise un peu plus haut et plus bas que couché, et la lunette **ne tremble pas** (dans le jeu, le tremblement est une animation couchée). Le cœur bat toujours dans la manette.
+- Debout ou accroupi, on vise un peu plus haut et plus bas que couché, et la lunette **tremble comme couché**, deux fois plus fort debout (on est moins stable), autant accroupi ; le tir suit la lunette. Le **Diazépam** supprime le tremblement, comme couché. Le cœur bat toujours dans la manette.
 - Avec `--m9`, appliquer `m9.py` **avant** `psg1.py` (build.py le fait dans le bon ordre).
 
 ```bash

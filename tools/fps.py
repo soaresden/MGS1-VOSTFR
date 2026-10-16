@@ -29,7 +29,7 @@ bit 1 = tirer). En vue subjective, le code ajouté :
   transparent) et son point rouge de 2x2 pixels ne se voyaient pas ; en vue subjective le trait
   passe en couleur LASER_RGB et le point au bout du laser en LASER_DOT x LASER_DOT pixels
   (rendus en sortant de la vue).
-Code ajouté à 0x80045400-0x80045900 (menu de débogage inutilisé, voir m9.py).
+Code ajouté à 0x80045400-0x80045834 (menu de débogage inutilisé, voir m9.py ; la suite est à psg1.py).
 
   python fps.py image.bin [image2.bin ...]     patch en place (VOSTFR, FR ou UK d'origine)
 """
@@ -40,8 +40,8 @@ import mips, pal, psxiso
 from cdsector import write_file_inplace
 
 LOAD = 0x80010000
-CAVE, CAVE_END = 0x80045400, 0x80045900
-CAVE_SHA1 = "6e05336a974efc6b25d1a20da48670942551f4fc"  # octets d'origine de la zone
+CAVE, CAVE_END = 0x80045400, 0x80045834   # suite : psg1.py (2e zone)
+CAVE_SHA1 = "bc46309b02f40784a67e8b37fe33e253f85d16f8"  # octets d'origine de la zone
 
 # Arme dans le repère de la caméra (x droite, y bas, z avant), en unités du jeu (mm).
 # La balle part du canon (arme + (-19, -60, +369)) parallèlement à la vue : avec ce décalage

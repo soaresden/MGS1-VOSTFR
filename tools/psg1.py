@@ -9,6 +9,11 @@ rien ne change. Pour viser couché, se coucher avant de sortir le PSG1 (ou le ra
 se coucher, le ressortir). Debout ou accroupi, la visée monte et descend plus loin (±45°,
 comme le Stinger) et la lunette ne tremble pas (le tremblement du jeu est une animation
 couchée). Dans la lunette, X fait passer de debout à accroupi et inversement.
+Tremblement : couché, le jeu fait trembler la visée toutes les 90 images (animation 122 :
+ses variations de rotation sont ajoutées à la direction de visée, jusqu'à ~1° ; pas sous
+Diazépam). Debout ou accroupi, cette animation coucherait Snake : la même courbe (relevée
+couché, SHAKE) est rejouée sur la direction de visée, deux fois plus forte debout (moins
+stable), telle quelle accroupi ; le Diazépam l'empêche aussi. Le tir suit la visée.
 Le jeu remet aussi Snake à plat ventre après certaines scènes (fin d'une scène scriptée,
 reprise après un appel...) quand le PSG1 est en main : ce retour forcé est supprimé.
 
@@ -29,6 +34,15 @@ from cdsector import write_file_inplace
 LOAD = 0x80010000
 CAVE, CAVE_END = 0x80045A08, 0x80045BB8   # suite : l2r2.py
 CAVE_SHA1 = "134f4693642f6e9da5c80e25ebb8b5bf54ddd1f8"
+CAVE2, CAVE2_END = 0x80045834, 0x80045900   # tremblement debout (fin de la zone de fps.py)
+CAVE2_SHA1 = "96dbb4a9ce6fbefe4165248ef4fd9ae091502b34"  # octets d'origine de la zone
+
+# Tremblement couché (animation 122) relevé dans PCSX-Redux : (image de jeu depuis le début,
+# variation de turn.vx, de turn.vy) ; 4096 = 360°. Somme : (+2, 0).
+SHAKE = [(0, 1, 0), (2, 3, -1), (4, 1, -2), (7, 0, -3), (26, 0, 2), (37, 0, 2), (59, -1, 1),
+         (62, -1, 1), (64, -1, 1), (72, 3, -5), (74, -3, -8), (77, -5, 0), (86, 2, 0), (89, 3, 0),
+         (91, 2, 2), (93, 1, 4), (95, 0, 3), (97, -1, 1), (103, 1, -1), (118, -1, 1), (121, -1, 2),
+         (125, -1, 0)]
 
 SYM = dict(
     PSG1_PACK=0x800A04B4,    # weapon_actions[WP_Rifle] (ACTPACK : still, move, trans, damage, attack...)
@@ -43,6 +57,7 @@ SYM = dict(
     CAM_GO=0x800581F0,
     DG_SetPos=0x8001C078,
     TEB_GO=0x80059420, TEB_SKIP=0x80059488,
+    DIAZ=0x800B6412,         # minuteur du Diazépam (> 0 : pas de tremblement)
     AIM_STAND=5,             # set_up_famas : épauler debout
     AIM_SQUAT=15,            # squat_socom : accroupi, arme en main
 )
@@ -150,7 +165,7 @@ x_done:
 cave_teb:
     lh v0, 0xa22(s0)
     li v1, 2
-    bne v0, v1, TEB_SKIP
+    bne v0, v1, teb_stand       # debout / accroupi : tremblement rejoué (2e zone)
     nop
     j TEB_GO
     lui v0, 0x800b
@@ -168,6 +183,61 @@ att_squat:
 .align 2
 """
 
+# 2e zone : tremblement debout / accroupi
+CAVE2_SRC = r"""
+# toutes les 90 images de visée (à la place de l'animation 122) : départ du tremblement
+teb_stand:
+    lui v0, %hi(DIAZ)
+    lh v0, %lo(DIAZ)(v0)
+    lui t0, %hi(shake_t)
+    bgtz v0, TEB_SKIP           # Diazépam : rien
+    nop
+    j TEB_SKIP
+    sh zero, %lo(shake_t)(t0)
+
+# chaque image de visée (à la place de « lui v0 ; lh v0, Diazépam ») : variation du moment
+shake_tick:
+    la t0, shake_t
+    lh t1, 0(t0)                # image du tremblement (0xff : aucun)
+    lh t5, 0xa22(s0)            # posture : debout -> variations doublées
+    slti t3, t1, 126
+    beqz t3, tick_ret
+    addiu t4, t1, 1
+    sh t4, 0(t0)
+    sh zero, 0xa34(s0)          # pas de nouveau départ pendant celui-ci
+    sltiu t5, t5, 1
+    addiu t2, t0, 2             # shake_tab
+tick_loop:
+    lbu t3, 0(t2)
+    lb t6, 1(t2)
+    sltu t7, t1, t3
+    bnez t7, tick_ret           # entrées suivantes : plus tard
+    addiu t2, t2, 2
+    bne t3, t1, tick_loop
+    nop
+    sra t7, t6, 4               # variation de turn.vx (4 bits de poids fort)
+    sll t6, t6, 28
+    sra t6, t6, 28              # de turn.vy (4 bits de poids faible)
+    sllv t7, t7, t5
+    sllv t6, t6, t5
+    lhu t8, 0x6c(s0)
+    lhu t9, 0x6e(s0)
+    addu t8, t8, t7
+    addu t9, t9, t6
+    sh t8, 0x6c(s0)
+    sh t9, 0x6e(s0)
+tick_ret:
+    lui v0, %hi(DIAZ)
+    jr ra
+    lh v0, %lo(DIAZ)(v0)
+
+.align 1
+shake_t:
+    .half 0xff                  # suivi de la table (shake_t + 2)
+shake_tab:
+SHAKE_TAB
+"""
+
 HOOKS = [
     (0x80058014, "0100022418006210", "j cave_t0\nli v0, 1"),          # sna_anim_psg1 : départ
     (0x800581A8, "ce3d010c", "jal cave_clr"),                         # état 3 : drapeaux
@@ -175,6 +245,7 @@ HOOKS = [
     (0x800592A4, "78000224d20902a6", "jal cave_lim\nnop"),            # visée : limites
     (0x80059418, "340a00a60b80023c", "j cave_teb\nsh zero, 0xa34(s0)"),  # visée : tremblement
     (0x80059108, "300a029200000000", "jal cave_x\nnop"),             # visée : X
+    (0x80059334, "0b80023c12644284", "jal shake_tick\nnop"),         # visée : tremblement debout
     # « si l'arme est le PSG1, posture = couché » après une scène : supprimé
     (0x80055F50, "220a02a6", "nop"),
     (0x800562B0, "220a42a6", "nop"),
@@ -197,10 +268,18 @@ def build_cave(exe, v="FR"):
     if att[0] != 44:            # visée couchée du PSG1
         raise SystemExit("EXE inattendu : animations du PSG1")
     sym.update({f"ATT{i}": att[i] for i in range(1, 9)})
+    tab = []
+    for f, dx, dy in SHAKE:
+        assert 0 <= f <= 0xFF and -8 <= dx < 8 and -8 <= dy < 8
+        tab += [f, (dx & 15) << 4 | dy & 15]
+    code2, sym = mips.assemble(CAVE2_SRC.replace("SHAKE_TAB", "    .byte " + ", ".join(map(str, tab))),
+                               pal.addr(v, CAVE2), sym)
+    if CAVE2 + len(code2) > CAVE2_END:
+        raise SystemExit(f"code PSG1 (2e zone) trop gros ({len(code2)} octets)")
     code, sym = mips.assemble(CAVE_SRC, pal.addr(v, CAVE), sym)
     if CAVE + len(code) > CAVE_END:
         raise SystemExit(f"code PSG1 trop gros ({len(code)} octets)")
-    return code, sym
+    return code, code2, sym
 
 
 def patch(exe):
@@ -209,12 +288,14 @@ def patch(exe):
     addr, orig, _ = HOOKS[0]
     if not pal.same(v, rd(exe, pal.addr(v, addr), 4), orig[:8]):
         return None
-    if not pal.cave_ok(v, exe, CAVE, CAVE_END, CAVE_SHA1):
+    if not (pal.cave_ok(v, exe, CAVE, CAVE_END, CAVE_SHA1)
+            and pal.cave_ok(v, exe, CAVE2, CAVE2_END, CAVE2_SHA1)):
         raise SystemExit("EXE inattendu : fin du menu de débogage déjà utilisée ?")
-    code, sym = build_cave(exe, v)
+    code, code2, sym = build_cave(exe, v)
     out = bytearray(exe)
-    o = 0x800 + pal.addr(v, CAVE) - LOAD
-    out[o:o + len(code)] = code
+    for zone, c in ((CAVE, code), (CAVE2, code2)):
+        o = 0x800 + pal.addr(v, zone) - LOAD
+        out[o:o + len(c)] = c
     for addr, orig, src in HOOKS:
         a = pal.addr(v, addr)
         new, _ = mips.assemble(src, a, sym)

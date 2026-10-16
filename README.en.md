@@ -88,7 +88,7 @@ python m9.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR)
 - Standing, Snake shoulders the rifle and the scope is at eye level (like the Triangle first-person view). Crouching, the scope is lower. Prone, nothing changes from the original game.
 - Snake keeps the stance he had when drawing the PSG1. In the scope, **X** switches between standing and crouching. To aim prone: lie down first, then draw the PSG1.
 - The original game also put Snake back on his belly after some scenes (end of a scripted scene, back from a call…) when the PSG1 was in hand: not anymore.
-- Standing or crouching, you can aim a bit higher and lower than prone, and the scope **does not sway** (in the game, the sway is a prone animation). The heartbeat is still felt in the controller.
+- Standing or crouching, you can aim a bit higher and lower than prone, and the scope **sways like when prone**, twice as much standing (you are less steady), the same crouching; the shot follows the scope. **Diazepam** removes the sway, as when prone. The heartbeat is still felt in the controller.
 - With `--m9`, apply `m9.py` **before** `psg1.py` (build.py does it in the right order).
 
 ```bash
