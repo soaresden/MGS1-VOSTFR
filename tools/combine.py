@@ -20,7 +20,8 @@ Image pour émulateurs seulement (trop grande pour un CD-R).
    l'ancien bloc ⌊j·down/up⌋), les autres blocs inchangés et dans le même ordre ; banques
    recollées alignées sur 2048. Table ancien secteur de début -> nouveau.
 2. Codes : RADIO.DAT (commandes VOICE, radio.scan) et scripts GCX de STAGE.DIR (gcx.codes)
-   renumérotés ; stage « sound » (test sonore) : codes du disque 2 sur les deux disques.
+   renumérotés ; stage « sound » (test sonore, codes du disque 2, mêmes octets sur les deux disques) :
+   celui du disque 2 renuméroté est recopié dans le STAGE.DIR du disque 1.
 3. EXE (MGS1.EXE et MGS2.EXE, FR et UK, retrouvés par motifs) : répertoire « MGS » ou « MGS2 »
    selon FS_DiskNum, reset logiciel -> MGS1.EXE, pilote de flux : fréquence 0x400 à la place
    de 0xC00 (une interruption sur quatre).
@@ -480,6 +481,14 @@ def combine(a, b, out_bin, log=print):
         fl.update({"MGS/VOX.DAT": vx, "MGS/DEMO.DAT": dm, "MGS/RADIO.DAT": radio_new, "MGS/STAGE.DIR": st,
                    "MGS/" + exes[n]: patch_exe(rd(d, exes[n]))})
         files.append(fl)
+    # test sonore : le stage « sound » est le même sur les deux disques (même place, mêmes octets)
+    # et porte les codes du disque 2 ; on recopie sur le disque 1 celui du disque 2 renuméroté
+    st1, st2 = bytearray(files[0]["MGS/STAGE.DIR"]), files[1]["MGS/STAGE.DIR"]
+    s1 = next((a, e) for nm, a, e in gcx.stage_table(st1) if nm == "sound")
+    s2 = next((a, e) for nm, a, e in gcx.stage_table(st2) if nm == "sound")
+    if s1 == s2:
+        st1[s1[0]:s1[1]] = st2[s2[0]:s2[1]]
+        files[0]["MGS/STAGE.DIR"] = bytes(st1)
     total = write_image((d1, d2), files, out_bin)
     out_bin = Path(out_bin)
     out_bin.with_suffix(".cue").write_text(
