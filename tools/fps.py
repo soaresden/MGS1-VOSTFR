@@ -43,8 +43,11 @@ LOAD = 0x80010000
 CAVE, CAVE_END = 0x80045400, 0x80045900
 CAVE_SHA1 = "6e05336a974efc6b25d1a20da48670942551f4fc"  # octets d'origine de la zone
 
-# Arme dans le repère de la caméra (x droite, y bas, z avant), en unités du jeu
-OFFSET = (130, 170, 260)
+# Arme dans le repère de la caméra (x droite, y bas, z avant), en unités du jeu (mm).
+# La balle part du canon (arme + (-19, -60, +369)) parallèlement à la vue : avec ce décalage
+# elle part 126 mm à droite et 72 mm sous l'axe de la vue, exactement comme celle du PSG1
+# par rapport au centre de la lunette (mesuré : 125-126 / 71-74), donc touche le même point.
+OFFSET = (145, 132, 260)
 
 SYM = dict(
     FIRST_PERSON=0x800B8DE2,   # GM_Camera.first_person
