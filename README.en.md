@@ -26,6 +26,8 @@ This repository contains **no game data**: only the scripts that build the image
 | `--l2r2` option: in first-person view, L2/R2 lean, L2+R2 tiptoe (like in MGS2) | ✅ done, tested |
 | `--fps` option: aim and shoot the SOCOM / M9 in first-person view (like in MGS2) | ✅ done, tested (dock: guard put to sleep with the M9, hurt with the SOCOM, laser) |
 | `--life TEXT` option: your own text instead of "LIFE" in the life bar (e.g. "SNAKE") | ✅ done, tested (dock, French and English versions) |
+| `--cartes` option: key card doors open with the card in your inventory (no need to equip it) | ✅ done, tested (Blast Furnace LV.6 door: blocked without the patch, opens with it) |
+| `--psg1loup` option: the PSG1 in the cave, next to the passage door, right before Sniper Wolf | ✅ done, checked in memory (PSG1 item present after Meryl is shot) |
 | Web page: build in the browser, options to tick, works offline | ✅ done, same images as Python byte for byte |
 | French dub credits in the intro → English cast | 🔧 to do |
 | `--combine` option: both discs in **a single image** (emulators, lighter sound) | ✅ done, tested in PCSX-Redux (intro, Codec on both discs, switch to disc 2 from a save, no disc change); VOSTFR, VF and EN, all options |
@@ -126,6 +128,17 @@ python life.py "SNAKE" "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Soli
 
 ![Life bar "SNAKE"](docs/previews/life_snake.png) ![15 characters](docs/previews/life_max.png)
 
+`--cartes` option: key card doors open as soon as the card is in your inventory, no need to equip it in the item menu. The card level still matters (a LV.3 card does not open a LV.5 door). The little "denied" beep still only plays when the card is equipped.
+
+![Without --cartes: LV.6 door shut, card in inventory](docs/previews/cartes_off.png) ![With --cartes: Snake walks through](docs/previews/cartes_on.png)
+
+`--psg1loup` option (off by default): after Sniper Wolf shoots Meryl in the underground passage, no need to go all the way back to the armory for the PSG1. It waits in the cave (the wolf dog one), right next to the passage door and the ration. It only appears once Meryl has been shot: step out of the passage, grab the PSG1, go back in, and the rest plays out as in the original game (Meryl is gone, cutscene, fight).
+
+```bash
+python cartes.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+python psg1loup.py "Metal Gear Solid (VOSTFR) (Disc 1).bin"
+```
+
 ### One image for emulators ("CD Combiner", `--combine` option)
 
 `--combine` adds a **"(1 CD)"** image: the whole game on one disc, **no disc change ever**. The game moves on to disc 2 by itself, without the "Insert disc 2" screen; a disc 2 save loads directly.
@@ -194,6 +207,8 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/l2r2.py` | Optional patch: first-person view, L2/R2 lean, L2+R2 tiptoe |
 | `tools/fps.py` | Optional patch: shoot the SOCOM / M9 in first-person view |
 | `tools/life.py` | Optional patch: your text instead of "LIFE" in the life bar (+ preview) |
+| `tools/cartes.py` | Optional patch: key card doors open without equipping the card |
+| `tools/psg1loup.py` | Optional patch: the PSG1 in the cave, right before Sniper Wolf |
 | `tools/combine.py` | Both discs in a single image (lighter sound, no disc change); also in the web page ("CD Combiner" box) |
 | `tools/spuadpcm.py` | SPU ADPCM: decoding, encoding, integer resampling |
 | `tools/gcx.py` | Exact parsing of the `STAGE.DIR` GCX scripts (voice and cutscene codes) |
