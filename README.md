@@ -194,7 +194,7 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/l2r2.py` | Patch optionnel : vue subjective, L2/R2 penchent, L2+R2 pointe des pieds |
 | `tools/fps.py` | Patch optionnel : tirer au SOCOM / M9 en vue subjective |
 | `tools/life.py` | Patch optionnel : texte à la place de « LIFE » dans la barre de vie (+ aperçu) |
-| `tools/combine.py` | Les 2 disques en une seule image (son allégé, pas de changement de disque) |
+| `tools/combine.py` | Les 2 disques en une seule image (son allégé, pas de changement de disque) ; aussi dans la page web (case « CD Combiner ») |
 | `tools/spuadpcm.py` | ADPCM du SPU : décodage, encodage, rééchantillonnage entier |
 | `tools/gcx.py` | Lecture exacte des scripts GCX de `STAGE.DIR` (codes des voix et des cinématiques) |
 | `tools/mips.py` | Petit assembleur MIPS (R3000) pour les patchs |

@@ -139,6 +139,9 @@
   .opt .na-tag { display: none; }
   .opt.na .na-tag { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid var(--line); border-radius: 3px; font: 11.5px var(--mono); color: var(--dim); vertical-align: 2px; font-weight: 400; }
   .slot.no { opacity: .45; }
+  #pv-audio { display: grid; gap: 6px; margin-top: 8px; }
+  #pv-audio label { font: 12.5px var(--mono); color: var(--dim); }
+  #pv-audio audio { width: 100%; height: 32px; }
   .opt .txt { display: block; margin-top: 8px; width: 100%; max-width: 260px; padding: 7px 10px; border: 1px solid var(--line); border-radius: 5px;
               background: #000; color: var(--green); font: 15px var(--mono); text-transform: uppercase; letter-spacing: .08em; }
   .opt .txt:focus { outline: none; border-color: var(--green2); }
@@ -191,6 +194,7 @@
         <div class="cap" id="pv-cap"></div>
         <h3><span id="pv-title"></span><span class="state" id="pv-state"></span></h3>
         <ul id="pv-list"></ul>
+        <div id="pv-audio"></div>
       </aside>
     </div>
   </section>
@@ -211,7 +215,7 @@
     <details class="faq">
       <summary data-en="How do I play afterwards?">Comment jouer ensuite ?</summary>
       <div>
-        <p data-en="You get <code>Metal Gear Solid (…) (Disc 1).bin/.cue</code>, <code>(Disc 2)</code> and a <code>.m3u</code>. Open the <code>.m3u</code> in your emulator (Batocera, DuckStation…): it can then swap discs.">Tu obtiens <code>Metal Gear Solid (…) (Disc 1).bin/.cue</code>, <code>(Disc 2)</code> et un <code>.m3u</code>. Ouvre le <code>.m3u</code> dans ton émulateur (Batocera, DuckStation…) : il pourra changer de disque.</p>
+        <p data-en="You get <code>Metal Gear Solid (…) (Disc 1).bin/.cue</code>, <code>(Disc 2)</code> and a <code>.m3u</code>. Open the <code>.m3u</code> in your emulator (Batocera, DuckStation…): it can then swap discs. With the CD Combiner, also open <code>(1 CD).cue</code>: the whole game, no disc swap.">Tu obtiens <code>Metal Gear Solid (…) (Disc 1).bin/.cue</code>, <code>(Disc 2)</code> et un <code>.m3u</code>. Ouvre le <code>.m3u</code> dans ton émulateur (Batocera, DuckStation…) : il pourra changer de disque. Avec le CD Combiner, ouvre plutôt <code>(1 CD).cue</code> : tout le jeu, sans changement de disque.</p>
         <p data-en="With a new version of the images, resume your game from a <b>memory card save</b>, not from an emulator save state (a save state keeps the old version).">Avec une nouvelle version des images, reprends ta partie depuis une <b>sauvegarde de la carte mémoire</b>, pas depuis une sauvegarde d'état de l'émulateur (elle garde l'ancienne version).</p>
       </div>
     </details>
@@ -261,7 +265,7 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
     <details class="faq">
       <summary data-en="What is left to do?">Ce qui reste à faire</summary>
       <div>
-        <p data-en="CD Combiner (both discs in one); confirm the disc swap mid-game on DuckStation or a console; replace the French dub credits shown in the VOSTFR intro with the English cast.">CD Combiner (les deux disques en un) ; confirmer le changement de disque en cours de partie sur DuckStation ou console ; remplacer les crédits du doublage français affichés dans l'intro VOSTFR par la distribution anglaise.</p>
+        <p data-en="Confirm the disc swap mid-game on DuckStation or a console; replace the French dub credits shown in the VOSTFR intro with the English cast.">Confirmer le changement de disque en cours de partie sur DuckStation ou console ; remplacer les crédits du doublage français affichés dans l'intro VOSTFR par la distribution anglaise.</p>
       </div>
     </details>
   </section>
@@ -305,13 +309,19 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
       el: ['The European (English) game as it is, with the ticked mods.', 'The text added by the mods (weapon menu…) is in English.'] }
   ];
   var MODS = [
-    { id: 'combine', soon: true,
+    { id: 'combine', need2: true,
       fr: 'CD Combiner', en: 'CD Combiner',
-      frS: 'Les deux disques en un seul : plus de changement de disque.', enS: 'Both discs in one: no more disc swap.',
-      shots: [['docs/previews/combine_on.png', 'Un seul disque', 'A single disc']],
-      noimg: ['En préparation : une seule image, jouable du début à la fin sans changer de disque.', 'In the works: a single image, playable from start to finish without swapping discs.'],
-      fl: ['Une seule image pour tout le jeu, pour les émulateurs.', 'Plus d\'écran « insérez le disque 2 ».'],
-      el: ['A single image for the whole game, for emulators.', 'No more "insert disc 2" screen.'] },
+      frS: 'Les deux disques en un seul : plus de changement de disque. Son un peu allégé.', enS: 'Both discs in one: no more disc swap. Slightly lighter sound.',
+      shots: [['docs/previews/combine_change.png', 'Fin du disque 1 : on enchaîne sur le disque 2, sans rien faire', 'End of disc 1: straight on to disc 2, nothing to do'],
+              ['docs/previews/combine_snowfield_d2.png', 'Disque 2, sur la même image', 'Disc 2, on the same image'],
+              ['docs/previews/combine_codec_d2.png', 'Codec du disque 2', 'Disc 2 Codec'],
+              ['docs/previews/combine_on.png', 'Un seul disque', 'A single disc']],
+      audio: [['docs/previews/combine_codec_original.wav', 'Codec · d\'origine (22 kHz)', 'Codec · original (22 kHz)'],
+              ['docs/previews/combine_codec_allege.wav', 'Codec · allégé (11 kHz)', 'Codec · lighter (11 kHz)'],
+              ['docs/previews/combine_cinematique_original.wav', 'Cinématique · d\'origine (33 kHz)', 'Cutscene · original (33 kHz)'],
+              ['docs/previews/combine_cinematique_allege.wav', 'Cinématique · allégée (22 kHz)', 'Cutscene · lighter (22 kHz)']],
+      fl: ['En plus des deux disques, une seule image « (1 CD) » pour tout le jeu (environ 990 Mo), pour les émulateurs.', 'Plus d\'écran « insérez le disque 2 » : le jeu enchaîne tout seul.', 'Pour que tout tienne sur un CD, les voix passent à 11 kHz et les cinématiques à 22 kHz : écoute la différence ci-dessous.', 'Il faut les deux disques de la version choisie.'],
+      el: ['On top of the two discs, a single "(1 CD)" image for the whole game (about 990 MB), for emulators.', 'No more "insert disc 2" screen: the game carries on by itself.', 'To fit on one CD, voices go down to 11 kHz and cutscenes to 22 kHz: hear the difference below.', 'Needs both discs of the chosen version.'] },
     { id: 'carre',
       fr: 'Carré fait défiler le Codec', en: 'Square skips through the Codec',
       frS: 'Pratique quand on refait le jeu ou qu\'on appelle Mei Ling pour sauvegarder.', enS: 'Handy when replaying the game or calling Mei Ling to save.',
@@ -396,6 +406,12 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
   function sideOf(version) { return version === 'en' ? 'UK' : 'FR'; }
   function modOk(m) {  // le mod existe-t-il pour la version choisie ?
     if (m.soon) return false;
+    if (m.need2) {  // CD Combiner : les deux disques de la version
+      if (!any()) return true;
+      if (st.version === 'vostfr') return !!(discs.FR1 && discs.UK1 && discs.FR2 && discs.UK2);
+      var sd = sideOf(st.version);
+      return !!(discs[sd + '1'] && discs[sd + '2']);
+    }
     var side = sideOf(st.version), ok = false;
     ['1', '2'].forEach(function (d) { var p = P.discs[side + d]; if (p && (m.text ? p.life : p.options[m.id])) ok = true; });
     return ok;
@@ -447,7 +463,7 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
       var d = box.querySelector('[data-id="' + m.id + '"]'), ok = modOk(m), inp = d.querySelector('input');
       inp.checked = ok && st.mods[m.id]; inp.disabled = !ok;
       d.classList.toggle('na', !ok);
-      d.querySelector('.na-tag').textContent = m.soon ? SBT('bientôt', 'soon') : SBT('bientôt en anglais', 'soon in English');
+      d.querySelector('.na-tag').textContent = m.soon ? SBT('bientôt', 'soon') : m.need2 ? SBT('il faut les 2 disques', 'needs both discs') : SBT('bientôt en anglais', 'soon in English');
       if (m.text) {
         d.querySelector('.txt').disabled = !ok;
         d.querySelector('.err').textContent = lifeError() || '';
@@ -469,17 +485,19 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
     var t = M.lifeClean(st.life);
     return t === 'LIFE' ? '' : t;
   }
-  function chosenMods() { return MODS.filter(function (m) { return !m.text && modOk(m) && st.mods[m.id]; }); }
+  function chosenMods() { return MODS.filter(function (m) { return !m.text && !m.need2 && modOk(m) && st.mods[m.id]; }); }
+  function combineOn() { var m = MODS.filter(function (x) { return x.need2; })[0]; return modOk(m) && st.mods[m.id]; }
   function summary() {
     var v = VERSIONS.filter(function (x) { return x.id === st.version; })[0], mods = chosenMods();
     var names = mods.map(function (m) { return SBT(m.fr, m.en); });
+    if (combineOn() && any()) names.unshift('CD Combiner');
     if (lifeText()) names.push(SBT('barre de vie « ', 'life bar "') + lifeText() + SBT(' »', '"'));
     var txt = SBT('Tu vas obtenir : ', 'You will get: ') + SBT(v.fr, v.en) + (names.length ? ' + ' + names.join(' + ') : '') + '.';
     var ready = st.version === 'vostfr' ? pair() : has(sideOf(st.version));
     if (!any()) txt = SBT('Commence par balancer tes jeux (étape 1).', 'Start by dropping your games (step 1).');
     else if (!ready) txt = SBT('Il manque des disques pour cette version.', 'Some discs are missing for this version.');
     else if (st.mods.life && lifeError()) { txt = SBT('Corrige le texte de la barre de vie.', 'Fix the life bar text.'); ready = false; }
-    else if (st.version !== 'vostfr' && !mods.length && !lifeText()) { txt = SBT('Coche au moins un mod (le jeu d\'origine tel quel, tu l\'as déjà !).', 'Tick at least one mod (you already have the original game as it is!).'); ready = false; }
+    else if (st.version !== 'vostfr' && !mods.length && !lifeText() && !combineOn()) { txt = SBT('Coche au moins un mod (le jeu d\'origine tel quel, tu l\'as déjà !).', 'Tick at least one mod (you already have the original game as it is!).'); ready = false; }
     $('summary').textContent = txt;
     $('go').disabled = busy || !ready;
   }
@@ -566,6 +584,9 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
     stt.textContent = o.soon ? SBT('bientôt', 'soon') : on ? SBT('choisi', 'chosen') : SBT('non choisi', 'not chosen');
     stt.className = 'state ' + (on ? 'on' : 'off');
     $('pv-list').innerHTML = (SB_LANG === 'en' ? o.el : o.fl).map(function (t) { return '<li>' + t + '</li>'; }).join('');
+    $('pv-audio').innerHTML = (o.audio || []).map(function (a) {
+      return '<label>' + SBT(a[1], a[2]) + '</label><audio controls preload="none" src="' + a[0] + '"></audio>';
+    }).join('');
   }
   refresh(); show(st.version);
 
@@ -628,7 +649,13 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
                close: function () { blobs.push([name, new Blob(parts)]); parts = null; return Promise.resolve(); } };
     }
     try {
-      await M.build(discs, opts, openWriter, log, progress, { mode: st.version, life: lifeText() });
+      async function openReader(name) {  // disque déjà écrit (CD Combiner)
+        var f;
+        if (dir) f = await (await dir.getFileHandle(name)).getFile();
+        else f = blobs.filter(function (nb) { return nb[0] === name; })[0][1];
+        return { name: name, size: f.size, read: function (o, l) { return f.slice(o, o + l).arrayBuffer().then(function (x) { return new Uint8Array(x); }); } };
+      }
+      await M.build(discs, opts, openWriter, log, progress, { mode: st.version, life: lifeText(), combine: combineOn(), openReader: openReader });
       bar.firstElementChild.style.width = '100%';
       status('✔ ' + SBT('Terminé en ', 'Done in ') + Math.round((Date.now() - t0) / 1000) + ' s. ' +
         (dir ? SBT('Tes images sont dans le dossier choisi : ouvre le .m3u dans ton émulateur.', 'Your images are in the folder you chose: open the .m3u in your emulator.')

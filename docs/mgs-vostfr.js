@@ -846,14 +846,104 @@
     }
     return out;
   }
-  function renumberStage(stFr, stUk, secmap, frToUk) {
-    var out = stFr.slice(), tf = stageTable(stFr), tu = stageTable(stUk), ukSecs = new Set(frToUk.values()), done = 0, skipped = 0;
-    tf.forEach(function (ab, name) {
-      if (!tu.has(name)) return;
-      var r = tu.get(name), ukVals = new Set(gclInts(stUk, r[0], r[1], ukSecs).map(function (x) { return x[1]; }));
-      gclInts(stFr, ab[0], ab[1], secmap).forEach(function (x) {
-        if (ukVals.has(frToUk.get(x[1]))) { w32be(out, x[0] + 1, secmap.get(x[1])); done++; } else skipped++;
+  // ------------------------------------------------------------------ scripts GCX (gcx.py)
+  var DEMO_CMD = 0xA242;
+  function be16(b, i) { return b[i] << 8 | b[i + 1]; }
+  function gcxStageTable(st) {  // [(nom, début, fin)] dans l'ordre (doublons gardés)
+    var size = u32(st, 0), ent = [], k;
+    for (k = 0; k < Math.floor(size / 12); k++) ent.push([ascii(st, 4 + 12 * k, 12 + 12 * k).replace(/\0+$/, ''), u32(st, 12 + 12 * k) * 2048]);
+    return ent.map(function (e, j) { return [e[0], e[1], j + 1 < ent.length ? ent[j + 1][1] : st.length]; });
+  }
+  function gcxScripts(st, a) {
+    var tags = [], i = a + 4;
+    for (;;) {
+      var mode = st[i + 2], ext = st[i + 3], sz = st[i + 4] | st[i + 5] << 8 | st[i + 6] << 16 | st[i + 7] << 24;
+      if (mode === 0) break;
+      tags.push([String.fromCharCode(mode), String.fromCharCode(ext), sz]);
+      i += 8;
+    }
+    var pos = a + 2048, k = 0, out = [];
+    while (k < tags.length) {
+      if (tags[k][0] === 'c') {
+        var j = k;
+        while (j < tags.length && tags[j][0] === 'c') j++;
+        var grp = tags.slice(k, j);
+        grp.slice(0, -1).forEach(function (t) { if (t[1] === 'g') out.push(pos + t[2]); });
+        pos += Math.ceil(grp[grp.length - 1][2] / 2048) * 2048;
+        k = j;
+      } else {
+        pos += Math.ceil(tags[k][2] / 2048) * 2048;
+        k++;
+      }
+    }
+    return out;
+  }
+  function gcxIntTokens(b, g) {  // [(position, id de commande, option)]
+    var out = [];
+    function block(p, cmd) {
+      for (;;) {
+        var t = b[p];
+        if (t === 0) return;
+        if (t === 0x30) { expr(p + 2, p + 1 + b[p + 1], cmd, null); p += 1 + b[p + 1]; }
+        else if (t === 0x60) { var size = be16(b, p + 1); values(p + 6, p + 1 + size, be16(b, p + 3)); p += 1 + size; }
+        else if (t === 0x70) { values(p + 4, p + 1 + b[p + 1], cmd); p += 1 + b[p + 1]; }
+        else throw new Error('GCX : instruction ' + t.toString(16) + ' en ' + p.toString(16));
+      }
+    }
+    function value(p, cmd, opt) {
+      var t = b[p];
+      if ((t & 0xF0) === 0x10) return p + 4;
+      if (t === 9 || t === 10) { out.push([p, cmd, opt]); return p + 5; }
+      if (t === 1 || t === 6 || t === 8) return p + 3;
+      if (t === 2 || t === 3 || t === 4 || t === 0x20) return p + 2;
+      if (t === 7) return p + 2 + b[p + 1];
+      if (t === 0x40) { block(p + 3, cmd); return p + 1 + be16(b, p + 1); }
+      if (t === 0x30) { expr(p + 2, p + 1 + b[p + 1], cmd, opt); return p + 1 + b[p + 1]; }
+      if (t === 0x50) return p + 3;
+      throw new Error('GCX : valeur ' + t.toString(16) + ' en ' + p.toString(16));
+    }
+    function values(p, end, cmd) {
+      var opt = null;
+      while (p < end && b[p]) {
+        if (b[p] === 0x50) opt = String.fromCharCode(b[p + 1]);
+        p = value(p, cmd, opt);
+      }
+    }
+    function expr(p, end, cmd, opt) {
+      while (p < end && b[p]) p = b[p] === 0x31 ? p + 2 : value(p, cmd, opt);
+    }
+    var proclen = u32be(b, g), pt = g + 4, procs = [];
+    while (u32be(b, pt)) { procs.push(be16(b, pt + 2)); pt += 4; }
+    procs.forEach(function (off) { block(pt + 4 + off + 3, null); });
+    block(g + 4 + proclen + 4 + 3, null);
+    return out;
+  }
+  function gcxCodes(st, voxStarts, demoStarts) {  // [(position, 'vox' | 'demo', stage)]
+    var out = [];
+    gcxStageTable(st).forEach(function (e) {
+      gcxScripts(st, e[1]).forEach(function (g) {
+        gcxIntTokens(st, g).forEach(function (tk) {
+          var v = u32be(st, tk[0] + 1);
+          if (tk[1] === DEMO_CMD) { if (tk[2] === 's' && demoStarts.has(v)) out.push([tk[0], 'demo', e[0]]); }
+          else if (v && voxStarts.has(v)) out.push([tk[0], 'vox', e[0]]);
+        });
       });
+    });
+    return out;
+  }
+
+  // Codes VOX des scripts : jetons exacts des scripts GCX (gcxCodes), confirmés par le même stage
+  // anglais (comme vox_vostfr.renumber_stage).
+  function renumberStage(stFr, stUk, secmap, frToUk) {
+    var out = stFr.slice(), tu = stageTable(stUk), ukSecs = new Set(frToUk.values()), ukVals = new Map(), done = 0, skipped = 0;
+    gcxCodes(stFr, new Set(secmap.keys()), new Set()).forEach(function (c) {
+      if (c[1] !== 'vox' || !tu.has(c[2])) return;
+      if (!ukVals.has(c[2])) {
+        var r = tu.get(c[2]);
+        ukVals.set(c[2], new Set(gclInts(stUk, r[0], r[1], ukSecs).map(function (x) { return x[1]; })));
+      }
+      var v = u32be(stFr, c[0] + 1);
+      if (ukVals.get(c[2]).has(frToUk.get(v))) { w32be(out, c[0] + 1, secmap.get(v)); done++; } else skipped++;
     });
     return { data: out, done: done, skipped: skipped };
   }
@@ -1007,6 +1097,433 @@
     return { files: nw_, sectors: total };
   }
 
+  // ------------------------------------------------------------------ CD Combiner : son SPU (spuadpcm.py)
+  var SF0 = [0, 60, 115, 98, 122], SF1 = [0, 0, -52, -55, -60];
+  var HALF = new Int32Array([0, 0, 0, 0, 0, 1, 1, -2, -3, 2, 6, 0, -10, -4, 14, 12, -15, -24, 11, 38, 0, -52, -21, 61, 52, -60, -92, 41, 136, 0, -175, -69, 197, 166, -188, -288, 130, 427, 0, -571, -233, 705, 640, -814, -1481, 885, 5127, 7282, 5127, 885, -1481, -814, 640, 705, -233, -571, 0, 427, 130, -288, -188, 166, 197, -69, -175, 0, 136, 41, -92, -60, 52, 61, -21, -52, 0, 38, 11, -24, -15, 12, 14, -4, -10, 0, 6, 2, -3, -2, 1, 1, 0, 0, 0, 0, 0]);
+  var TWO_THIRDS = new Int32Array([0, 0, 0, 0, 0, 0, 0, -1, 0, 1, 1, 1, -1, -2, -2, 1, 3, 3, 0, -5, -6, -1, 6, 9, 3, -7, -12, -7, 6, 16, 13, -4, -21, -20, 0, 24, 29, 7, -26, -39, -17, 25, 50, 31, -21, -61, -49, 12, 70, 71, 4, -76, -95, -27, 77, 122, 58, -70, -149, -98, 52, 173, 146, -22, -191, -202, -24, 201, 265, 88, -196, -333, -174, 172, 403, 286, -120, -473, -430, 32, 540, 617, 113, -599, -874, -350, 649, 1266, 781, -687, -2030, -1805, 710, 4823, 8649, 10204, 8649, 4823, 710, -1805, -2030, -687, 781, 1266, 649, -350, -874, -599, 113, 617, 540, 32, -430, -473, -120, 286, 403, 172, -174, -333, -196, 88, 265, 201, -24, -202, -191, -22, 146, 173, 52, -98, -149, -70, 58, 122, 77, -27, -95, -76, 4, 71, 70, 12, -49, -61, -21, 31, 50, 25, -17, -39, -26, 7, 29, 24, 0, -20, -21, -4, 13, 16, 6, -7, -12, -7, 3, 9, 6, -1, -6, -5, 0, 3, 3, 1, -2, -2, -1, 1, 1, 1, 0, -1, 0, 0, 0, 0, 0, 0, 0]);
+  function spuDecode(raw) {
+    var n = raw.length >> 4, out = new Int32Array(n * 28), s1 = 0, s2 = 0, o = 0;
+    for (var k = 0; k < n; k++) {
+      var b0 = raw[16 * k], sh = Math.min(b0 & 15, 12), f = Math.min((b0 >> 4) & 7, 4), f0 = SF0[f], f1 = SF1[f];
+      for (var i = 0; i < 14; i++) {
+        var byte = raw[16 * k + 2 + i];
+        for (var h = 0; h < 2; h++) {
+          var q = h ? byte >> 4 : byte & 15;
+          if (q >= 8) q -= 16;
+          var s = ((q << 12) >> sh) + ((s1 * f0 + s2 * f1 + 32) >> 6);
+          if (s > 32767) s = 32767; else if (s < -32768) s = -32768;
+          out[o++] = s; s2 = s1; s1 = s;
+        }
+      }
+    }
+    return out;
+  }
+  function spuEncode(x, flags) {
+    var n = flags.length, out = new Uint8Array(16 * n), s1 = 0, s2 = 0;
+    for (var k = 0; k < n; k++) {
+      var base = 28 * k, bm = -1, bf = 0, f, i;
+      for (f = 0; f < 5; f++) {
+        var f0 = SF0[f], f1 = SF1[f], p1 = s1, p2 = s2, m = 0;
+        for (i = 0; i < 28; i++) {
+          var v = x[base + i], e = v - ((p1 * f0 + p2 * f1 + 32) >> 6);
+          if (e < 0) e = -e;
+          if (e > m) m = e;
+          p2 = p1; p1 = v;
+        }
+        if (bm < 0 || m < bm) { bm = m; bf = f; }
+      }
+      var sh = 12;
+      while (sh > 0 && (bm >> (12 - sh)) > 7) sh--;
+      var g0 = SF0[bf], g1 = SF1[bf], o = 16 * k, q0 = 0;
+      out[o] = (bf << 4) | sh;
+      out[o + 1] = flags[k];
+      for (i = 0; i < 28; i++) {
+        var pred = (s1 * g0 + s2 * g1 + 32) >> 6, q = (((x[base + i] - pred) << sh) + 2048) >> 12;
+        if (q > 7) q = 7; else if (q < -8) q = -8;
+        var s = ((q << 12) >> sh) + pred;
+        if (s > 32767) s = 32767; else if (s < -32768) s = -32768;
+        s2 = s1; s1 = s;
+        if (i & 1) out[o + 2 + (i >> 1)] = q0 | ((q & 15) << 4); else q0 = q & 15;
+      }
+    }
+    return out;
+  }
+  function spuResample(x, up, down) {  // filtre entier exact (resample de spuadpcm.py)
+    var h = up === 1 && down === 2 ? HALF : TWO_THIRDS, nh = h.length, c = (nh - 1) >> 1;
+    var L = x.length * up, M = Math.ceil(L / down), y = new Int32Array(M);
+    for (var m = 0; m < M; m++) {
+      var j = down * m + c, acc = 0, i = Math.max(0, j - L + 1), iend = Math.min(nh - 1, j);
+      if (up === 1) for (; i <= iend; i++) acc += h[i] * x[j - i];
+      else {
+        if ((j - i) & 1) i++;
+        for (; i <= iend; i += 2) acc += h[i] * x[(j - i) >> 1];
+      }
+      var v = Math.floor((acc + 8192) / 16384);
+      y[m] = v > 32767 ? 32767 : v < -32768 ? -32768 : v;
+    }
+    return y;
+  }
+
+  // ------------------------------------------------------------------ CD Combiner (combine.py)
+  var CB_TARGETS = { 'VOX.DAT': [1, 2, 0x400], 'DEMO.DAT': [2, 3, 0x800] };
+  var CB_OVB = { 0x800AE1D8: 0x800C47D8, 0x800ADC48: 0x800C4248 };
+  var CB_LIMIT = 449850 - 150, EXE_LOAD = 0x80010000;
+  function cbBlock(code, data) {
+    var out = new Uint8Array(4 + data.length), n = data.length + 4;
+    out[0] = code; out[1] = n & 255; out[2] = (n >> 8) & 255; out[3] = (n >> 16) & 255;
+    out.set(data, 4);
+    return out;
+  }
+  function shrinkBank(bank, up, down, freq) {
+    var bl = blocks(bank, 0), heads = bl.filter(function (b) { return b[0] === 2; });
+    if (!heads.length) return bank;
+    if (heads.length !== 1) throw new Error('plusieurs flux audio dans une banque');
+    var head = bank.slice(heads[0][1] + 4, heads[0][1] + heads[0][2]), stereo = head[8] !== 1;
+    var audio = bl.filter(function (b) { return b[0] === 1; });
+    var raw = concat(audio.map(function (b) { return bank.subarray(b[1] + 4, b[1] + b[2]); }));
+    var chans;
+    if (stereo) {
+      var ev = [], od = [];
+      for (var i = 0, k = 0; i < raw.length; i += 4096, k++) (k & 1 ? od : ev).push(raw.subarray(i, i + 4096));
+      chans = [concat(ev), concat(od)];
+    } else chans = [raw];
+    var enc = chans.map(function (ch) {
+      ch = ch.subarray(0, ch.length >> 4 << 4);
+      var y = spuResample(spuDecode(ch), up, down), nb = Math.ceil(y.length / 28);
+      if (stereo) nb = Math.ceil(nb / 256) * 256;
+      if (!nb) throw new Error('canal audio vide');
+      var yy = new Int32Array(nb * 28);
+      yy.set(y);
+      var flags = new Uint8Array(nb).fill(2);
+      flags[nb - 1] = ch.length ? ch[ch.length - 15] : 2;
+      return spuEncode(yy, flags);
+    });
+    var nw;
+    if (stereo) {
+      var parts = [];
+      for (var p = 0; p < enc[0].length; p += 4096) { parts.push(enc[0].subarray(p, p + 4096)); parts.push(enc[1].subarray(p, p + 4096)); }
+      nw = concat(parts);
+    } else nw = enc[0];
+    var nblocks = [];
+    for (var q = 0; q < nw.length; q += 8192) nblocks.push(nw.subarray(q, q + 8192));
+    w32be(head, 0, nw.length);
+    head[6] = freq >> 8; head[7] = freq & 255;
+    var out = [], a = 0, j = 0;
+    bl.forEach(function (b) {
+      if (b[0] === 1) {
+        while (j < nblocks.length && Math.floor(j * down / up) <= a) out.push(cbBlock(1, nblocks[j++]));
+        a++;
+        if (a === audio.length) while (j < nblocks.length) out.push(cbBlock(1, nblocks[j++]));
+      } else if (b[0] === 2) out.push(cbBlock(2, head));
+      else out.push(bank.subarray(b[1], b[1] + b[2]));
+    });
+    return concat(out);
+  }
+  async function shrinkFile(data, name, progress) {
+    var t = CB_TARGETS[name], bk = banks(data), parts = [], len = 0, mp = new Map(), pos = 0;
+    for (var n = 0; n < bk.length; n++) {
+      var s = bk[n][0], e = bk[n][1];
+      if (s > pos) { parts.push(data.subarray(pos, s)); len += s - pos; }
+      mp.set(s / 2048, len / 2048);
+      var nb = shrinkBank(data.subarray(s, e), t[0], t[1], t[2]);
+      parts.push(nb); len += nb.length;
+      var pad = (2048 - len % 2048) % 2048;
+      if (pad) { parts.push(new Uint8Array(pad)); len += pad; }
+      pos = Math.ceil(e / 2048) * 2048;
+      if (progress && n % 16 === 0) { progress(n / bk.length); await new Promise(function (r) { setTimeout(r, 0); }); }
+    }
+    if (pos < data.length) { parts.push(data.subarray(pos)); len += data.length - pos; }
+    return { data: concat(parts, len), map: mp };
+  }
+  function cbRenumberRadio(data, vmap) {
+    var out = data.slice(), n = 0;
+    radioScan(data).forEach(function (v) { if (vmap.has(v[1])) { w32be(out, v[0] + 4, vmap.get(v[1])); n++; } });
+    return { data: out, n: n };
+  }
+  function cbRenumberStage(st, vmap, dmap, soundMap) {
+    var out = st.slice(), n = { vox: 0, demo: 0, sound: 0 };
+    gcxCodes(st, new Set(vmap.keys()), new Set(dmap.keys())).forEach(function (c) {
+      if (c[2] === 'sound') return;
+      w32be(out, c[0] + 1, (c[1] === 'vox' ? vmap : dmap).get(u32be(st, c[0] + 1)));
+      n[c[1]]++;
+    });
+    gcxCodes(st, new Set(soundMap.keys()), new Set()).forEach(function (c) {
+      if (c[2] === 'sound' && c[1] === 'vox') { w32be(out, c[0] + 1, soundMap.get(u32be(st, c[0] + 1))); n.sound++; }
+    });
+    return { data: out, n: n };
+  }
+  function cbTarget(w, at) { var off = (w & 0xFFFF) - ((w & 0x8000) << 1); return at + 4 + 4 * off; }
+  function cbExeInfo(exe) {
+    var fs = 0, reset = 0;
+    for (var i = 0x800; i < exe.length - 20; i += 4) {
+      var w = u32(exe, i);
+      if (w === 0x3C058001 && u32(exe, i + 4) === 0x24A50ACC && (u32(exe, i + 8) === 0x00021080 || u32(exe, i + 8) === 0x00001021)) {
+        var hi = u32(exe, i - 8), lo = u32(exe, i - 4);
+        if (hi >>> 16 !== 0x3C02 || lo >>> 16 !== 0x8C42) throw new Error('EXE : FS_DiskNum inattendu');
+        fs = (hi & 0xFFFF) * 65536 + (lo & 0xFFFF) - ((lo & 0x8000) * 2);
+      }
+      if (w === 0x3C048011 && u32(exe, i + 4) >>> 26 === 3 && u32(exe, i + 8) === 0x34847000)
+        reset = (0x80000000 + (u32(exe, i + 4) & 0x3FFFFFF) * 4) >>> 0;
+    }
+    if (!fs || !reset) throw new Error('EXE non reconnu');
+    return [fs, reset];
+  }
+  function cbPatchExe(exe0) {
+    var exe = exe0.slice(), fs = cbExeInfo(exe)[0];
+    function addr(i) { return EXE_LOAD + i - 0x800; }
+    function off(a) { return a - EXE_LOAD + 0x800; }
+    function W(i) { return u32(exe, i); }
+    function put(i, v) { w32(exe, i, v >>> 0); }
+    var s = off(0x800105F8);
+    if (ascii(exe, s, s + 5) === 'MGS2\0') return exe;
+    if (ascii(exe, s - 4, s + 20) !== 'MGS\0MGS read_sector %d\n\0') throw new Error('EXE : chaîne MGS introuvable');
+    exe.set([0x4D, 0x47, 0x53, 0x32, 0], s);
+    var hits = [], i, k;
+    for (i = 0x800; i < exe.length - 80; i += 4)
+      if (W(i) === 0x27A40010 && W(i + 4) === 0x3C058001 && W(i + 8) === 0x24A505F4 && W(i + 64) === 0x3C048001 && W(i + 68) === 0x248405F8) hits.push(i);
+    if (hits.length !== 1) throw new Error('EXE : FS_CdMakePositionTable');
+    i = hits[0];
+    var w = [];
+    for (k = 0; k < 20; k++) w.push(W(i + 4 * k));
+    if (w[12] >>> 26 !== 3 || w[13] !== 0x00C28825 || w[14] >>> 16 !== 0x1440 || w[15] !== 0x32420001) throw new Error('EXE : motif');
+    var bnezTo = cbTarget(w[14], addr(i + 56)), hi = Math.floor((fs + 0x8000) / 65536) & 0xFFFF, lo = fs & 0xFFFF;
+    var nw = [w[0], 0x3C010000 | hi, 0x8C280000 | lo].concat(w.slice(3, 11),
+      [0x00084080, 0x3C058001, 0x00A82821, 0x24A505F4, w[11], w[12], w[13],
+       0x14400000 | (((bnezTo - addr(i + 72) - 4) / 4) & 0xFFFF), w[15]]);
+    nw.forEach(function (x, kk) { put(i + 4 * kk, x); });
+    for (i = 0x800; i < exe.length - 12; i += 4)
+      if (W(i) === 0x3C058001 && W(i + 4) === 0x24A50ACC && W(i + 8) === 0x00021080) { put(i + 8, 0x00001021); break; }
+    var a = [];
+    for (i = 0x800; i < exe.length - 8; i += 4)
+      if (W(i) === 0x24020C00 && (W(i + 4) >>> 16 === 0x1062 || W(i + 4) >>> 16 === 0x1462)) a.push(i);
+    if (a.length !== 2 || W(a[0] + 4) >>> 16 !== 0x1062 || W(a[1] + 4) >>> 16 !== 0x1462) throw new Error('EXE : pilote du son');
+    var p800 = off(cbTarget(W(a[0] - 8), addr(a[0] - 8))), pc00 = off(cbTarget(W(a[0] + 4), addr(a[0] + 4))), tail = pc00 + 20;
+    if (W(p800 + 8) !== 0 || W(p800 + 12) !== 0x24430001 || W(p800 + 20) !== 0x30420001 ||
+        W(p800 + 16) !== ((0x08000000 | ((addr(tail) >>> 2) & 0x3FFFFFF)) >>> 0) ||
+        W(pc00 + 8) !== 0 || W(pc00 + 12) !== 0x24430001 || W(pc00 + 16) !== 0x30420003) throw new Error('EXE : pilote du son (motif)');
+    var luiAt = W(tail);
+    if (luiAt >>> 16 !== 0x3C01 || W(tail + 4) >>> 16 !== 0xAC23 || W(tail + 8) >>> 16 !== 0x1040) throw new Error('EXE : pilote du son (fin)');
+    put(a[0], 0x24020400); put(a[1], 0x24020400);
+    put(p800 + 8, luiAt);
+    put(p800 + 16, 0x08000000 | ((addr(tail + 4) >>> 2) & 0x3FFFFFF));
+    put(pc00 + 8, luiAt);
+    put(tail, 0x2C420001);
+    return exe;
+  }
+  function cbPatchOverlays(st0, fs, reset, ovb) {
+    var st = st0.slice(), hi = Math.floor((fs + 0x8000) / 65536) & 0xFFFF, lo = fs & 0xFFFF;
+    var jal = (0x0C000000 | ((reset & 0x3FFFFFF) >>> 2)) >>> 0, done = [];
+    gcxStageTable(st).forEach(function (e) {
+      var name = e[0], a = e[1];
+      if (['abst', 'title', 'change', 'demosel'].indexOf(name) < 0) return;
+      if (st[a + 6] !== 0x73 || st[a + 7] !== 0x62) throw new Error(name + ' : overlay attendu');
+      var size = st[a + 8] | st[a + 9] << 8 | st[a + 10] << 16 | st[a + 11] << 24, base = a + 2048, n = Math.floor(size / 4), w = [], k;
+      for (k = 0; k < n; k++) w.push(u32(st, base + 4 * k));
+      var calls = [];
+      for (k = 0; k < n; k++) if (w[k] === jal) calls.push(k);
+      if (calls.length !== 1) throw new Error(name + ' : appel FS_ResetCdFilePosition');
+      var c = calls[0];
+      k = c - 7;
+      if (w[k] >>> 16 === 0x3C01 || w[k] >>> 16 === 0x8E28) { done.push(name); return; }
+      if (w[k] >>> 16 !== 0x3C04 || w[k + 1] >>> 16 !== 0x2484 || w[k + 2] >>> 26 !== 3 || w[k + 3] !== 0 || w[k + 4] >>> 26 !== 3 || w[k + 5] !== 0x24042000)
+        throw new Error(name + ' : motif');
+      var code;
+      if (name === 'abst') {
+        var dn = w.slice(c, c + 8).filter(function (x) { return x >>> 16 === 0x8E26; })[0];
+        code = [0x8E280000 | (dn & 0xFFFF), 0x3C010000 | hi, 0x2508FFFF, 0xAC280000 | lo];
+      } else if (name === 'change') code = [0x3C010000 | hi, 0x24080001, 0xAC280000 | lo, 0];
+      else code = [0x3C010000 | hi, 0xAC200000 | lo, 0, 0];
+      for (var q = 0; q < 4; q++) w[k + q] = code[q] >>> 0;
+      var tabs = [];
+      for (var i = 0; i < n - 5; i++) {
+        if (w[i] >>> 16 === 0x3C01 && w[i + 1] === 0x00220821 && w[i + 2] >>> 16 === 0x8C22 && w[i + 4] === 0x00400008 &&
+            w.slice(Math.max(0, i - 8), i).some(function (x) { return x >>> 26 === 11 && (x & 0xFFFF) === 11; })) {
+          var t = (w[i] & 0xFFFF) * 65536 + (w[i + 2] & 0xFFFF) - ((w[i + 2] & 0x8000) * 2), ee = Math.floor((t - ovb) / 4);
+          if (ee >= 0 && ee <= n - 11 && w[ee + 8] <= ovb + 4 * c && ovb + 4 * c < w[ee + 9]) tabs.push(ee);
+        }
+      }
+      if (tabs.length !== 1) throw new Error(name + ' : table');
+      var e6 = w[tabs[0] + 6];
+      for (q = 0; q < 6; q++) w[tabs[0] + q] = e6;
+      for (k = 0; k < n; k++) w32(st, base + 4 * k, w[k]);
+      done.push(name);
+    });
+    if (done.sort().join() !== 'abst,change,demosel,title') throw new Error('overlays : ' + done.join());
+    return st;
+  }
+  function cbDirRecords(sec) {
+    var out = [], i = 0;
+    while (i < 2048 && sec[i]) {
+      var ln = sec[i], nl = sec[i + 32];
+      out.push([i, ln, ascii(sec, i + 33, i + 33 + nl).split(';')[0]]);
+      i += ln;
+    }
+    return out;
+  }
+  function cbSetExtent(sec, i, lba, size) { w32(sec, i + 2, lba); w32be(sec, i + 6, lba); w32(sec, i + 10, size); w32be(sec, i + 14, size); }
+  async function cbWriteImage(d1, d2, files, writer, progress) {
+    var f1 = await d1.files(), f2 = await d2.files(), pvd0 = await d1.sector(16), rootLba = u32(pvd0, 158);
+    async function mgsDir(d) {
+      var r = u32(await d.sector(16), 158), sec = await d.sector(r);
+      var rec = cbDirRecords(sec).filter(function (x) { return x[2] === 'MGS'; })[0];
+      return u32(sec, rec[0] + 2);
+    }
+    var mgsdir = await mgsDir(d1), mgsdir2 = await mgsDir(d2);
+    function order(f) { return Array.from(f.keys()).filter(function (p) { return p.indexOf('MGS/') === 0; }).sort(function (a, b) { return f.get(a)[0] - f.get(b)[0]; }); }
+    var order1 = order(f1), order2 = order(f2), first = Math.min.apply(null, order1.map(function (p) { return f1.get(p)[0]; }));
+    var place = new Map(), pos = first;
+    function size(fl, f, p) { return fl[p] ? fl[p].length : f.get(p)[1]; }
+    order1.forEach(function (p) { var n = size(files[0], f1, p); place.set('1:' + p, [pos, n]); pos += Math.max(1, Math.ceil(n / 2048)); });
+    var dir2 = pos++;
+    for (var p of order2) {
+      var n = size(files[1], f2, p);
+      if ((p === 'MGS/BRF.DAT' || p === 'MGS/FACE.DAT') && !files[1][p] && !files[0][p]) {
+        var x1 = await d1.readFile(p), x2 = await d2.readFile(p), same = x1.length === x2.length;
+        for (var q = 0; same && q < x1.length; q++) if (x1[q] !== x2[q]) same = false;
+        if (same) { place.set('2:' + p, place.get('1:' + p)); continue; }
+      }
+      place.set('2:' + p, [pos, n]); pos += Math.max(1, Math.ceil(n / 2048));
+    }
+    var TAIL = 150, total = pos + TAIL;
+    if (total - 1 > CB_LIMIT + 150) throw new Error('image trop grande : ' + total + ' secteurs');
+    // secteurs réécrits : répertoires MGS / MGS2, racine, tables des chemins, descripteur
+    var patches = new Map();
+    function fixDir(sec, k, self) {
+      sec = sec.slice();
+      cbDirRecords(sec).forEach(function (r) {
+        var key = k + ':MGS/' + r[2];
+        if (r[2] === '\x00') cbSetExtent(sec, r[0], self, 2048);
+        else if (r[2] === '\x01') cbSetExtent(sec, r[0], rootLba, 2048);
+        else if (place.has(key)) cbSetExtent(sec, r[0], place.get(key)[0], place.get(key)[1]);
+      });
+      return sec;
+    }
+    patches.set(mgsdir, fixDir(await d1.sector(mgsdir), 1, mgsdir));
+    var dir2data = fixDir(await d2.sector(mgsdir2), 2, dir2), dir2raw = await d2.src.readRaw(mgsdir2, 1, true);
+    var rsec = await d1.sector(rootLba), recs = [];
+    cbDirRecords(rsec).forEach(function (r) {
+      if (r[2] === 'DUMMY3M.DAT') return;
+      recs.push(rsec.slice(r[0], r[0] + r[1]));
+      if (r[2] === 'MGS') {
+        var m = concat([rsec.subarray(r[0], r[0] + 33), new Uint8Array([0x4D, 0x47, 0x53, 0x32, 0]), rsec.subarray(r[0] + 36, r[0] + r[1])]);
+        m[0] = m.length; m[32] = 4;
+        cbSetExtent(m, 0, dir2, 2048);
+        recs.push(m);
+      }
+    });
+    patches.set(rootLba, concat(recs));
+    var pvd = pvd0.slice(), psize = u32(pvd, 0x84);
+    for (var fld of [[0x8C, true], [0x90, true], [0x94, false], [0x98, false]]) {
+      var lba = fld[1] ? u32(pvd, fld[0]) : u32be(pvd, fld[0]);
+      if (!lba) continue;
+      var pt = (await d1.sector(lba)).slice(0, psize), j = 0, ins = -1;
+      while (j < pt.length) {
+        var nl = pt[j];
+        if (ascii(pt, j + 8, j + 8 + nl) === 'MGS') ins = j + 8 + nl + (nl & 1);
+        j += 8 + nl + (nl & 1);
+      }
+      var e = new Uint8Array(12);
+      e[0] = 4;
+      if (fld[1]) { w32(e, 2, dir2); e[6] = 1; e[7] = 0; } else { w32be(e, 2, dir2); e[6] = 0; e[7] = 1; }
+      e.set([0x4D, 0x47, 0x53, 0x32], 8);
+      patches.set(lba, concat([pt.subarray(0, ins), e, pt.subarray(ins)]));
+    }
+    w32(pvd, 0x84, psize + 12); w32be(pvd, 0x88, psize + 12);
+    w32(pvd, 80, total); w32be(pvd, 84, total);
+    patches.set(16, pvd);
+    // écriture
+    var written = 0, B = 4096;
+    async function emit(buf) { await writer.write(buf); written += buf.length / SECTOR; if (progress) progress(written / total); }
+    function form1Into(buf, o, data, lba) {
+      var d = new Uint8Array(2048); d.set(data.subarray(0, 2048));
+      buf.set(d, o + 24); setMsf(buf, o, lba); fixForm1(buf, o);
+    }
+    async function copyRaw(d, lba, count, newLba, withPatches) {
+      for (var s = 0; s < count; s += B) {
+        var k2 = Math.min(B, count - s), buf = await d.src.readRaw(lba + s, k2, true);
+        for (var qq = 0; qq < k2; qq++) {
+          var at = lba + s + qq;
+          if (newLba !== lba) setMsf(buf, qq * SECTOR, newLba + s + qq);
+          if (withPatches && patches.has(at)) form1Into(buf, qq * SECTOR, patches.get(at), at);
+        }
+        await emit(buf);
+      }
+    }
+    async function form1(data, firstLba, sub, subLast) {
+      var n2 = Math.max(1, Math.ceil(data.length / 2048));
+      for (var s = 0; s < n2; s += B) {
+        var k2 = Math.min(B, n2 - s), buf = new Uint8Array(k2 * SECTOR);
+        for (var qq = 0; qq < k2; qq++) {
+          var o = qq * SECTOR, a = (s + qq) * 2048, sb = s + qq === n2 - 1 ? subLast : sub;
+          for (var y = 0; y < 12; y++) buf[o + y] = SYNC[y];
+          buf[o + 15] = 2;
+          setMsf(buf, o, firstLba + s + qq);
+          buf.set(sb, o + 16); buf.set(sb, o + 20);
+          buf.set(data.subarray(a, Math.min(a + 2048, data.length)), o + 24);
+          fixForm1(buf, o);
+        }
+        await emit(buf);
+      }
+    }
+    await copyRaw(d1, 0, first, 0, true);
+    var cur = first;
+    for (var kd = 1; kd <= 2; kd++) {
+      var d = kd === 1 ? d1 : d2, fl = kd === 1 ? f1 : f2, fdat = files[kd - 1], ord = kd === 1 ? order1 : order2;
+      if (kd === 2) {
+        var b2 = dir2raw.slice();
+        form1Into(b2, 0, dir2data, dir2);
+        await emit(b2); cur++;
+      }
+      for (var pth of ord) {
+        var pl = place.get(kd + ':' + pth);
+        if (pl[0] !== cur) continue;
+        var sl = fl.get(pth), nsec = Math.max(1, Math.ceil(sl[1] / 2048));
+        if (!fdat[pth]) { await copyRaw(d, sl[0], nsec, pl[0], false); cur += nsec; }
+        else {
+          var r1 = await d.src.readRaw(sl[0], 1, false), r2 = await d.src.readRaw(sl[0] + nsec - 1, 1, false);
+          await form1(fdat[pth], pl[0], r1.slice(16, 20), r2.slice(16, 20));
+          cur += Math.max(1, Math.ceil(fdat[pth].length / 2048));
+        }
+      }
+    }
+    await copyRaw(d1, d1.nsectors - TAIL, TAIL, total - TAIL, false);
+    return total;
+  }
+  async function combine(d1, d2, writer, log, progress) {
+    var f1 = await d1.files(), f2 = await d2.files();
+    if (!f1.has('MGS/MGS1.EXE') || !f2.has('MGS/MGS2.EXE')) throw new Error('CD Combiner : il faut le disque 1 et le disque 2');
+    var exe1 = await d1.readFile('MGS/MGS1.EXE'), exe2 = await d2.readFile('MGS/MGS2.EXE');
+    var info = cbExeInfo(exe1), info2 = cbExeInfo(exe2);
+    if (info[0] !== info2[0] || info[1] !== info2[1]) throw new Error('CD Combiner : les deux disques ne sont pas de la même version');
+    var fs = info[0], reset = info[1], ovb = CB_OVB[fs];
+    log('CD Combiner : version ' + (fs === 0x800AE1D8 ? 'France' : 'Europe (anglais)') + ', son allégé (voix 11 kHz, cinématiques 22 kHz)');
+    var shr = {};
+    for (var n of [1, 2]) for (var nm of ['VOX.DAT', 'DEMO.DAT']) {
+      var d = n === 1 ? d1 : d2;
+      var data = await d.readFile('MGS/' + nm, function (f) { progress('1 CD : lecture disque ' + n + ' ' + nm, f); });
+      shr[n + nm] = await shrinkFile(data, nm, function (f) { progress('1 CD : son disque ' + n + ' ' + nm, f); });
+      data = null;
+    }
+    var vm2 = shr['2VOX.DAT'].map, files = [];
+    for (n of [1, 2]) {
+      d = n === 1 ? d1 : d2;
+      var vm = shr[n + 'VOX.DAT'].map, dm = shr[n + 'DEMO.DAT'].map;
+      var rr = cbRenumberRadio(await d.readFile('MGS/RADIO.DAT'), vm);
+      var rs = cbRenumberStage(await d.readFile('MGS/STAGE.DIR'), vm, dm, vm2);
+      var st = cbPatchOverlays(rs.data, fs, reset, ovb);
+      log('  disque ' + n + ' : RADIO.DAT ' + rr.n + ' codes, STAGE.DIR ' + rs.n.vox + ' voix, ' + rs.n.demo + ' cinématiques, ' + rs.n.sound + ' test sonore');
+      var fl = {};
+      fl['MGS/VOX.DAT'] = shr[n + 'VOX.DAT'].data; fl['MGS/DEMO.DAT'] = shr[n + 'DEMO.DAT'].data;
+      fl['MGS/RADIO.DAT'] = rr.data; fl['MGS/STAGE.DIR'] = st;
+      fl['MGS/MGS' + n + '.EXE'] = cbPatchExe(n === 1 ? exe1 : exe2);
+      files.push(fl);
+    }
+    shr = null;
+    var total = await cbWriteImage(d1, d2, files, writer, function (f) { progress('1 CD : écriture de l\'image', f); });
+    log('  image unique : ' + total + ' secteurs (' + Math.round(total * SECTOR / 1e6) + ' Mo, max ' + (CB_LIMIT + 150) + ')');
+    return total;
+  }
+
   // ------------------------------------------------------------------ identification des disques
   var IDS = { 'SLES_015.06': 'FR1', 'SLES_115.06': 'FR2', 'SLES_013.70': 'UK1', 'SLES_113.70': 'UK2' };
   async function identify(file) {
@@ -1021,10 +1538,25 @@
   // ------------------------------------------------------------------ fabrication complète (build.py)
   // discs : { FR1, UK1, FR2, UK2 } (objets Disc) ; opts : ['carre', 'm9', ...] ;
   // openWriter(nom) -> { write(Uint8Array), close() } ; log(texte) ; progress(étape, fraction)
+  // CD Combiner après la fabrication : relit les deux disques écrits et fait l'image « (1 CD) ».
+  async function finishCombine(tag, settings, openWriter, log, progress) {
+    if (!settings || !settings.combine) return null;
+    if (!settings.openReader) throw new Error('CD Combiner : lecture des disques fabriqués impossible');
+    var base = 'Metal Gear Solid (' + tag + ')';
+    var d1 = new Disc(new BinSource(await settings.openReader(base + ' (Disc 1).bin')));
+    var d2 = new Disc(new BinSource(await settings.openReader(base + ' (Disc 2).bin')));
+    var w = await openWriter(base + ' (1 CD).bin');
+    await combine(d1, d2, w, log, progress);
+    await w.close();
+    var cw = await openWriter(base + ' (1 CD).cue');
+    await cw.write(new TextEncoder().encode('FILE "' + base + ' (1 CD).bin" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n')); await cw.close();
+    return base + ' (1 CD).cue';
+  }
+
   // Jeu d'origine + options seulement : side 'FR' (build.py --vf) ou 'UK' (build.py --vo).
-  async function buildMods(discs, side, opts, openWriter, log, progress, life) {
+  async function buildMods(discs, side, opts, openWriter, log, progress, life, settings) {
     var PATCHES = G.MGS_PATCHES, outputs = [], tag = side === 'FR' ? 'VF' : 'EN';
-    if (!opts.length && !life) throw new Error('aucune option choisie');
+    if (!opts.length && !life && !(settings && settings.combine)) throw new Error('aucune option choisie');
     for (var d of ['1', '2']) {
       var fr = discs[side + d];
       if (!fr) continue;
@@ -1063,6 +1595,8 @@
     if (outputs.length === 2) {
       var mw = await openWriter('Metal Gear Solid (' + tag + ').m3u');
       await mw.write(new TextEncoder().encode(outputs.join('\n') + '\n')); await mw.close();
+      var one = await finishCombine(tag, settings, openWriter, log, progress);
+      if (one) outputs.push(one);
     }
     return outputs;
   }
@@ -1074,8 +1608,8 @@
     progress = progress || function () {};
     var mode = settings && (settings.mode || (settings.vostfr === false ? 'fr' : null)) || 'vostfr';
     var life = lifeBytes(settings && settings.life);
-    if (mode === 'fr') return buildMods(discs, 'FR', opts, openWriter, log, progress, life);
-    if (mode === 'en') return buildMods(discs, 'UK', opts, openWriter, log, progress, life);
+    if (mode === 'fr') return buildMods(discs, 'FR', opts, openWriter, log, progress, life, settings);
+    if (mode === 'en') return buildMods(discs, 'UK', opts, openWriter, log, progress, life, settings);
     var both = discs.FR2 && discs.UK2, tab = {}, keep = {};
     var order = both ? ['2', '1'] : ['1'];
     if (!discs.FR1 || !discs.UK1) order = ['2'];
@@ -1175,12 +1709,14 @@
     if (outputs.length === 2) {
       var mw = await openWriter('Metal Gear Solid (VOSTFR).m3u');
       await mw.write(new TextEncoder().encode(outputs.join('\n') + '\n')); await mw.close();
+      var one = await finishCombine('VOSTFR', settings, openWriter, log, progress);
+      if (one) outputs.push(one);
     }
     return outputs;
   }
 
   G.MGSVOSTFR = {
-    identify: identify, openSource: openSource, Disc: Disc, build: build, lifeClean: lifeClean,
+    identify: identify, openSource: openSource, Disc: Disc, build: build, lifeClean: lifeClean, combine: combine, BinSource: BinSource,
     _test: { lzmaDecode: lzmaDecode, crc32: crc32, fixForm1: fixForm1, banks: banks, bankTable: bankTable, align: align }
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -22,7 +22,7 @@ au début du fichier) changent donc : RADIO.DAT (commandes VOICE) et STAGE.DIR (
 
 import collections, re, struct
 
-import radio, vox
+import gcx, radio, vox
 
 JIMAKU_MAX = 4088  # tampon jimaku_buffer du jeu : 4090 octets
 
@@ -205,22 +205,25 @@ def gcl_ints(st, a, b, wanted):
 def renumber_stage(st_fr, st_uk, secmap, fr_to_uk):
     """Codes VOX des scripts GCL de STAGE.DIR FR.
 
-    Un entier GCL qui vaut un secteur de banque n'est pas forcément un code VOX (textures,
-    modèles...). On ne renumérote que ceux que le même stage anglais confirme : il doit
-    contenir le code de la banque anglaise appariée. fr_to_uk : {secteur FR: secteur UK}.
+    Les codes sont les jetons entiers (0x09 / 0x0A) des scripts GCX (gcx.codes), et non tous les
+    octets 0x09 / 0x0A du fichier : un balayage brut modifiait aussi des données d'overlays (s03b,
+    s19b). Par prudence, un code n'est renuméroté que si le même stage anglais contient le code de
+    la banque anglaise appariée. fr_to_uk : {secteur FR: secteur UK}.
     """
     out = bytearray(st_fr)
-    tf, tu = stage_table(st_fr), stage_table(st_uk)
+    tu = stage_table(st_uk)
     uk_secs = set(fr_to_uk.values())
+    uk_vals = {}
     done = skipped = 0
-    for name, (a, b) in tf.items():
-        if name not in tu:
+    for p, kind, name in gcx.codes(st_fr, set(secmap), set()):
+        if kind != "vox" or name not in tu:
             continue
-        uk_vals = collections.Counter(v for _, v in gcl_ints(st_uk, *tu[name], uk_secs))
-        for i, v in gcl_ints(st_fr, a, b, secmap):
-            if fr_to_uk.get(v) in uk_vals:
-                struct.pack_into(">I", out, i + 1, secmap[v])
-                done += 1
-            else:
-                skipped += 1
+        if name not in uk_vals:
+            uk_vals[name] = {v for _, v in gcl_ints(st_uk, *tu[name], uk_secs)}
+        v = struct.unpack_from(">I", st_fr, p + 1)[0]
+        if fr_to_uk.get(v) in uk_vals[name]:
+            struct.pack_into(">I", out, p + 1, secmap[v])
+            done += 1
+        else:
+            skipped += 1
     return bytes(out), done, skipped

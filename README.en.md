@@ -194,7 +194,7 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/l2r2.py` | Optional patch: first-person view, L2/R2 lean, L2+R2 tiptoe |
 | `tools/fps.py` | Optional patch: shoot the SOCOM / M9 in first-person view |
 | `tools/life.py` | Optional patch: your text instead of "LIFE" in the life bar (+ preview) |
-| `tools/combine.py` | Both discs in a single image (lighter sound, no disc change) |
+| `tools/combine.py` | Both discs in a single image (lighter sound, no disc change); also in the web page ("CD Combiner" box) |
 | `tools/spuadpcm.py` | SPU ADPCM: decoding, encoding, integer resampling |
 | `tools/gcx.py` | Exact parsing of the `STAGE.DIR` GCX scripts (voice and cutscene codes) |
 | `tools/mips.py` | Small MIPS (R3000) assembler for the patches |
