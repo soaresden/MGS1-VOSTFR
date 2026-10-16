@@ -9,6 +9,7 @@ est gardé dans la sauvegarde (variable de jeu 83, inutilisée par le jeu d'orig
 
 Effet d'une fléchette sur un soldat (cible qu'on peut saisir) :
 - hors alerte : il s'effondre et dort pour de bon (zzz), sans perdre de vie ;
+- le M9 se charge d'une fléchette à la fois (chargeur de 1) ;
 - en alerte ou en recherche (évasion) : le 1er tir le secoue, il s'endort 8 s plus tard,
   ou tout de suite au 2e tir.
 Sur les autres cibles (boss, caméras...) : mêmes dégâts que l'arme d'origine.
@@ -33,6 +34,7 @@ OVB = 0x800C47D8   # adresse de chargement des overlays de stage
 SYM = dict(
     MODES=0x800B6426,        # linkvar 83 : bit 0 = M9, bit 1 = PSG1-T
     GM_Weapon=0x800B639C,
+    GM_Magazine=0x800ACFD4, GM_MagazineMax=0x800AD014,
     GM_AlertMode=0x800ACFE8,
     GV_NewActor=0x800151C8, GV_SetNamedActor=0x80015234, GV_DestroyActor=0x800152B4,
     GV_StrCode=0x80016E4C, GM_InitObjectNoRots=0x800357E4, GM_SeSet2=0x8003370C,
@@ -211,6 +213,39 @@ cave_pickup_set:
     move v1, t2
     sw v1, 0x118(s1)
 cave_pickup_ret:
+    jr ra
+    nop
+
+# ---- M9 : une fléchette à la fois (chargeur de 1) -------------------------
+# NewSOCOM : v1 = chargeur max (12/13), a0 = chargeur (min(v1, munitions)) ; v0 à garder
+cave_mag:
+    lui t0, %hi(MODES)
+    lhu t0, %lo(MODES)(t0)
+    nop
+    andi t0, t0, 1
+    beqz t0, cave_mag_set
+    slti t1, a0, 2
+    li v1, 1
+    bnez t1, cave_mag_set
+    nop
+    li a0, 1
+cave_mag_set:
+    lui at, %hi(GM_MagazineMax)
+    sh v1, %lo(GM_MagazineMax)(at)
+    lui at, %hi(GM_Magazine)
+    jr ra
+    sh a0, %lo(GM_Magazine)(at)
+
+# SOCOM Act, après un tir : a0 = chargeur max (12 d'origine)
+cave_magmax:
+    lui t0, %hi(MODES)
+    lhu t0, %lo(MODES)(t0)
+    li a0, 12
+    andi t0, t0, 1
+    beqz t0, cave_magmax_ret
+    nop
+    li a0, 1
+cave_magmax_ret:
     jr ra
     nop
 
@@ -451,6 +486,8 @@ HOOKS = [
     (0x80077B44, "440112ae340114ae", "jal cave_bullet\nsw s2, 0x144(s0)"),  # NewBullet
     (0x8002E2E4, "daff0296f8ff0386", "jal cave_power\nnop"),          # GM_PowerTarget
     (0x80034A7C, "1801238e", "jal cave_pickup"),       # objet ramassé : message
+    (0x80066DA0, "0b80013c14d023a40b80013cd4cf24a4", "jal cave_mag\nnop\nnop\nnop"),  # NewSOCOM : chargeur
+    (0x8006697C, "0c000424", "jal cave_magmax"),       # SOCOM Act : chargeur après un tir
 ]
 
 

@@ -53,7 +53,7 @@ python carre.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOST
 `--m9` option: a **tranquilizer M9** (and a **PSG1-T**) to finish the game without killing.
 - You get it when you pick up the SOCOM ("SOCOM + M9" message); the PSG1-T comes with the PSG1.
 - In the weapon menu (R2), on the SOCOM, **Triangle** switches to the M9 ("M9" name, bluish icon) and back. Same on the PSG1. The four directions already move through this menu. R1 (equip / put away) keeps the choice, which is also stored in the save.
-- Ammo is shared with the original weapon: SOCOM ammo also fills the M9. Always silenced, one shot at a time. On screen, the weapon in hand is the silenced SOCOM.
+- Ammo is shared with the original weapon: SOCOM ammo also fills the M9. Always silenced, one shot at a time, **one dart loaded at a time** (magazine of 1). On screen, the weapon in hand is the silenced SOCOM.
 - Patrolling guard: asleep after **1 shot**, for good (he does not wake up), with **zzz** above him. No blood, no life lost, not counted as a kill.
 - During an alert or a search: the 1st shot **shakes** him; he falls asleep **8 s** later, or right away on the 2nd shot.
 - Bosses, cameras, etc.: same damage as the original weapon (Sniper Wolf with the PSG1-T, for example).
