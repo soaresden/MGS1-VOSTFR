@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Metal Gear Solid · VOSTFR</title>
-<meta name="description" content="Metal Gear Solid (PS1) avec les voix anglaises et les textes français. Choisis tes options, dépose tes disques, et la page fabrique tes images dans ton navigateur.">
+<meta name="description" content="Metal Gear Solid (PS1) : VOSTFR (voix anglaises, textes français) et mods façon MGS2. Dépose tes disques, choisis la version et les options, la page fabrique tes images dans ton navigateur.">
 <script>
   // Langue : choix mémorisé (sb.lang) sinon langue du navigateur ; les éléments data-en passent en anglais.
   (function () {
@@ -130,6 +130,15 @@
   th { font: 12.5px var(--mono); color: var(--dim); text-transform: uppercase; }
   footer { margin-top: 36px; font-size: 14px; color: var(--dim); text-align: center; }
   footer p { margin: 4px 0; }
+  /* version / options : groupes */
+  .group { margin: 4px 0 10px; font: 13px var(--mono); color: var(--dim); letter-spacing: .1em; text-transform: uppercase; }
+  .group + .opt { margin-top: 0; }
+  #opts .group:not(:first-child) { margin-top: 16px; }
+  .opt input[type=radio] { border-radius: 50%; }
+  .opt.na { opacity: .45; }
+  .opt .na-tag { display: none; }
+  .opt.na .na-tag { display: inline-block; margin-left: 6px; padding: 0 6px; border: 1px solid var(--line); border-radius: 3px; font: 11.5px var(--mono); color: var(--dim); vertical-align: 2px; font-weight: 400; }
+  .slot.no { opacity: .45; }
 </style>
 </head>
 <body>
@@ -142,14 +151,30 @@
 
   <header>
     <h1>Metal Gear Solid</h1>
-    <div class="badge-vo">VOSTFR · PS1</div>
-    <p data-en="The <b>original English voices</b> with the <b>French text and subtitles</b>, on both discs. Choose what you want, drop your discs, and this page builds your images.">Les <b>voix anglaises d'origine</b> avec les <b>textes et sous-titres français</b>, sur les deux disques. Choisis ce que tu veux, dépose tes disques, et cette page fabrique tes images.</p>
+    <div class="badge-vo">PS1 · VOSTFR · MODS</div>
+    <p data-en="Drop your discs, choose the version and the options, and this page builds your images: <b>English voices with French text</b>, or your game as it is, with <b>MGS2-style mods</b>.">Dépose tes disques, choisis la version et les options, et cette page fabrique tes images : <b>voix anglaises avec textes français</b>, ou ton jeu tel quel, avec des <b>mods façon MGS2</b>.</p>
     <div class="safe" data-en="🔒 Everything happens in your browser: your discs are not sent anywhere.">🔒 Tout se passe dans ton navigateur : tes disques ne sont envoyés nulle part.</div>
   </header>
 
   <section class="step">
-    <h2><span class="n">1</span><span data-en="Choose what you want">Choisis ce que tu veux</span></h2>
-    <p data-en="Tick or untick the boxes; click an option to see it in the game.">Coche ou décoche les cases ; clique sur une option pour la voir en jeu.</p>
+    <h2><span class="n">1</span><span data-en="Drop your games">Balance tes jeux</span></h2>
+    <p data-en="Your PAL discs, as <b>CHD</b> (like in Batocera) or <b>BIN</b>: the French version, the European (English) version, or both. All at once.">Tes disques PAL, en <b>CHD</b> (comme dans Batocera) ou en <b>BIN</b> : la version française, la version européenne (anglaise), ou les deux. Tout d'un coup.</p>
+    <label id="drop">
+      <input id="files" type="file" accept=".chd,.bin,.iso,.img" multiple>
+      <span data-en="📂 Drop your files here, or click to choose them">📂 Glisse tes fichiers ici, ou clique pour les choisir</span>
+    </label>
+    <div class="slots">
+      <div class="slot" id="slot-FR1"><b data-en="France · disc 1">France · disque 1</b><span>SLES-01506</span></div>
+      <div class="slot" id="slot-UK1"><b data-en="Europe (English) · disc 1">Europe (anglais) · disque 1</b><span>SLES-01370</span></div>
+      <div class="slot" id="slot-FR2"><b data-en="France · disc 2">France · disque 2</b><span>SLES-11506</span></div>
+      <div class="slot" id="slot-UK2"><b data-en="Europe (English) · disc 2">Europe (anglais) · disque 2</b><span>SLES-11370</span></div>
+    </div>
+    <p class="hint" id="have" data-en="Both versions are needed for the VOSTFR; one is enough for the mods.">Les deux versions sont nécessaires pour la VOSTFR ; une seule suffit pour les mods.</p>
+  </section>
+
+  <section class="step">
+    <h2><span class="n">2</span><span data-en="Choose the options">Choisis les options</span></h2>
+    <p data-en="Click a line to see it in the game.">Clique sur une ligne pour la voir en jeu.</p>
     <div class="choose">
       <div id="opts"></div>
       <aside class="pv" aria-live="polite">
@@ -160,22 +185,6 @@
         <ul id="pv-list"></ul>
       </aside>
     </div>
-  </section>
-
-  <section class="step">
-    <h2><span class="n">2</span><span data-en="Drop your discs">Dépose tes disques</span></h2>
-    <p data-en="The French and European (English) PAL versions, discs 1 and 2, as <b>CHD</b> (like in Batocera) or <b>BIN</b>. All four at once.">Les versions PAL française et européenne (anglaise), disques 1 et 2, en <b>CHD</b> (comme dans Batocera) ou en <b>BIN</b>. Les quatre d'un coup.</p>
-    <label id="drop">
-      <input id="files" type="file" accept=".chd,.bin,.iso,.img" multiple>
-      <span data-en="📂 Drop the 4 files here, or click to choose them">📂 Glisse les 4 fichiers ici, ou clique pour les choisir</span>
-    </label>
-    <div class="slots">
-      <div class="slot" id="slot-FR1"><b data-en="France · disc 1">France · disque 1</b><span>SLES-01506</span></div>
-      <div class="slot" id="slot-UK1"><b data-en="Europe (English) · disc 1">Europe (anglais) · disque 1</b><span>SLES-01370</span></div>
-      <div class="slot" id="slot-FR2"><b data-en="France · disc 2">France · disque 2</b><span>SLES-11506</span></div>
-      <div class="slot" id="slot-UK2"><b data-en="Europe (English) · disc 2">Europe (anglais) · disque 2</b><span>SLES-11370</span></div>
-    </div>
-    <p class="hint" data-en="Only one disc? The French + English pair of the same disc is enough.">Un seul disque ? La paire française + anglaise d'un même disque suffit.</p>
   </section>
 
   <section class="step">
@@ -194,7 +203,7 @@
     <details class="faq">
       <summary data-en="How do I play afterwards?">Comment jouer ensuite ?</summary>
       <div>
-        <p data-en="You get <code>Metal Gear Solid (VOSTFR) (Disc 1).bin/.cue</code>, <code>(Disc 2)</code> and a <code>.m3u</code>. Open the <code>.m3u</code> in your emulator (Batocera, DuckStation…): it can then swap discs.">Tu obtiens <code>Metal Gear Solid (VOSTFR) (Disc 1).bin/.cue</code>, <code>(Disc 2)</code> et un <code>.m3u</code>. Ouvre le <code>.m3u</code> dans ton émulateur (Batocera, DuckStation…) : il pourra changer de disque.</p>
+        <p data-en="You get <code>Metal Gear Solid (…) (Disc 1).bin/.cue</code>, <code>(Disc 2)</code> and a <code>.m3u</code>. Open the <code>.m3u</code> in your emulator (Batocera, DuckStation…): it can then swap discs.">Tu obtiens <code>Metal Gear Solid (…) (Disc 1).bin/.cue</code>, <code>(Disc 2)</code> et un <code>.m3u</code>. Ouvre le <code>.m3u</code> dans ton émulateur (Batocera, DuckStation…) : il pourra changer de disque.</p>
         <p data-en="With a new version of the images, resume your game from a <b>memory card save</b>, not from an emulator save state (a save state keeps the old version).">Avec une nouvelle version des images, reprends ta partie depuis une <b>sauvegarde de la carte mémoire</b>, pas depuis une sauvegarde d'état de l'émulateur (elle garde l'ancienne version).</p>
       </div>
     </details>
@@ -219,17 +228,19 @@
     <details class="faq">
       <summary data-en="How does it work?">Comment ça marche ?</summary>
       <div>
-        <p data-en="<b>Cutscenes</b>: both PAL versions have exactly the same audio blocks, so the English sound is copied into the French cutscenes, under the French subtitles.">
-          <b>Cinématiques</b> : les deux versions PAL ont exactement les mêmes blocs audio, le son anglais est donc recopié dans les cinématiques françaises, sous les sous-titres français.</p>
-        <p data-en="<b>Codec and in-game voices</b>: the ~1,100 voice banks of each disc are paired with their French counterparts; the English voice plays and the French text follows it line by line. The disc image is rebuilt (the English voices take more room).">
-          <b>Codec et voix en jeu</b> : les quelque 1 100 banques de voix de chaque disque sont appariées à leur équivalent français ; la voix anglaise passe et le texte français la suit réplique par réplique. L'image du disque est reconstruite (les voix anglaises prennent plus de place).</p>
+        <p data-en="<b>VOSTFR cutscenes</b>: both PAL versions have exactly the same audio blocks, so the English sound is copied into the French cutscenes, under the French subtitles.">
+          <b>Cinématiques VOSTFR</b> : les deux versions PAL ont exactement les mêmes blocs audio, le son anglais est donc recopié dans les cinématiques françaises, sous les sous-titres français.</p>
+        <p data-en="<b>VOSTFR Codec and in-game voices</b>: the ~1,100 voice banks of each disc are paired with their French counterparts; the English voice plays and the French text follows it line by line. The disc image is rebuilt (the English voices take more room).">
+          <b>Codec et voix en jeu VOSTFR</b> : les quelque 1 100 banques de voix de chaque disque sont appariées à leur équivalent français ; la voix anglaise passe et le texte français la suit réplique par réplique. L'image du disque est reconstruite (les voix anglaises prennent plus de place).</p>
+        <p data-en="<b>Mods</b>: small pieces of MIPS code added to the game's executable, the original bytes being checked first.">
+          <b>Mods</b> : de petits morceaux de code MIPS ajoutés à l'exécutable du jeu, après vérification des octets d'origine.</p>
         <p data-en="This page runs the same build as the project's Python scripts, rewritten in JavaScript: the images are identical, byte for byte. Details on <a href=&quot;https://github.com/soaresden/MGS1-VOSTFR&quot;>GitHub</a>.">Cette page fait la même fabrication que les scripts Python du projet, réécrite en JavaScript : les images sont identiques, octet pour octet. Les détails sont sur <a href="https://github.com/soaresden/MGS1-VOSTFR">GitHub</a>.</p>
       </div>
     </details>
     <details class="faq">
       <summary data-en="From the command line (Python)">En ligne de commande (Python)</summary>
       <div>
-        <p data-en="Same result with Python 3.10+ and numpy; each option is a flag.">Même résultat avec Python 3.10+ et numpy ; chaque option est un argument.</p>
+        <p data-en="Same result with Python 3.10+ and numpy; each option is a flag. <code>--vf</code>: French game + mods; <code>--vo</code>: English game + mods.">Même résultat avec Python 3.10+ et numpy ; chaque option est un argument. <code>--vf</code> : jeu français + mods ; <code>--vo</code> : jeu anglais + mods.</p>
         <pre>git clone https://github.com/soaresden/MGS1-VOSTFR
 cd MGS1-VOSTFR/tools
 pip install numpy
@@ -242,7 +253,7 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
     <details class="faq">
       <summary data-en="What is left to do?">Ce qui reste à faire</summary>
       <div>
-        <p data-en="Confirm the disc swap mid-game on DuckStation or a console; replace the French dub credits shown in the intro with the English cast; a &quot;2 discs in 1&quot; version.">Confirmer le changement de disque en cours de partie sur DuckStation ou console ; remplacer les crédits du doublage français affichés dans l'intro par la distribution anglaise ; une version « 2 disques en 1 ».</p>
+        <p data-en="CD Combiner (both discs in one); the mods on the English version; confirm the disc swap mid-game on DuckStation or a console; replace the French dub credits shown in the VOSTFR intro with the English cast.">CD Combiner (les deux disques en un) ; les mods sur la version anglaise ; confirmer le changement de disque en cours de partie sur DuckStation ou console ; remplacer les crédits du doublage français affichés dans l'intro VOSTFR par la distribution anglaise.</p>
       </div>
     </details>
   </section>
@@ -258,18 +269,40 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
 <script>
 (function () {
   var $ = function (id) { return document.getElementById(id); };
+  var M = window.MGSVOSTFR, P = window.MGS_PATCHES || { discs: {} }, discs = {}, busy = false;
 
-  // ── Étape 1 : ce qu'on peut choisir ──
-  var OPTIONS = [
-    { id: 'vostfr', always: true,
-      fr: 'Voix anglaises, textes français', en: 'English voices, French text',
-      frS: 'Cinématiques, appels Codec et voix en jeu, sur les deux disques.', enS: 'Cutscenes, Codec calls and in-game voices, on both discs.',
+  // ── Versions (une seule) et mods (cases) ──
+  var VERSIONS = [
+    { id: 'vostfr', need: ['FR', 'UK'],
+      fr: 'VOSTFR : voix anglaises, textes français', en: 'VOSTFR: English voices, French text',
+      frS: 'Il faut les disques français et anglais.', enS: 'Needs the French and English discs.',
       shots: [['docs/shots/demo-foxhound.png', 'Intro · voix anglaise, sous-titre français', 'Intro · English voice, French subtitle'],
               ['docs/shots/codec-kurdes.png', 'Codec · Campbell', 'Codec · Campbell'],
               ['docs/shots/codec-naomi.png', 'Codec · Naomi', 'Codec · Naomi'],
               ['docs/shots/jeu-neige.png', 'Snowfield', 'Snowfield']],
-      fl: ['Les voix de David Hayter, Jennifer Hale et de toute la distribution d\'origine.', 'Le texte du Codec suit la voix anglaise, réplique par réplique.', 'Menus, objets et textes : ceux de la version française.'],
-      el: ['The voices of David Hayter, Jennifer Hale and the whole original cast.', 'The Codec text follows the English voice, line by line.', 'Menus, items and text: those of the French version.'] },
+      fl: ['Les voix de David Hayter, Jennifer Hale et de toute la distribution d\'origine.', 'Cinématiques, appels Codec et voix en jeu, sur les deux disques.', 'Le texte du Codec suit la voix anglaise, réplique par réplique.', 'Menus, objets et textes : ceux de la version française.'],
+      el: ['The voices of David Hayter, Jennifer Hale and the whole original cast.', 'Cutscenes, Codec calls and in-game voices, on both discs.', 'The Codec text follows the English voice, line by line.', 'Menus, items and text: those of the French version.'] },
+    { id: 'fr', need: ['FR'],
+      fr: 'Version française d\'origine', en: 'Original French version',
+      frS: 'Voix et textes français, avec tes mods. Disques français seulement.', enS: 'French voices and text, with your mods. French discs only.',
+      shots: [['docs/shots/menu.png', 'Menus en français', 'French menus']],
+      fl: ['Le jeu français tel quel (doublage français), avec les mods cochés.'],
+      el: ['The French game as it is (French dub), with the ticked mods.'] },
+    { id: 'en', need: ['UK'],
+      fr: 'Version anglaise d\'origine', en: 'Original English version',
+      frS: 'Voix et textes anglais, avec tes mods. Disques européens seulement.', enS: 'English voices and text, with your mods. European discs only.',
+      shots: [], noimg: ['Le jeu européen en anglais, tel quel, avec tes mods.', 'The European game in English, as it is, with your mods.'],
+      fl: ['Le jeu européen (anglais) tel quel, avec les mods cochés.', 'Les mods arrivent bientôt sur cette version.'],
+      el: ['The European (English) game as it is, with the ticked mods.', 'The mods are coming soon to this version.'] }
+  ];
+  var MODS = [
+    { id: 'combine', soon: true,
+      fr: 'CD Combiner', en: 'CD Combiner',
+      frS: 'Les deux disques en un seul : plus de changement de disque.', enS: 'Both discs in one: no more disc swap.',
+      shots: [['docs/previews/combine_on.png', 'Un seul disque', 'A single disc']],
+      noimg: ['En préparation : une seule image, jouable du début à la fin sans changer de disque.', 'In the works: a single image, playable from start to finish without swapping discs.'],
+      fl: ['Une seule image pour tout le jeu, pour les émulateurs.', 'Plus d\'écran « insérez le disque 2 ».'],
+      el: ['A single image for the whole game, for emulators.', 'No more "insert disc 2" screen.'] },
     { id: 'carre',
       fr: 'Carré fait défiler le Codec', en: 'Square skips through the Codec',
       frS: 'Pratique quand on refait le jeu ou qu\'on appelle Mei Ling pour sauvegarder.', enS: 'Handy when replaying the game or calling Mei Ling to save.',
@@ -307,52 +340,104 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
       fl: ['Snake garde sa posture en sortant le PSG1 ; couché, rien ne change.', 'Dans la lunette, <b>X</b> passe de debout à accroupi.', 'Debout ou accroupi, la lunette ne tremble pas.'],
       el: ['Snake keeps his stance when drawing the PSG1; prone, nothing changes.', 'In the scope, <b>X</b> switches between standing and crouching.', 'Standing or crouching, the scope does not sway.'] }
   ];
-  var KEY = 'mgs.vostfr.opts', state = {};
-  try { state = JSON.parse(localStorage.getItem(KEY)) || {}; } catch (_) { state = {}; }
-  var cur = null, shot = 0;
+  var KEY = 'mgs.vostfr.choice', st = { version: 'vostfr', mods: {} };
+  try { var sv = JSON.parse(localStorage.getItem(KEY)); if (sv && sv.mods) st = sv; } catch (_) {}
+  MODS.forEach(function (m) { if (typeof st.mods[m.id] !== 'boolean') st.mods[m.id] = !m.soon; });
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(st)); } catch (_) {} }
 
-  // captures absentes (pas encore prises) : retirées de la galerie
-  OPTIONS.forEach(function (o) {
+  // captures absentes : retirées de la galerie
+  VERSIONS.concat(MODS).forEach(function (o) {
     o.shots.slice().forEach(function (s) {
       var probe = new Image();
-      probe.onerror = function () {
-        o.shots = o.shots.filter(function (x) { return x !== s; });
-        if (cur === o.id) show(o.id);
-      };
+      probe.onerror = function () { o.shots = o.shots.filter(function (x) { return x !== s; }); if (cur === o.id) show(o.id); };
       probe.src = s[0];
     });
   });
 
-  OPTIONS.forEach(function (o) {
-    if (o.always) state[o.id] = true;
-    else if (typeof state[o.id] !== 'boolean') state[o.id] = true;
+  // ce que les disques déposés permettent
+  function has(side) { return !!(discs[side + '1'] || discs[side + '2']); }
+  function pair() { return !!((discs.FR1 && discs.UK1) || (discs.FR2 && discs.UK2)); }
+  function any() { return has('FR') || has('UK'); }
+  function versionOk(v) {
+    if (!any()) return true;  // rien de déposé : tout reste visible
+    return v.id === 'vostfr' ? pair() : has(v.need[0]);
+  }
+  function sideOf(version) { return version === 'en' ? 'UK' : 'FR'; }
+  function modOk(m) {  // le mod existe-t-il pour la version choisie ?
+    if (m.soon) return false;
+    var side = sideOf(st.version), ok = false;
+    ['1', '2'].forEach(function (d) { var p = P.discs[side + d]; if (p && p.options[m.id]) ok = true; });
+    return ok;
+  }
+  function item(o, kind) {
     var d = document.createElement('div');
     d.className = 'opt'; d.dataset.id = o.id;
-    d.innerHTML = '<input type="checkbox" aria-label="' + SBT(o.fr, o.en) + '"' + (state[o.id] ? ' checked' : '') + (o.always ? ' disabled' : '') + '>' +
-      '<div><b>' + SBT(o.fr, o.en) + (o.always ? '<span class="always">' + SBT('toujours', 'always') + '</span>' : '') + '</b>' +
-      '<small>' + SBT(o.frS, o.enS) + '</small></div>';
+    var input = kind === 'v' ? '<input type="radio" name="ver" aria-label="' + SBT(o.fr, o.en) + '">' : '<input type="checkbox" aria-label="' + SBT(o.fr, o.en) + '">';
+    d.innerHTML = input + '<div><b>' + SBT(o.fr, o.en) + '<span class="na-tag"></span></b><small>' + SBT(o.frS, o.enS) + '</small></div>';
     d.addEventListener('mouseenter', function () { show(o.id); });
     d.addEventListener('focusin', function () { show(o.id); });
     d.addEventListener('click', function () { show(o.id); });
     var box = d.querySelector('input');
     box.addEventListener('change', function () {
-      state[o.id] = box.checked;
-      try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (_) {}
-      show(o.id); summary();
+      if (kind === 'v') st.version = o.id; else st.mods[o.id] = box.checked;
+      save(); refresh(); show(o.id);
     });
-    $('opts').appendChild(d);
-  });
-  function opt(id) { return OPTIONS.filter(function (x) { return x.id === id; })[0]; }
+    return d;
+  }
+  var box = $('opts');
+  function head(fr, en) { var h = document.createElement('div'); h.className = 'group'; h.textContent = SBT(fr, en); box.appendChild(h); }
+  head('Version', 'Version');
+  VERSIONS.forEach(function (v) { box.appendChild(item(v, 'v')); });
+  head('Mods', 'Mods');
+  MODS.forEach(function (m) { box.appendChild(item(m, 'm')); });
+
+  function refresh() {
+    if (!versionOk(VERSIONS.filter(function (v) { return v.id === st.version; })[0])) {
+      var first = VERSIONS.filter(versionOk)[0];
+      if (first) st.version = first.id;
+    }
+    VERSIONS.forEach(function (v) {
+      var d = box.querySelector('[data-id="' + v.id + '"]'), ok = versionOk(v), inp = d.querySelector('input');
+      inp.checked = st.version === v.id; inp.disabled = !ok;
+      d.classList.toggle('na', !ok); d.querySelector('.na-tag').textContent = SBT('disques manquants', 'missing discs');
+    });
+    MODS.forEach(function (m) {
+      var d = box.querySelector('[data-id="' + m.id + '"]'), ok = modOk(m), inp = d.querySelector('input');
+      inp.checked = ok && st.mods[m.id]; inp.disabled = !ok;
+      d.classList.toggle('na', !ok);
+      d.querySelector('.na-tag').textContent = m.soon ? SBT('bientôt', 'soon') : SBT('bientôt en anglais', 'soon in English');
+    });
+    ['FR1', 'UK1', 'FR2', 'UK2'].forEach(function (id) {
+      var need = st.version === 'vostfr' || sideOf(st.version) === id.slice(0, 2);
+      $('slot-' + id).classList.toggle('no', !need && !discs[id]);
+    });
+    summary();
+  }
+  function chosenMods() { return MODS.filter(function (m) { return modOk(m) && st.mods[m.id]; }); }
+  function summary() {
+    var v = VERSIONS.filter(function (x) { return x.id === st.version; })[0], mods = chosenMods();
+    var txt = SBT('Tu vas obtenir : ', 'You will get: ') + SBT(v.fr, v.en) + (mods.length ? ' + ' + mods.map(function (m) { return SBT(m.fr, m.en); }).join(' + ') : '') + '.';
+    var ready = st.version === 'vostfr' ? pair() : has(sideOf(st.version));
+    if (!any()) txt = SBT('Commence par balancer tes jeux (étape 1).', 'Start by dropping your games (step 1).');
+    else if (!ready) txt = SBT('Il manque des disques pour cette version.', 'Some discs are missing for this version.');
+    else if (st.version !== 'vostfr' && !mods.length) { txt = SBT('Coche au moins un mod (le jeu d\'origine tel quel, tu l\'as déjà !).', 'Tick at least one mod (you already have the original game as it is!).'); ready = false; }
+    $('summary').textContent = txt;
+    $('go').disabled = busy || !ready;
+  }
+
+  var cur = null, shot = 0;
+  function find(id) { return VERSIONS.concat(MODS).filter(function (x) { return x.id === id; })[0]; }
   function show(id, k) {
-    var o = opt(id);
+    var o = find(id), isV = VERSIONS.indexOf(o) >= 0;
     if (id !== cur) shot = 0;
     if (k !== undefined) shot = k;
     if (shot >= o.shots.length) shot = 0;
     cur = id;
-    document.querySelectorAll('#opts .opt').forEach(function (d) { d.classList.toggle('cur', d.dataset.id === id); });
+    box.querySelectorAll('.opt').forEach(function (d) { d.classList.toggle('cur', d.dataset.id === id); });
+    var on = isV ? st.version === id : modOk(o) && st.mods[id];
     var scr = $('pv-screen'), img = $('pv-img'), s = o.shots[shot];
     scr.classList.toggle('empty', !s);
-    scr.classList.toggle('dim', !state[id]);
+    scr.classList.toggle('dim', !on);
     $('pv-noimg').textContent = o.noimg ? SBT(o.noimg[0], o.noimg[1]) : '';
     if (s) { img.src = s[0]; img.alt = SBT(s[1], s[2]); }
     $('pv-cap').textContent = s ? SBT(s[1], s[2]) : '';
@@ -367,26 +452,18 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
       th.appendChild(b);
     });
     $('pv-title').textContent = SBT(o.fr, o.en);
-    var st = $('pv-state');
-    st.textContent = o.always ? SBT('toujours inclus', 'always included') : state[id] ? SBT('choisie', 'chosen') : SBT('non choisie', 'not chosen');
-    st.className = 'state ' + (state[id] ? 'on' : 'off');
+    var stt = $('pv-state');
+    stt.textContent = o.soon ? SBT('bientôt', 'soon') : on ? SBT('choisi', 'chosen') : SBT('non choisi', 'not chosen');
+    stt.className = 'state ' + (on ? 'on' : 'off');
     $('pv-list').innerHTML = (SB_LANG === 'en' ? o.el : o.fl).map(function (t) { return '<li>' + t + '</li>'; }).join('');
   }
-  function chosen() { return OPTIONS.filter(function (o) { return !o.always && state[o.id]; }); }
-  function summary() {
-    var c = chosen().map(function (o) { return SBT(o.fr, o.en); });
-    $('summary').textContent = SBT('Tu vas obtenir : voix anglaises et textes français', 'You will get: English voices and French text') +
-      (c.length ? ' + ' + c.join(' + ') : SBT(', sans option', ', no option')) + '.';
-  }
-  show('vostfr'); summary();
+  refresh(); show(st.version);
 
-  // ── Étape 2 : les disques ──
-  var M = window.MGSVOSTFR, discs = {}, busy = false;
+  // ── Étape 1 : les disques ──
   function wrap(file) {
     return { name: file.name, size: file.size,
       read: function (off, len) { return file.slice(off, off + len).arrayBuffer().then(function (b) { return new Uint8Array(b); }); } };
   }
-  function ready() { $('go').disabled = busy || !((discs.FR1 && discs.UK1) || (discs.FR2 && discs.UK2)); }
   function status(text, err) { var s = $('status'); s.textContent = text; s.className = err ? 'err' : ''; }
   async function addFiles(list) {
     for (var i = 0; i < list.length; i++) {
@@ -403,7 +480,9 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
         status('');
       } catch (e) { status(f.name + ' : ' + e.message, true); }
     }
-    ready();
+    var v = pair() ? 'vostfr' : has('FR') ? 'fr' : has('UK') ? 'en' : st.version;
+    if (!versionOk(VERSIONS.filter(function (x) { return x.id === st.version; })[0]) || st.version !== v && v === 'vostfr') st.version = v;
+    refresh(); show(st.version);
   }
   var drop = $('drop');
   $('files').addEventListener('change', function (e) { addFiles(e.target.files); });
@@ -416,12 +495,12 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
   if (!canPick) $('out-note').textContent = SBT('Les images te seront proposées en téléchargement à la fin. Compte quelques minutes et beaucoup de mémoire libre ; Chrome ou Edge font mieux (ils écrivent directement dans un dossier).',
     'The images will be offered as downloads at the end. Count a few minutes and plenty of free memory; Chrome or Edge do better (they write straight into a folder).');
   $('go').addEventListener('click', async function () {
-    var opts = chosen().map(function (o) { return o.id; }), dir = null, blobs = [];
+    var opts = chosenMods().map(function (m) { return m.id; }), dir = null, blobs = [];
     if (canPick) {
       try { dir = await window.showDirectoryPicker({ mode: 'readwrite', id: 'mgs-vostfr' }); }
       catch (e) { if (e.name === 'AbortError') return; dir = null; }
     }
-    busy = true; ready();
+    busy = true; summary();
     var logEl = $('log'), bar = $('bar'), t0 = Date.now();
     $('logbox').hidden = false; logEl.textContent = ''; bar.style.display = 'block'; $('dl').innerHTML = '';
     function log(t) { logEl.textContent += t + '\n'; logEl.scrollTop = logEl.scrollHeight; }
@@ -439,7 +518,7 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
                close: function () { blobs.push([name, new Blob(parts)]); parts = null; return Promise.resolve(); } };
     }
     try {
-      await M.build(discs, opts, openWriter, log, progress);
+      await M.build(discs, opts, openWriter, log, progress, { mode: st.version });
       bar.firstElementChild.style.width = '100%';
       status('✔ ' + SBT('Terminé en ', 'Done in ') + Math.round((Date.now() - t0) / 1000) + ' s. ' +
         (dir ? SBT('Tes images sont dans le dossier choisi : ouvre le .m3u dans ton émulateur.', 'Your images are in the folder you chose: open the .m3u in your emulator.')
@@ -453,7 +532,7 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
       console.error(e);
       status(SBT('Erreur : ', 'Error: ') + (e && e.message || e), true);
     }
-    busy = false; ready();
+    busy = false; summary();
   });
 })();
 </script>

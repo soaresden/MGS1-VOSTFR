@@ -2,25 +2,28 @@
 """
 webpatches.py - Exporte les options (carre, m9, psg1, l2r2, fps) pour la page web.
 
-La page fabrique les images VOSTFR dans le navigateur (docs/mgs-vostfr.js) ; les options
-sont des différences d'octets sur l'EXE et STAGE.DIR français, calculées ici avec les
-mêmes scripts que build.py. Seuls les octets écrits par nos patchs sont exportés (notre
-code MIPS et les instructions modifiées), avec le CRC32 du fichier d'origine pour vérifier.
+La page fabrique les images dans le navigateur (docs/mgs-vostfr.js) ; les options sont
+des différences d'octets sur l'EXE et STAGE.DIR d'origine, calculées ici avec les mêmes
+scripts que build.py. Seuls les octets écrits par nos patchs sont exportés (notre code
+MIPS et les instructions modifiées), avec le CRC32 des fichiers d'origine pour vérifier.
 
-Les options doivent être additives (la différence de chaque combinaison = l'union des
-différences de chaque option) : c'est vérifié pour toutes les combinaisons.
+Une entrée par disque : FR1, FR2 (France), UK1, UK2 (Europe, anglais). Une option qu'un
+script ne sait pas encore appliquer à une version est simplement absente de cette version
+(la page la grise). Les options doivent être additives (la différence de chaque
+combinaison = l'union des différences de chaque option) : c'est vérifié.
 
-  python webpatches.py work/FR1.bin work/FR2.bin     -> docs/patches.js
+  python webpatches.py work/FR1.bin work/FR2.bin work/UK1.bin work/UK2.bin   -> docs/patches.js
 
 À relancer après chaque modification d'une option.
 """
 
-import itertools, json, sys, zlib
+import itertools, json, re, sys, zlib
 from pathlib import Path
 
 import carre, fps, l2r2, m9, psg1, psxiso
 
 ORDER = ["carre", "m9", "psg1", "l2r2", "fps"]  # ordre de build.py
+IDS = {"SLES_015.06": "FR1", "SLES_115.06": "FR2", "SLES_013.70": "UK1", "SLES_113.70": "UK2"}
 OUT = Path(__file__).resolve().parent.parent / "docs" / "patches.js"
 
 
@@ -35,7 +38,9 @@ def run(exe, stage, opts):
         exe = l2r2.patch(exe)
     if "fps" in opts:
         exe = fps.patch(exe)
-    return exe, stage
+    if not isinstance(exe, (bytes, bytearray)) or not isinstance(stage, (bytes, bytearray)):
+        raise ValueError("version non gérée par le patch")
+    return bytes(exe), bytes(stage)
 
 
 def runs(a, b):
@@ -67,24 +72,33 @@ def main():
     for path in sys.argv[1:]:
         disc = psxiso.Disc(path)
         files = disc.files()
+        cnf = disc.read(*files["SYSTEM.CNF"]).decode("ascii", "replace")
+        ident = IDS.get(re.search(r"cdrom:\\?([A-Z0-9_.]+)", cnf, re.I).group(1).upper())
+        if not ident:
+            raise SystemExit(f"{path} : disque inconnu")
         exe_name = next(f for f in files if f in ("MGS/MGS1.EXE", "MGS/MGS2.EXE"))
-        n = exe_name[7]
         exe0, st0 = disc.read(*files[exe_name]), disc.read(*files["MGS/STAGE.DIR"])
-        opts = {}
+        opts, missing = {}, {}
         for o in ORDER:
-            exe, st = run(exe0, st0, [o])
+            try:
+                exe, st = run(exe0, st0, [o])
+            except (Exception, SystemExit) as e:  # option pas encore portée sur cette version
+                missing[o] = str(e)[:120]
+                continue
             opts[o] = {"exe": runs(exe0, exe), "stage": runs(st0, st)}
-        for r in range(2, len(ORDER) + 1):
-            for combo in itertools.combinations(ORDER, r):
+        have = [o for o in ORDER if o in opts]
+        for r in range(2, len(have) + 1):
+            for combo in itertools.combinations(have, r):
                 exe, st = run(exe0, st0, combo)
                 e2, s2 = exe0, st0
                 for o in combo:
                     e2, s2 = apply(e2, opts[o]["exe"]), apply(s2, opts[o]["stage"])
                 if (e2, s2) != (exe, st):
-                    raise SystemExit(f"disque {n} : options non additives {combo}")
-        discs[n] = {"exe": exe_name, "exeCrc": zlib.crc32(exe0), "stageCrc": zlib.crc32(st0), "options": opts}
+                    raise SystemExit(f"{ident} : options non additives {combo}")
+        discs[ident] = {"exe": exe_name, "exeCrc": zlib.crc32(exe0), "stageCrc": zlib.crc32(st0), "options": opts}
         size = sum(len(hx) // 2 for o in opts.values() for k in o.values() for _, hx in k)
-        print(f"disque {n} : {size} octets de patch")
+        print(f"{ident} : {', '.join(have) or 'aucune option'} ({size} octets)"
+              + (f" ; pas encore : {', '.join(missing)}" if missing else ""))
     js = ("// Généré par tools/webpatches.py - ne pas modifier à la main.\n"
           "globalThis.MGS_PATCHES = " + json.dumps({"order": ORDER, "discs": discs}, separators=(",", ":")) + ";\n")
     OUT.write_text(js, encoding="utf-8")

@@ -3,7 +3,7 @@
  * webtest.js - Lance le fabricant de la page web (docs/mgs-vostfr.js) dans Node.
  *
  *   node webtest.js check disque.chd disque.bin [secteurs]   lecture CHD == BIN ?
- *   node webtest.js build --fr1 a.chd --uk1 b.chd --fr2 c.chd --uk2 d.chd --out dossier [--carre --m9 --psg1 --l2r2 --fps]
+ *   node webtest.js build --fr1 a.chd --uk1 b.chd --fr2 c.chd --uk2 d.chd --out dossier [--carre --m9 --psg1 --l2r2 --fps] [--vf | --vo]
  *
  * Sert à vérifier que la page produit exactement les mêmes images que build.py.
  */
@@ -53,6 +53,7 @@ async function build(args) {
     discs[id.id] = id.disc;
   }
   const opts = ['carre', 'm9', 'psg1', 'l2r2', 'fps'].filter(o => args.includes('--' + o));
+  const mode = args.includes('--vf') ? 'fr' : args.includes('--vo') ? 'en' : 'vostfr';
   const t = Date.now();
   let last = '';
   await M.build(discs, opts, async name => {
@@ -60,7 +61,7 @@ async function build(args) {
     return { write: b => fh.write(b), close: () => fh.close() };
   }, s => console.log(`[${((Date.now() - t) / 1000).toFixed(0)} s] ${s}`), (step) => {
     if (step !== last) { last = step; console.log(`[${((Date.now() - t) / 1000).toFixed(0)} s]   ${step}`); }
-  });
+  }, { mode });
   console.log(`Terminé en ${((Date.now() - t) / 1000).toFixed(0)} s, mémoire max ~${(process.memoryUsage().rss / 1048576).toFixed(0)} Mo`);
 }
 

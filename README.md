@@ -42,15 +42,17 @@ En CHD (comme dans Batocera) ou en BIN/CUE. Pas besoin de chdman : le CHD est lu
 
 ### Le plus simple : la page web
 
-**[soaresden.github.io/MGS1-VOSTFR](https://soaresden.github.io/MGS1-VOSTFR/#fabriquer)** : dépose tes quatre disques (CHD ou BIN), coche les options, et la page fabrique les images **dans ton navigateur**. Rien n'est envoyé : tout se passe sur ton ordinateur, et les images sont écrites dans le dossier que tu choisis (Chrome ou Edge conseillé, environ 3 Go de mémoire libre, quelques minutes).
+**[soaresden.github.io/MGS1-VOSTFR](https://soaresden.github.io/MGS1-VOSTFR/#fabriquer)** : balance tes disques (CHD ou BIN), choisis la version et les options, et la page fabrique les images **dans ton navigateur**. Trois versions au choix : **VOSTFR** (disques français + européens), **version française d'origine + mods** (disques français seuls) ou **version anglaise d'origine + mods** (disques européens seuls, mods en cours de portage). Rien n'est envoyé : tout se passe sur ton ordinateur, et les images sont écrites dans le dossier que tu choisis (Chrome ou Edge conseillé, environ 3 Go de mémoire libre, quelques minutes).
 
 La page marche aussi **hors ligne** : télécharge le projet ([zip](https://github.com/soaresden/MGS1-VOSTFR/archive/refs/heads/main.zip)), décompresse-le et double-clique sur `index.html`.
 
-Elle utilise `docs/mgs-vostfr.js`, un portage en JavaScript des scripts Python : sur les mêmes disques, les images sont **identiques octet pour octet** à celles de `build.py` (vérifié avec `tools/webtest.js`). Les options y sont des différences d'octets exportées par `tools/webpatches.py` vers `docs/patches.js` : **à relancer après chaque modification d'une option** (`python tools/webpatches.py work/FR1.bin work/FR2.bin`).
+Elle utilise `docs/mgs-vostfr.js`, un portage en JavaScript des scripts Python : sur les mêmes disques, les images sont **identiques octet pour octet** à celles de `build.py` (vérifié avec `tools/webtest.js`). Les options y sont des différences d'octets exportées par `tools/webpatches.py` vers `docs/patches.js` : **à relancer après chaque modification d'une option** (`python tools/webpatches.py work/FR1.bin work/FR2.bin work/UK1.bin work/UK2.bin`).
 
 ### En ligne de commande
 
 Python 3.10+ avec `numpy`.
+
+Sans VOSTFR, juste les mods sur ton jeu d'origine : `--vf` (disques français, `--fr1/--fr2`) ou `--vo` (disques européens anglais, `--uk1/--uk2`), avec au moins une option. Exemple : `python build.py --vf --m9 --fps --fr1 ... --fr2 ... --out ../work/out` donne `Metal Gear Solid (VF) (Disc 1/2)`.
 
 ```bash
 cd tools

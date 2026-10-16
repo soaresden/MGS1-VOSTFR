@@ -7,6 +7,8 @@ build.py - Construit les images VOSTFR de MGS1 PS1 à partir des CHD (ou BIN) FR
   renumérotés dans RADIO.DAT et STAGE.DIR, image ISO reconstruite (VOX.DAT grossit).
 
   python build.py --fr1 FR_D1.chd --uk1 UK_D1.chd --fr2 FR_D2.chd --uk2 UK_D2.chd --out sortie [--carre] [--m9] [--psg1] [--l2r2] [--fps]
+  python build.py --vf --fr1 FR_D1.chd --fr2 FR_D2.chd --out sortie --m9 ...   (jeu français + options)
+  python build.py --vo --uk1 UK_D1.chd --uk2 UK_D2.chd --out sortie --m9 ...   (jeu anglais + options)
 
 --carre : patch optionnel, Carré fait défiler les dialogues du Codec (voir carre.py).
 --m9    : patch optionnel, M9, PSG1-T et claymores tranquillisants (voir m9.py).
@@ -51,12 +53,38 @@ def tables(path):
             voxalign.sound_test_table(read(path, "STAGE.DIR")))
 
 
-def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=False, rifle=False, lean=False, aim=False):
+def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=False, rifle=False, lean=False, aim=False, vf=False):
+    """vf : garde les voix françaises (pas de VOSTFR), seulement les options ; uk inutile."""
     rep = {}
     exe = next(f for f in psxiso.Disc(fr).files() if f in ("MGS/MGS1.EXE", "MGS/MGS2.EXE"))
     if square:
         rep[exe] = carre.patch(read(fr, exe[4:]))
         print(f"  {exe[4:]} : Carré fait défiler le Codec")
+    if not vf:
+        vostfr(fr, uk, anchors, fr_tab, uk_tab, rep)
+    if tranq:
+        rep[exe], rep["MGS/STAGE.DIR"], stages, _ = m9.patch_files(
+            rep.get(exe) or read(fr, exe[4:]), rep.get("MGS/STAGE.DIR") or read(fr, "STAGE.DIR"))
+        print(f"  {exe[4:]} : M9, PSG1-T et claymores zzz (soldats endormis dans {len(stages)} stages)")
+    if rifle:  # après m9 (qui vérifie tout le menu de débogage)
+        rep[exe] = psg1.patch(rep.get(exe) or read(fr, exe[4:]))
+        print(f"  {exe[4:]} : PSG1 debout ou accroupi")
+    if lean:
+        rep[exe] = l2r2.patch(rep.get(exe) or read(fr, exe[4:]))
+        print(f"  {exe[4:]} : L2/R2 penchent la vue subjective")
+    if aim:  # après m9 (qui vérifie tout le menu de débogage)
+        rep[exe] = fps.patch(rep.get(exe) or read(fr, exe[4:]))
+        print(f"  {exe[4:]} : tir au SOCOM / M9 en vue subjective")
+
+    print(f"  Image -> {out_bin.name}")
+    new = isorebuild.rebuild(fr, out_bin, rep)
+    print(f"  ZMOVIE.STR -> LBA {new['MGS/ZMOVIE.STR'][0]}, DUMMY3M.DAT -> LBA {new['DUMMY3M.DAT'][0]}")
+    out_bin.with_suffix(".cue").write_text(
+        f'FILE "{out_bin.name}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n', encoding="ascii")
+
+
+def vostfr(fr, uk, anchors, fr_tab, uk_tab, rep):
+    """Cinématiques, VOX.DAT, RADIO.DAT et STAGE.DIR en VOSTFR (dans rep)."""
     demo, nb, swapped = demo_vostfr.patch(read(fr, "DEMO.DAT"), read(uk, "DEMO.DAT"))
     rep["MGS/DEMO.DAT"] = demo
     del demo
@@ -76,25 +104,6 @@ def build_disc(fr, uk, anchors, fr_tab, uk_tab, out_bin, square=False, tranq=Fal
     rep["MGS/STAGE.DIR"], done, skipped = vox_vostfr.renumber_stage(
         read(fr, "STAGE.DIR"), read(uk, "STAGE.DIR"), secmap, fr_to_uk)
     print(f"  STAGE.DIR : {done} codes VOX renumérotés ({skipped} faux positifs ignorés)")
-    if tranq:
-        rep[exe], rep["MGS/STAGE.DIR"], stages, _ = m9.patch_files(
-            rep.get(exe) or read(fr, exe[4:]), rep["MGS/STAGE.DIR"])
-        print(f"  {exe[4:]} : M9, PSG1-T et claymores zzz (soldats endormis dans {len(stages)} stages)")
-    if rifle:  # après m9 (qui vérifie tout le menu de débogage)
-        rep[exe] = psg1.patch(rep.get(exe) or read(fr, exe[4:]))
-        print(f"  {exe[4:]} : PSG1 debout ou accroupi")
-    if lean:
-        rep[exe] = l2r2.patch(rep.get(exe) or read(fr, exe[4:]))
-        print(f"  {exe[4:]} : L2/R2 penchent la vue subjective")
-    if aim:  # après m9 (qui vérifie tout le menu de débogage)
-        rep[exe] = fps.patch(rep.get(exe) or read(fr, exe[4:]))
-        print(f"  {exe[4:]} : tir au SOCOM / M9 en vue subjective")
-
-    print(f"  Image -> {out_bin.name}")
-    new = isorebuild.rebuild(fr, out_bin, rep)
-    print(f"  ZMOVIE.STR -> LBA {new['MGS/ZMOVIE.STR'][0]}, DUMMY3M.DAT -> LBA {new['DUMMY3M.DAT'][0]}")
-    out_bin.with_suffix(".cue").write_text(
-        f'FILE "{out_bin.name}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n', encoding="ascii")
 
 
 def main():
@@ -108,10 +117,29 @@ def main():
     ap.add_argument("--psg1", action="store_true", help="PSG1 utilisable debout ou accroupi")
     ap.add_argument("--l2r2", action="store_true", help="L2/R2 penchent la vue subjective (comme MGS2)")
     ap.add_argument("--fps", action="store_true", help="viser et tirer au SOCOM / M9 en vue subjective")
+    ap.add_argument("--vf", action="store_true", help="jeu français d'origine + options seulement (--uk1/--uk2 inutiles)")
+    ap.add_argument("--vo", action="store_true", help="jeu anglais (Europe) d'origine + options seulement (--fr1/--fr2 inutiles)")
     a = ap.parse_args()
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
     WORK.mkdir(exist_ok=True)
+    opts = (a.carre, a.m9, a.psg1, a.l2r2, a.fps)
+    if a.vf or a.vo:  # jeu d'origine + options, sans VOSTFR
+        if not any(opts):
+            raise SystemExit("--vf / --vo sans option : rien à faire")
+        side, tag = ("fr", "VF") if a.vf else ("uk", "EN")
+        names = []
+        for d in ("1", "2"):
+            if not getattr(a, f"{side}{d}"):
+                continue
+            print(f"Disque {d}")
+            out_bin = out / f"Metal Gear Solid ({tag}) (Disc {d}).bin"
+            build_disc(to_bin(getattr(a, f"{side}{d}"), f"{side.upper()}{d}"), None, None, None, None, out_bin, *opts, vf=True)
+            names.append(out_bin.with_suffix(".cue").name)
+        if len(names) == 2:
+            (out / f"Metal Gear Solid ({tag}).m3u").write_text("\n".join(names) + "\n", encoding="utf-8")
+        print("Terminé :", out)
+        return
     imgs = {d: (to_bin(getattr(a, f"fr{d}"), f"FR{d}"), to_bin(getattr(a, f"uk{d}"), f"UK{d}"))
             for d in ("1", "2") if getattr(a, f"fr{d}") and getattr(a, f"uk{d}")}
     print("Appariement des banques VOX...")
@@ -126,7 +154,7 @@ def main():
     for d, (fr, uk) in imgs.items():
         print(f"Disque {d}")
         out_bin = out / f"Metal Gear Solid (VOSTFR) (Disc {d}).bin"
-        build_disc(fr, uk, anchors[d], tab[d, "F"][0], tab[d, "U"][0], out_bin, a.carre, a.m9, a.psg1, a.l2r2, a.fps)
+        build_disc(fr, uk, anchors[d], tab[d, "F"][0], tab[d, "U"][0], out_bin, *opts)
         names.append(out_bin.with_suffix(".cue").name)
     if len(names) == 2:
         (out / "Metal Gear Solid (VOSTFR).m3u").write_text("\n".join(names) + "\n", encoding="utf-8")

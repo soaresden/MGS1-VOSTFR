@@ -999,10 +999,59 @@
   // ------------------------------------------------------------------ fabrication complète (build.py)
   // discs : { FR1, UK1, FR2, UK2 } (objets Disc) ; opts : ['carre', 'm9', ...] ;
   // openWriter(nom) -> { write(Uint8Array), close() } ; log(texte) ; progress(étape, fraction)
-  async function build(discs, opts, openWriter, log, progress) {
+  // Jeu d'origine + options seulement : side 'FR' (build.py --vf) ou 'UK' (build.py --vo).
+  async function buildMods(discs, side, opts, openWriter, log, progress) {
+    var PATCHES = G.MGS_PATCHES, outputs = [], tag = side === 'FR' ? 'VF' : 'EN';
+    if (!opts.length) throw new Error('aucune option choisie');
+    for (var d of ['1', '2']) {
+      var fr = discs[side + d];
+      if (!fr) continue;
+      var pd = PATCHES && PATCHES.discs[side + d];
+      if (!pd) throw new Error('patches.js manquant');
+      log('Disque ' + d);
+      var files = await fr.files(), exeName = files.has('MGS/MGS1.EXE') ? 'MGS/MGS1.EXE' : 'MGS/MGS2.EXE';
+      var exe = await fr.readFile(exeName);
+      if (crc32(exe) !== pd.exeCrc) throw new Error('disque ' + d + ' : version du jeu inattendue');
+      var rep = new Map(), stage = null;
+      for (var o of PATCHES.order) {
+        if (opts.indexOf(o) < 0) continue;
+        if (!pd.options[o]) throw new Error('option ' + o + ' pas encore disponible pour ce disque (' + side + d + ')');
+        applyRuns(exe, pd.options[o].exe);
+        if (pd.options[o].stage.length) {
+          if (!stage) {
+            stage = await fr.readFile('MGS/STAGE.DIR', function (f) { progress('Disque ' + d + ' : STAGE.DIR', f); });
+            if (crc32(stage) !== pd.stageCrc) throw new Error('disque ' + d + ' : version du jeu inattendue');
+          }
+          applyRuns(stage, pd.options[o].stage);
+        }
+        log('  option ' + o);
+      }
+      rep.set(exeName, exe);
+      if (stage) rep.set('MGS/STAGE.DIR', stage);
+      var name = 'Metal Gear Solid (' + tag + ') (Disc ' + d + ')';
+      var writer = await openWriter(name + '.bin');
+      var res = await rebuild(fr, rep, writer, function (f) { progress('Disque ' + d + ' : écriture de l\'image', f); });
+      await writer.close();
+      var cw = await openWriter(name + '.cue');
+      await cw.write(new TextEncoder().encode('FILE "' + name + '.bin" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n')); await cw.close();
+      log('  ' + name + '.bin : ' + res.sectors + ' secteurs');
+      outputs.push(name + '.cue');
+    }
+    if (outputs.length === 2) {
+      var mw = await openWriter('Metal Gear Solid (' + tag + ').m3u');
+      await mw.write(new TextEncoder().encode(outputs.join('\n') + '\n')); await mw.close();
+    }
+    return outputs;
+  }
+
+  // settings.mode : 'vostfr' (défaut), 'fr' (jeu français + options), 'en' (jeu anglais + options).
+  async function build(discs, opts, openWriter, log, progress, settings) {
     var PATCHES = G.MGS_PATCHES;
     log = log || function () {};
     progress = progress || function () {};
+    var mode = settings && (settings.mode || (settings.vostfr === false ? 'fr' : null)) || 'vostfr';
+    if (mode === 'fr') return buildMods(discs, 'FR', opts, openWriter, log, progress);
+    if (mode === 'en') return buildMods(discs, 'UK', opts, openWriter, log, progress);
     var both = discs.FR2 && discs.UK2, tab = {}, keep = {};
     var order = both ? ['2', '1'] : ['1'];
     if (!discs.FR1 || !discs.UK1) order = ['2'];
@@ -1071,12 +1120,13 @@
       stFr = stUk = null;
       log('  STAGE.DIR : ' + rs.done + ' codes VOX renumérotés (' + rs.skipped + ' faux positifs ignorés)');
       if (opts.length) {
-        var pd = PATCHES && PATCHES.discs[d];
+        var pd = PATCHES && PATCHES.discs['FR' + d];
         if (!pd) throw new Error('patches.js manquant');
         var exe = await fr.readFile(exeName);
         if (crc32(exe) !== pd.exeCrc || stageCrc !== pd.stageCrc) throw new Error('disque ' + d + ' : version du jeu inattendue pour les options');
         PATCHES.order.forEach(function (o) {
           if (opts.indexOf(o) < 0) return;
+          if (!pd.options[o]) throw new Error('option ' + o + ' pas encore disponible');
           applyRuns(exe, pd.options[o].exe);
           applyRuns(rs.data, pd.options[o].stage);
           log('  option ' + o);

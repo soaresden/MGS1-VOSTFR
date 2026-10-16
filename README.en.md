@@ -42,15 +42,17 @@ As CHD (like in Batocera) or BIN/CUE. No chdman needed: the CHD is read directly
 
 ### The easy way: the web page
 
-**[soaresden.github.io/MGS1-VOSTFR](https://soaresden.github.io/MGS1-VOSTFR/#fabriquer)**: drop your four discs (CHD or BIN), tick the options, and the page builds the images **in your browser**. Nothing is uploaded: everything happens on your computer, and the images are written to the folder you choose (Chrome or Edge recommended, about 3 GB of free memory, a few minutes).
+**[soaresden.github.io/MGS1-VOSTFR](https://soaresden.github.io/MGS1-VOSTFR/#fabriquer)**: drop your discs (CHD or BIN), choose the version and the options, and the page builds the images **in your browser**. Three versions to choose from: **VOSTFR** (French + European discs), **original French version + mods** (French discs only) or **original English version + mods** (European discs only, mods being ported). Nothing is uploaded: everything happens on your computer, and the images are written to the folder you choose (Chrome or Edge recommended, about 3 GB of free memory, a few minutes).
 
 The page also works **offline**: download the project ([zip](https://github.com/soaresden/MGS1-VOSTFR/archive/refs/heads/main.zip)), unzip it and double-click `index.html`.
 
-It uses `docs/mgs-vostfr.js`, a JavaScript port of the Python scripts: on the same discs, the images are **byte-for-byte identical** to those of `build.py` (checked with `tools/webtest.js`). The options are byte differences exported by `tools/webpatches.py` to `docs/patches.js`: **run it again after changing an option** (`python tools/webpatches.py work/FR1.bin work/FR2.bin`).
+It uses `docs/mgs-vostfr.js`, a JavaScript port of the Python scripts: on the same discs, the images are **byte-for-byte identical** to those of `build.py` (checked with `tools/webtest.js`). The options are byte differences exported by `tools/webpatches.py` to `docs/patches.js`: **run it again after changing an option** (`python tools/webpatches.py work/FR1.bin work/FR2.bin work/UK1.bin work/UK2.bin`).
 
 ### From the command line
 
 Python 3.10+ with `numpy`.
+
+Without the VOSTFR, just the mods on your original game: `--vf` (French discs, `--fr1/--fr2`) or `--vo` (European English discs, `--uk1/--uk2`), with at least one option. Example: `python build.py --vf --m9 --fps --fr1 ... --fr2 ... --out ../work/out` gives `Metal Gear Solid (VF) (Disc 1/2)`.
 
 ```bash
 cd tools
