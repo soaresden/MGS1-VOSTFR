@@ -26,7 +26,7 @@ This repository contains **no game data**: only the scripts that build the image
 | `--l2r2` option: in first-person view, L2/R2 lean, L2+R2 tiptoe (like in MGS2) | ✅ done, tested |
 | `--fps` option: aim and shoot the SOCOM / M9 in first-person view (like in MGS2) | ✅ done, tested (dock: guard put to sleep with the M9, hurt with the SOCOM, laser) |
 | `--life TEXT` option: your own text instead of "LIFE" in the life bar (e.g. "SNAKE") | ✅ done, tested (dock, French and English versions) |
-| `--cartes` option: key card doors open with the card in your inventory (no need to equip it) | ✅ done, tested (Blast Furnace LV.6 door: blocked without the patch, opens with it) |
+| `--cartes` option: key card doors open with the card in your inventory (no need to equip it), and the card then equips itself (its icon shows) | ✅ done, tested (Blast Furnace LV.6 door; cave LV.5 door: LV.7 CARD icon) |
 | `--psg1loup` option: the PSG1 in the cave, where Meryl was waiting (no trip back to the armory) | ✅ done, tested in game (pickup, Campbell's call, fight without Meryl on the way back) |
 | `--bandana` option: the bandana shows, with a very long tail flowing behind Snake (like in MGS2) | ✅ prototype, tested (Snowfield French and English, Blast Furnace: tail at rest, running, equip / unequip) |
 | Web page: build in the browser, options to tick, works offline | ✅ done, same images as Python byte for byte |
@@ -129,9 +129,11 @@ python life.py "SNAKE" "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Soli
 
 ![Life bar "SNAKE"](docs/previews/life_snake.png) ![15 characters](docs/previews/life_max.png)
 
-`--cartes` option: key card doors open as soon as the card is in your inventory, no need to equip it in the item menu. The card level still matters (a LV.3 card does not open a LV.5 door). The little "denied" beep still only plays when the card is equipped.
+`--cartes` option: key card doors open as soon as the card is in your inventory, no need to equip it in the item menu. The card level still matters (a LV.3 card does not open a LV.5 door). So you can see the card was used, it equips itself when the door opens: its icon (with the level) shows up in the item box, bottom left, and stays there. It therefore replaces whatever item Snake was holding, even when a guard is the one opening the door. On most doors, the red light and the "denied" beep now come as soon as you present a card that is too weak, equipped or not. Three doors (two in the commander's room, one in Nuke Building B2) have no room left in their script: they open without equipping the card, with no icon.
 
 ![Without --cartes: LV.6 door shut, card in inventory](docs/previews/cartes_off.png) ![With --cartes: Snake walks through](docs/previews/cartes_on.png)
+
+![With --cartes: nothing in hand at the door, then the LV.7 card equipped once the door opens](docs/previews/cartes_icone.png)
 
 `--psg1loup` option (off by default): after Sniper Wolf shoots Meryl in the underground passage, no need to go all the way back to the armory for the PSG1. After Campbell's call sending Snake for the PSG1, just step back out into the wolf-dog cave: the PSG1 waits **where Meryl was waiting with the dog**. Picking it up triggers Campbell's armory call (use it on Sniper Wolf), and back in the passage Meryl is gone: the fight starts, as in the original game. One visible detail: the PSG1 is already in the inventory (empty) when you enter the cave, and the box brings the bullets. The game has no "weapon on the floor" model in that room, only the ammo box one, and it refuses ammo without the weapon. The box also shows up in Extreme mode; the armory route still works.
 
@@ -218,7 +220,7 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/l2r2.py` | Optional patch: first-person view, L2/R2 lean, L2+R2 tiptoe |
 | `tools/fps.py` | Optional patch: shoot the SOCOM / M9 in first-person view |
 | `tools/life.py` | Optional patch: your text instead of "LIFE" in the life bar (+ preview) |
-| `tools/cartes.py` | Optional patch: key card doors open without equipping the card |
+| `tools/cartes.py` | Optional patch: key card doors open without equipping the card, which then equips itself |
 | `tools/psg1loup.py` | Optional patch: the PSG1 in the cave, where Meryl was waiting, before Sniper Wolf |
 | `tools/bandana.py` | Optional patch: visible bandana, very long animated tail (like MGS2) |
 | `tools/combine.py` | Both discs in a single image (lighter sound, no disc change); also in the web page ("CD Combiner" box) |

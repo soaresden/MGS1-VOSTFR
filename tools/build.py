@@ -16,7 +16,7 @@ build.py - Construit les images VOSTFR de MGS1 PS1 à partir des CHD (ou BIN) FR
 --l2r2  : patch optionnel, L2/R2 penchent la vue subjective comme dans MGS2 (voir l2r2.py).
 --fps   : patch optionnel, viser et tirer au SOCOM / M9 en vue subjective (voir fps.py).
 --life TEXTE : patch optionnel, texte à la place de « LIFE » dans la barre de vie (voir life.py).
---cartes : patch optionnel, les portes à carte s'ouvrent avec la carte dans l'inventaire (voir cartes.py).
+--cartes : patch optionnel, les portes à carte s'ouvrent avec la carte dans l'inventaire, qui s'équipe alors (voir cartes.py).
 --psg1loup : patch optionnel, le PSG1 dans la grotte, là où Meryl attendait, avant Sniper Wolf (voir psg1loup.py).
 --bandana : patch optionnel, le bandana se voit, avec de très longs pans comme dans MGS2 (voir bandana.py).
 --combine : en plus des 2 disques, une image unique « (1 CD) » pour émulateurs (voir combine.py :
@@ -136,7 +136,7 @@ def main():
     ap.add_argument("--l2r2", action="store_true", help="L2/R2 penchent la vue subjective (comme MGS2)")
     ap.add_argument("--fps", action="store_true", help="viser et tirer au SOCOM / M9 en vue subjective")
     ap.add_argument("--life", metavar="TEXTE", help="texte à la place de « LIFE » dans la barre de vie (ex. SNAKE)")
-    ap.add_argument("--cartes", action="store_true", help="portes à carte ouvertes sans équiper la carte")
+    ap.add_argument("--cartes", action="store_true", help="portes à carte ouvertes sans équiper la carte (elle s'équipe alors toute seule)")
     ap.add_argument("--psg1loup", action="store_true", help="PSG1 dans la grotte, là où Meryl attendait (plus de détour par l'armurerie)")
     ap.add_argument("--bandana", action="store_true", help="le bandana se voit, avec de très longs pans (comme MGS2)")
     ap.add_argument("--vf", action="store_true", help="jeu français d'origine + options seulement (--uk1/--uk2 inutiles)")

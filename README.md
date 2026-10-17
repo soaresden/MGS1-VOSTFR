@@ -26,7 +26,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--l2r2` : en vue subjective, L2/R2 penchent Snake, L2+R2 pointe des pieds (comme dans MGS2) | ✅ fait, testé |
 | Option `--fps` : viser et tirer au SOCOM / M9 en vue subjective (comme dans MGS2) | ✅ fait, testé (quai : garde endormi au M9, blessé au SOCOM, laser) |
 | Option `--life TEXTE` : ton texte à la place de « LIFE » dans la barre de vie (ex. « SNAKE ») | ✅ fait, testé (quai, version française et anglaise) |
-| Option `--cartes` : les portes à carte s'ouvrent avec la carte dans l'inventaire (plus besoin de l'équiper) | ✅ fait, testé (porte LV.6 de Blast Furnace : bloqué sans le patch, ouverte avec) |
+| Option `--cartes` : les portes à carte s'ouvrent avec la carte dans l'inventaire (plus besoin de l'équiper), et la carte s'équipe alors toute seule (son icône s'affiche) | ✅ fait, testé (porte LV.6 de Blast Furnace ; porte LV.5 de la grotte : icône LV.7 CARD) |
 | Option `--psg1loup` : le PSG1 dans la grotte, là où Meryl attendait (plus de détour par l'armurerie) | ✅ fait, testé en jeu (ramassage, appel de Campbell, combat sans Meryl au retour) |
 | Option `--bandana` : le bandana se voit, avec un très long pan qui flotte derrière Snake (comme dans MGS2) | ✅ prototype, testé (Snowfield FR et anglais, Blast Furnace : pan au repos, en course, équiper / déséquiper) |
 | Page web : fabrication dans le navigateur, options à cocher, hors ligne possible | ✅ fait, mêmes images que Python octet pour octet |
@@ -129,9 +129,11 @@ python life.py "SNAKE" "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Soli
 
 ![Barre de vie « SNAKE »](docs/previews/life_snake.png) ![15 caractères](docs/previews/life_max.png)
 
-Option `--cartes` : les portes à carte s'ouvrent dès que la carte est dans l'inventaire, sans passer par le menu des objets pour l'équiper. Le niveau de la carte compte toujours (une carte LV.3 n'ouvre pas une porte LV.5). Le petit « bip » de refus ne retentit, comme avant, que si la carte est équipée.
+Option `--cartes` : les portes à carte s'ouvrent dès que la carte est dans l'inventaire, sans passer par le menu des objets pour l'équiper. Le niveau de la carte compte toujours (une carte LV.3 n'ouvre pas une porte LV.5). Pour qu'on voie que la carte a servi, elle s'équipe toute seule quand la porte s'ouvre : son icône (avec le niveau) apparaît dans la case objet, en bas à gauche, et y reste. Elle remplace donc l'objet que Snake avait en main, y compris quand c'est un garde qui ouvre la porte. Sur la plupart des portes, le voyant rouge et le « bip » de refus viennent maintenant dès qu'on présente une carte trop faible, équipée ou non. Trois portes (deux dans la salle du commandant, une au 2e sous-sol de l'immeuble des ogives) n'ont pas assez de place dans leur script : elles s'ouvrent sans équiper la carte, sans icône.
 
 ![Sans --cartes : porte LV.6 fermée, carte en poche](docs/previews/cartes_off.png) ![Avec --cartes : Snake passe](docs/previews/cartes_on.png)
+
+![Avec --cartes : rien en main devant la porte, puis la carte LV.7 équipée une fois la porte ouverte](docs/previews/cartes_icone.png)
 
 Option `--psg1loup` (désactivée par défaut) : après que Sniper Wolf a blessé Meryl dans le passage souterrain, plus besoin de retourner chercher le PSG1 à l'armurerie. Après l'appel de Campbell qui envoie chercher le PSG1, il suffit de ressortir dans la grotte des chiens-loups : le PSG1 attend **là où Meryl attendait avec le chien**. En le ramassant, Campbell rappelle comme à l'armurerie (« Tu as le PSG-1 ? Utilise-le contre Sniper Wolf… »), et au retour dans le passage Meryl n'est plus là : le combat commence, comme dans le jeu d'origine. Détail visible : le PSG1 est déjà dans l'inventaire (vide) en entrant dans la grotte, et la boîte apporte les balles. Le jeu n'a pas le modèle « arme au sol » dans cette salle, seulement celui des boîtes de munitions, qu'il refuse sans l'arme. La boîte apparaît aussi en mode Extreme ; le chemin par l'armurerie reste possible.
 
@@ -218,7 +220,7 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/l2r2.py` | Patch optionnel : vue subjective, L2/R2 penchent, L2+R2 pointe des pieds |
 | `tools/fps.py` | Patch optionnel : tirer au SOCOM / M9 en vue subjective |
 | `tools/life.py` | Patch optionnel : texte à la place de « LIFE » dans la barre de vie (+ aperçu) |
-| `tools/cartes.py` | Patch optionnel : portes à carte ouvertes sans équiper la carte |
+| `tools/cartes.py` | Patch optionnel : portes à carte ouvertes sans équiper la carte, qui s'équipe alors toute seule |
 | `tools/psg1loup.py` | Patch optionnel : le PSG1 dans la grotte, là où Meryl attendait, avant Sniper Wolf |
 | `tools/bandana.py` | Patch optionnel : bandana visible, très long pan animé (comme MGS2) |
 | `tools/combine.py` | Les 2 disques en une seule image (son allégé, pas de changement de disque) ; aussi dans la page web (case « CD Combiner ») |
