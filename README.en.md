@@ -78,6 +78,7 @@ python carre.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOST
 - Ammo is shared with the original weapon: SOCOM ammo also fills the M9. Always silenced, one shot at a time, **one dart loaded at a time** (magazine of 1). On screen, the weapon in hand is the silenced SOCOM.
 - Patrolling guard: asleep after **1 shot**, for good (he does not wake up), with **zzz** above him. No blood, no life lost, not counted as a kill.
 - **Meryl** (when she follows Snake in the basement and in the cave): put to sleep too, but she gets up on her own about 5 s later (otherwise the game would be stuck). Otacon and Meryl at the end of the game (parking lot, jeep) cannot be hit, as in the original game.
+- **Wolf dogs** (cave, snowfield): asleep after 1 shot, for good (they lie down, zzz), without dying. Zzz claymores put them to sleep too.
 - During an alert or a search: the 1st shot **shakes** him; he falls asleep **8 s** later, or right away on the 2nd shot.
 - Bosses, cameras, etc.: same damage as the original weapon (Sniper Wolf with the PSG1-T, for example).
 - **Zzz claymores**: on the CLAYMORE slot, Triangle switches to zzz claymores ("CLAY.ZZZ" name, bluish icon) and back. Shared ammo ("CLAYMORE + ZZZ" message on pickup). What counts is the mode when the mine is **planted**: a planted zzz claymore stays zzz. A soldier who sets it off (or is caught in the blast) falls asleep at once, even during an alert, for good and without losing life. Other targets (Raven, Snake...) take normal claymore damage.

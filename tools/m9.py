@@ -15,6 +15,8 @@ Effet d'une fléchette sur un soldat (cible qu'on peut saisir) :
 - le M9 se charge d'une fléchette à la fois (chargeur de 1) ;
 - en alerte ou en recherche (évasion) : le 1er tir le secoue, il s'endort 8 s plus tard,
   ou tout de suite au 2e tir.
+Chiens-loups (dog.c : s09a, s12b, s12c) : une fléchette les endort pour de bon (animation et zzz
+du sommeil des chiens), sans perte de vie.
 Sur les autres cibles (boss, caméras...) : mêmes dégâts que l'arme d'origine.
 
 Claymores zzz : même bascule (Triangle) sur la case CLAYMORE (« CLAY.ZZZ »). Le mode est lu à la
@@ -38,6 +40,7 @@ from cdsector import write_file_inplace
 
 LOAD = 0x80010000  # adresse de chargement de l'EXE (en-tête PS-X EXE de 0x800 octets)
 CAVE, CAVE_END = 0x800447E4, 0x80045400  # suite : fps.py (0x80045400), carre.py (0x80045900), psg1.py (0x80045a08)
+CAVE2, CAVE2_END = 0x80045980, 0x80045A08  # 2e zone (chiens), fin de celle de carre.py
 
 SYM = dict(
     MODES=0x800B6426,        # linkvar 83 : bit 0 = M9, bit 1 = PSG1-T, bit 2 = claymore zzz
@@ -62,6 +65,7 @@ SYM = dict(
     MARK=0x4D39AAAA,         # marques dans TARGET.field_18 (inutilisé par les soldats) :
     SLEEP=0x4D395A5A,        #   « secoué » (minuteur en cours) et « endormi »
     TREMBLE=8 * 25,          # 8 s (logique du jeu PAL : 25 images/s)
+    DOG_ZZZ=99,              # sous-état d'un chien endormi (état 8, field_1510 ; le jeu va jusqu'à 37)
     NPC_WAKE=2 * 25,         # Meryl endormie : relevée après 2 s au sol (chute comprise : < 5 s)
     TEX_ZZZ=0xF7BB,          # GV_StrCode("zzz")
     SE_SELECT=0x17,
@@ -334,8 +338,10 @@ cave_power:
     beq t0, t1, cave_power_tranq
     li t2, 1                    # a_mode normal : balle
     li t1, CLAYCODE
-    bne t0, t1, cave_power_orig
+    beq t0, t1, cave_power_tranq
     li t2, 2                    # a_mode normal : claymore
+    b cave_power_dart           # pas une fléchette
+    move t3, zero
 cave_power_tranq:
     lhu t0, 0(s3)
     lhu t1, 2(s3)
@@ -345,7 +351,11 @@ cave_power_tranq:
     beq t1, t0, cave_power_soldier  # ... et camp ennemi : soldat (Snake aussi est saisissable)
     nop
 cave_power_other:
-    sh t2, 0x3E(s2)             # autre cible : dégâts normaux
+    sh t2, 0x3E(s2)             # autre cible : dégâts normaux (chiens : voir cave_dogdart)
+    move t3, s3
+cave_power_dart:
+    lui t4, %hi(dart_tgt)
+    sw t3, %lo(dart_tgt)(t4)    # cible de la dernière fléchette (0 : autre tir)
 cave_power_orig:
     lhu v0, -0x26(s0)           # instructions remplacées
     lh v1, -8(s0)
@@ -662,6 +672,30 @@ zzz_ret:
     jr ra
     addiu sp, sp, 0x38
 
+# ---- chiens : état 8 (« blessé »), sous-état DOG_ZZZ = endormi ---------------------
+# remplace « lw v1, 0x1510(s0) ; li s4, 1 » au début du gestionnaire de l'état 8 (dog.c) :
+# s3 = travail, s1 = n° du chien, s0 = travail + 4 * n°, t9 = (adresse du crochet - OVB) / 4
+cave_doghurt:
+    lw v1, 0x1510(s0)
+    li s4, 1                    # instructions remplacées
+    li t0, DOG_ZZZ
+    bne v1, t0, doghurt_ret
+    sll t9, t9, 2
+    lui t0, %hi(OVB)
+    addiu t0, t0, %lo(OVB)
+    addu t9, t9, t0
+    move a0, s3                 # Dog_800CB23C(travail, 13 = dormir, DOG_ZZZ, n°)
+    li a1, 13
+    li a2, DOG_ZZZ
+    move a3, s1
+    addiu ra, t9, DOG_EPI       # puis fin du gestionnaire
+    addiu t9, t9, DOG_CB
+    jr t9
+    nop
+doghurt_ret:
+    jr ra
+    nop
+
 # ---- données ---------------------------------------------------------------
 name_m9:
     .word str_m9, 2
@@ -690,6 +724,8 @@ str_get_clay:
 timer_name:
     .asciiz "m9.c"
 .align 2
+dart_tgt:                       # cible touchée par la dernière fléchette (pas un soldat)
+    .word 0
 clay_flag:                      # 1 pendant la création des éclats d'une claymore zzz
     .word 0
 anm_zzz:                        # ANIMATION de AN_Sleep, script recopié de STAGE.DIR
@@ -743,6 +779,45 @@ def zzz_script(stage, ovb):
 
 
 CAVE_SHA1 = "38b1bbb1a550a498f5e9c7615085c0c9bf34f55b"  # menu de débogage d'origine
+CAVE2_SHA1 = "a06643c50b4c07555558449ffa9db003a71d83b5"
+
+# 2e zone : fléchette sur un chien (fonction de dégâts de dog.c, avant le choix blessé / mort)
+CAVE2_SRC = r"""
+# remplace « lh v1, 0x3e(s2) ; li v0, 4 » : s1 = travail, s0 = n° du chien, s2 = sa cible,
+# t9 = (adresse du crochet - OVB) / 4
+cave_dogdart:
+    lh v1, 0x3E(s2)
+    lui t0, %hi(dart_tgt)
+    lw t1, %lo(dart_tgt)(t0)
+    li v0, 4                    # instructions remplacées
+    bne t1, s2, dogdart_ret     # pas une fléchette : blessé / mort comme d'habitude
+    nop
+    sw zero, %lo(dart_tgt)(t0)
+    sll t1, s0, 2
+    addu t1, t1, s1
+    li t2, 8                    # état 8 : ni vue, ni mouchoir (dog.c : « alive » = état < 8 ou > 13)
+    sw t2, 0x14F8(t1)
+    li t2, DOG_ZZZ
+    sw t2, 0x1510(t1)
+    li t2, 1
+    sw t2, 0x14E0(t1)           # immobile (dog.c, état 8)
+    lh t3, 0x26(s2)             # vie
+    nop
+    bgtz t3, dogdart_clr
+    nop
+    sh t2, 0x26(s2)             # au moins 1 : pas de mort
+dogdart_clr:
+    sll t9, t9, 2
+    lui t0, %hi(OVB)
+    addiu t0, t0, %lo(OVB)
+    addu t9, t9, t0
+    addiu t9, t9, DOG_CLR       # efface « touché » et sort
+    jr t9
+    nop
+dogdart_ret:
+    jr ra
+    nop
+"""
 
 
 # Textes de description (police du menu : 《 》 = B0 14 / D0 15, retour à la ligne 80 7C,
@@ -796,18 +871,25 @@ def build_cave(stage, sites, v="FR"):
     for key, (name, lines) in DESCRIPTIONS[pal.lang(v)].items():
         cave_src = cave_src.replace(key, "    .byte " + ", ".join(str(b) for b in encode_desc(name, lines)))
     src = "\n".join([cave_src + "    .byte " + ", ".join(str(b) for b in script), ".align 2"] + stubs) + "\n"
-    code, sym = mips.assemble(src, pal.addr(v, CAVE), pal.syms(v, SYM))
+    sym = pal.syms(v, SYM)
+    sym.update(OVB=pal.ovb(v), **dog_offsets(stage, v))
+    code, sym = mips.assemble(src, pal.addr(v, CAVE), sym)
     if CAVE + len(code) > CAVE_END:
         raise SystemExit(f"code M9 trop gros ({len(code)} octets)")
-    return code, sym
+    code2, sym = mips.assemble(CAVE2_SRC, pal.addr(v, CAVE2), sym)
+    if CAVE2 + len(code2) > CAVE2_END:
+        raise SystemExit(f"code M9 (2e zone) trop gros ({len(code2)} octets)")
+    return code, code2, sym
 
 
-def patch_exe(exe, code, sym, v="FR"):
+def patch_exe(exe, code, code2, sym, v="FR"):
     out = bytearray(exe)
-    off = 0x800 + pal.addr(v, CAVE) - LOAD
-    if not pal.cave_ok(v, exe, CAVE, CAVE_END, CAVE_SHA1):
+    if not (pal.cave_ok(v, exe, CAVE, CAVE_END, CAVE_SHA1)
+            and pal.cave_ok(v, exe, CAVE2, CAVE2_END, CAVE2_SHA1)):
         raise SystemExit(f"EXE inattendu ({v}) : menu de débogage déjà utilisé ?")
-    out[off:off + len(code)] = code
+    for zone, c in ((CAVE, code), (CAVE2, code2)):
+        off = 0x800 + pal.addr(v, zone) - LOAD
+        out[off:off + len(c)] = c
     for addr, orig, src in HOOKS:
         a = pal.addr(v, addr)
         new, _ = mips.assemble(src, a, sym)
@@ -924,6 +1006,41 @@ def old_switch(ovl):
     return None
 
 
+def scan_dogs(ovl):
+    """Chiens-loups (dog.c) : index de mot du test de a_mode dans la fonction de dégâts
+    (« lh v1,0x3e(s2); li v0,4; bne; li v0,3 »), du bloc qui efface « touché » et sort,
+    du début du gestionnaire de l'état 8 (« lw v1,0x1510(s0); li s4,1 »), de sa sortie, et
+    de Dog_800CB23C (changement d'animation). None si l'overlay n'a pas de chiens."""
+    w = words(ovl)
+    dmg = [i for i in range(len(w) - 4)
+           if w[i] == 0x8643003E and w[i + 1] == 0x24020004 and w[i + 3] == 0x24020003]
+    hurt = [i for i in range(len(w) - 2) if w[i] == 0x8E031510 and w[i + 1] == 0x24140001]
+    if len(dmg) != 1 or len(hurt) != 1:
+        return None
+    d, h = dmg[0], hurt[0]
+    clr = next(i for i in range(d, d + 80) if w[i] == 0x96420006 and w[i + 2] == 0x3042FFFB)
+    j = next(i for i in range(h, h + 16) if w[i] >> 26 == 2)
+    cb = [s for c in range(len(w)) if w[c] == 0x8E641494      # lw a0, 0x1494(s3)
+          for s in [next((i for i in range(c, max(c - 20, 0), -1) if w[i] == 0x27BDFFD8), None)]
+          if s is not None and w[s + 1] == 0xAFB20018 and w[s + 2] == 0x00809021]
+    assert len(cb) == 1, "dog.c : Dog_800CB23C introuvable"
+    return dict(dmg=d, clr=clr, hurt=h, epi=(w[j] & 0x3FFFFFF) << 2, cb=cb[0])
+
+
+def dog_offsets(stage, v):
+    """Écarts (octets) depuis les crochets, identiques dans tous les overlays d'une version."""
+    ovb = pal.ovb(v)
+    offs = set()
+    for _, ovl, _ in overlays(stage):
+        dog = scan_dogs(ovl)
+        if dog:
+            epi = (ovb & 0xF0000000 | dog["epi"]) - ovb
+            offs.add((4 * (dog["clr"] - dog["dmg"]), epi - 4 * dog["hurt"], 4 * (dog["cb"] - dog["hurt"])))
+    assert len(offs) == 1, f"dog.c : écarts différents selon les overlays ({offs})"
+    clr, epi, cb = offs.pop()
+    return dict(DOG_CLR=clr, DOG_EPI=epi, DOG_CB=cb)
+
+
 def patch_overlay(ovl, sites, sym, ovb):
     out = bytearray(ovl)
 
@@ -936,6 +1053,10 @@ def patch_overlay(ovl, sites, sym, ovb):
         put(s["wake"], f"jal wake_{s['target']:x}{npc}\nlh v0, {s['delay']}(s0)")
         if s["piyo"]:
             put(s["piyo_at"], f"jal piyo_{s['piyo']:x}_{s['target']:x}")
+    dog = scan_dogs(ovl)
+    if dog:   # adresse du crochet passée dans le délai (index de mot dans l'overlay)
+        put(dog["dmg"], f"jal cave_dogdart\nori t9, zero, {dog['dmg']}")
+        put(dog["hurt"], f"jal cave_doghurt\nori t9, zero, {dog['hurt']}")
     k = old_switch(ovl)
     if k is not None:  # coup 9 (fléchette) -> traité comme le coup 3 (K.O. au poing)
         default = 0x80000000 | (words(ovl)[k] & 0x3FFFFFF) << 2
@@ -953,12 +1074,12 @@ def patch_files(exe, stage):
     set_named = pal.addr(v, SYM["GV_SetNamedActor"])
     sites = {name: scan_overlay(ovl, ovb, set_named) for name, ovl, _ in overlays(stage)}
     sites = {k: s for k, s in sites.items() if s}
-    code, sym = build_cave(stage, sites, v)
-    new_exe = patch_exe(exe, code, sym, v)
+    code, code2, sym = build_cave(stage, sites, v)
+    new_exe = patch_exe(exe, code, code2, sym, v)
     out = bytearray(stage)
     for name, ovl, pos in overlays(stage):
-        if name in sites:
-            out[pos:pos + len(ovl)] = patch_overlay(ovl, sites[name], sym, ovb)
+        if name in sites or scan_dogs(ovl):
+            out[pos:pos + len(ovl)] = patch_overlay(ovl, sites.get(name, []), sym, ovb)
     zzz = [n for n, o, _ in overlays(stage) if ZZZ_HDR in o]
     skipped = [n for n in zzz if n not in sites]
     return new_exe, bytes(out), sorted(sites), skipped

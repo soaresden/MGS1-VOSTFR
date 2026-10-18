@@ -146,8 +146,8 @@ ORIG = {
 
 
 # État 7 : fin d'appel. Code ajouté (gp+0x828 = octet du menu de débogage, jamais lu)
-CAVE, CAVE_END = 0x80045900, 0x80045A08
-CAVE_SHA1 = "f5d7152a60d954f968ff8eda79668077764decc6"
+CAVE, CAVE_END = 0x80045900, 0x80045980   # suite : m9.py (2e zone, chiens)
+CAVE_SHA1 = "0523ce52372f7bb943a75c1578ea89be5255218e"
 END_CHECK = 0x8004A384   # menu_radio_end_check
 CAVE_SRC = '''
 # remplace l'appel à menu_radio_end_check : l'appel finissant a-t-il été sauté au Carré ?
