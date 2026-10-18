@@ -29,6 +29,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--cartes` : les portes à carte s'ouvrent avec la carte dans l'inventaire (plus besoin de l'équiper), et la carte s'équipe alors toute seule (son icône s'affiche) | ✅ fait, testé (porte LV.6 de Blast Furnace ; porte LV.5 de la grotte : icône LV.7 CARD) |
 | Option `--psg1loup` : le PSG1 dans la grotte, là où Meryl attendait (plus de détour par l'armurerie) | ✅ fait, testé en jeu (ramassage, appel de Campbell, combat sans Meryl au retour) |
 | Option `--bandana` : le bandana se voit, avec un très long pan qui flotte derrière Snake (comme dans MGS2) | ✅ prototype, testé (Snowfield FR et anglais, Blast Furnace : pan au repos, en course, équiper / déséquiper) |
+| Option `--titre` : écran titre « METAL GEAR SOLID - SHADOW FIXES », by Soaresden, v1.0 | ✅ fait, testé (écran « PRESS START BUTTON » et menu) |
 | Page web : fabrication dans le navigateur, options à cocher, hors ligne possible | ✅ fait, mêmes images que Python octet pour octet |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Option `--combine` : les 2 disques en **une seule image** (émulateurs, son allégé) | ✅ fait, testé dans PCSX-Redux (intro, Codec des deux disques, passage au disque 2 depuis une sauvegarde, sans changer de disque) ; VOSTFR, VF et EN, toutes options |
@@ -152,6 +153,14 @@ Option `--bandana` (prototype) : dans le jeu d'origine, équiper le BANDANA (mun
 python bandana.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
+Option `--titre` : l'écran titre devient celui de cette version. Sous « METAL GEAR », la bande claire porte **« SOLID - SHADOW FIXES »** (clin d'œil à Shadow Moses), avec les lettres refaites dans les couleurs d'origine, et **« by Soaresden  v1.0 »** s'affiche juste au-dessus du menu. Seules deux images du titre sont redessinées (le logo et le visage de Snake) ; le reste de l'écran ne change pas.
+
+![Avec --titre : écran « PRESS START BUTTON » et menu](docs/previews/titre_on.png)
+
+```bash
+python titre.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
+
 ### Une seule image pour les émulateurs (« CD Combiner », option `--combine`)
 
 `--combine` ajoute une image **« (1 CD) »** : tout le jeu sur un seul disque, **sans jamais changer de disque**. Le passage au disque 2 se fait tout seul, sans écran « Insérez le disque 2 » ; une sauvegarde du disque 2 se recharge directement.
@@ -223,6 +232,7 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/cartes.py` | Patch optionnel : portes à carte ouvertes sans équiper la carte, qui s'équipe alors toute seule |
 | `tools/psg1loup.py` | Patch optionnel : le PSG1 dans la grotte, là où Meryl attendait, avant Sniper Wolf |
 | `tools/bandana.py` | Patch optionnel : bandana visible, très long pan animé (comme MGS2) |
+| `tools/titre.py` | Patch optionnel : écran titre « Shadow Fixes », by Soaresden, v1.0 |
 | `tools/combine.py` | Les 2 disques en une seule image (son allégé, pas de changement de disque) ; aussi dans la page web (case « CD Combiner ») |
 | `tools/spuadpcm.py` | ADPCM du SPU : décodage, encodage, rééchantillonnage entier |
 | `tools/gcx.py` | Lecture exacte des scripts GCX de `STAGE.DIR` (codes des voix et des cinématiques) |

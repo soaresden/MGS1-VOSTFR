@@ -29,6 +29,7 @@ This repository contains **no game data**: only the scripts that build the image
 | `--cartes` option: key card doors open with the card in your inventory (no need to equip it), and the card then equips itself (its icon shows) | ✅ done, tested (Blast Furnace LV.6 door; cave LV.5 door: LV.7 CARD icon) |
 | `--psg1loup` option: the PSG1 in the cave, where Meryl was waiting (no trip back to the armory) | ✅ done, tested in game (pickup, Campbell's call, fight without Meryl on the way back) |
 | `--bandana` option: the bandana shows, with a very long tail flowing behind Snake (like in MGS2) | ✅ prototype, tested (Snowfield French and English, Blast Furnace: tail at rest, running, equip / unequip) |
+| `--titre` option: "METAL GEAR SOLID - SHADOW FIXES" title screen, by Soaresden, v1.0 | ✅ done, tested ("PRESS START BUTTON" screen and menu) |
 | Web page: build in the browser, options to tick, works offline | ✅ done, same images as Python byte for byte |
 | French dub credits in the intro → English cast | 🔧 to do |
 | `--combine` option: both discs in **a single image** (emulators, lighter sound) | ✅ done, tested in PCSX-Redux (intro, Codec on both discs, switch to disc 2 from a save, no disc change); VOSTFR, VF and EN, all options |
@@ -152,6 +153,14 @@ python psg1loup.py "Metal Gear Solid (VOSTFR) (Disc 1).bin"
 python bandana.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
+`--titre` option: the title screen becomes this version's own. Under "METAL GEAR", the light band reads **"SOLID - SHADOW FIXES"** (a nod to Shadow Moses), with the letters redrawn in the original colours, and **"by Soaresden  v1.0"** shows just above the menu. Only two title images are redrawn (the logo and Snake's face); the rest of the screen is unchanged.
+
+![With --titre: "PRESS START BUTTON" screen and menu](docs/previews/titre_on.png)
+
+```bash
+python titre.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
+```
+
 ### One image for emulators ("CD Combiner", `--combine` option)
 
 `--combine` adds a **"(1 CD)"** image: the whole game on one disc, **no disc change ever**. The game moves on to disc 2 by itself, without the "Insert disc 2" screen; a disc 2 save loads directly.
@@ -223,6 +232,7 @@ Two lines on disc 2 only exist in French (one of them a German leftover on the F
 | `tools/cartes.py` | Optional patch: key card doors open without equipping the card, which then equips itself |
 | `tools/psg1loup.py` | Optional patch: the PSG1 in the cave, where Meryl was waiting, before Sniper Wolf |
 | `tools/bandana.py` | Optional patch: visible bandana, very long animated tail (like MGS2) |
+| `tools/titre.py` | Optional patch: "Shadow Fixes" title screen, by Soaresden, v1.0 |
 | `tools/combine.py` | Both discs in a single image (lighter sound, no disc change); also in the web page ("CD Combiner" box) |
 | `tools/spuadpcm.py` | SPU ADPCM: decoding, encoding, integer resampling |
 | `tools/gcx.py` | Exact parsing of the `STAGE.DIR` GCX scripts (voice and cutscene codes) |
