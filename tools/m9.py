@@ -6,7 +6,8 @@ et PAL Europe anglaise (adresses traduites par pal.py, textes du menu en anglais
 Le M9 partage la case du SOCOM : dans le menu des armes (R2), sur le SOCOM, Triangle
 passe du SOCOM au M9 (icône bleue, toujours silencieux) et inversement. Même
 chose sur le PSG1 (PSG1-T). Les munitions sont communes avec l'arme d'origine. Le choix
-est gardé dans la sauvegarde (variable de jeu 83, inutilisée par le jeu d'origine).
+est gardé dans la sauvegarde (var_buf + 0x736 : variable GCL qu'aucun script n'utilise ; la
+linkvar 83 des premières versions est le compteur de chiens tués de dog.c).
 
 Effet d'une fléchette sur un soldat (cible qu'on peut saisir) :
 - hors alerte : il s'effondre et dort pour de bon (zzz), sans perdre de vie ;
@@ -43,7 +44,8 @@ CAVE, CAVE_END = 0x800447E4, 0x80045400  # suite : fps.py (0x80045400), carre.py
 CAVE2, CAVE2_END = 0x80045980, 0x80045A08  # 2e zone (chiens), fin de celle de carre.py
 
 SYM = dict(
-    MODES=0x800B6426,        # linkvar 83 : bit 0 = M9, bit 1 = PSG1-T, bit 2 = claymore zzz
+    MODES=0x800B59E6,        # var_buf + 0x736 (GCL, sauvegardé, aucun script n'y touche) : bit 0 = M9,
+                             # bit 1 = PSG1-T, bit 2 = claymore zzz (avant : linkvar 83, compteur de chiens tués de dog.c)
     GM_Weapon=0x800B639C,
     GM_Magazine=0x800ACFD4, GM_MagazineMax=0x800AD014,
     GM_AlertMode=0x800ACFE8,

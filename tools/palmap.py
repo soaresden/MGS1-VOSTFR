@@ -90,11 +90,17 @@ def same_word(tab, x, y):
 
 def fill(fr, uk, code, data):
     """Comble les trous entre deux morceaux de données de même décalage quand le contenu
-    du trou correspond (tables sans référence directe dans le code, comme weapon_actions)."""
+    du trou correspond (tables sans référence directe dans le code, comme weapon_actions),
+    et en bss (après la fin du fichier, rien à comparer) quand le décalage est le même des
+    deux côtés (var_buf de libgcl, 0x800 octets, n'est référencé que par son début)."""
     tab = dict(CODE=code, DATA=data)
+    bss = B + len(fr) - 0x800
     out = [list(data[0])]
     for a, b, d in data[1:]:
         pa, pb, pd = out[-1]
+        if pd == d and pb >= bss and a - pb <= 0x2000:
+            out[-1][1] = b
+            continue
         if pd == d and a - pb <= 0x800 and 0x800 + a - B <= len(fr) and 0x800 + a + d - B <= len(uk):
             ok = all(same_word(tab, struct.unpack_from("<I", fr, 0x800 + k - B)[0],
                                struct.unpack_from("<I", uk, 0x800 + k + d - B)[0])
