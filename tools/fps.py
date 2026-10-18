@@ -58,7 +58,7 @@ SYM = dict(
     GM_SeSet=0x800335FC,       # GM_SeSet(position ou NULL, son)
     SE_AIM=0x09,               # braquage (sna : Carré enfoncé debout, 0x800544fc)
     SE_RELOAD=0x2F,            # chargeur (action de rechargement, 0x80058c50 : 16e image)
-    RELOAD_SE=16, RELOAD=22,   # images de jeu (30/s) : son du chargeur, fin du rechargement
+    RELOAD_SE=16, RELOAD=22,   # images de jeu (25/s en PAL) : son du chargeur, fin du rechargement
                                # (vue normale : un tir toutes les ~24 images en martelant Carré)
     OX=OFFSET[0], OY=OFFSET[1], OZ=OFFSET[2],
     LASER_RGB=0x60, LASER_RGB0=0x10,   # couleur du trait : vue subjective / d'origine

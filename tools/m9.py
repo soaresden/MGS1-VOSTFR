@@ -10,6 +10,8 @@ est gardé dans la sauvegarde (variable de jeu 83, inutilisée par le jeu d'orig
 
 Effet d'une fléchette sur un soldat (cible qu'on peut saisir) :
 - hors alerte : il s'effondre et dort pour de bon (zzz), sans perdre de vie ;
+- Meryl (meryl7.c, meryl72.c : même code que les soldats) se relève, elle, après 2 s au sol
+  (moins de 5 s après la fléchette) : sinon le jeu reste bloqué quand elle doit suivre Snake ;
 - le M9 se charge d'une fléchette à la fois (chargeur de 1) ;
 - en alerte ou en recherche (évasion) : le 1er tir le secoue, il s'endort 8 s plus tard,
   ou tout de suite au 2e tir.
@@ -60,6 +62,7 @@ SYM = dict(
     MARK=0x4D39AAAA,         # marques dans TARGET.field_18 (inutilisé par les soldats) :
     SLEEP=0x4D395A5A,        #   « secoué » (minuteur en cours) et « endormi »
     TREMBLE=8 * 25,          # 8 s (logique du jeu PAL : 25 images/s)
+    NPC_WAKE=2 * 25,         # Meryl endormie : relevée après 2 s au sol (chute comprise : < 5 s)
     TEX_ZZZ=0xF7BB,          # GV_StrCode("zzz")
     SE_SELECT=0x17,
 )
@@ -577,19 +580,30 @@ cave_piyo_stars:
     nop
 
 # test de réveil : v0 = délai (chargé dans le délai), s1 = temps
-cave_wake:                      # t8 = décalage de la cible dans le soldat
+# t8 = décalage de la cible dans le soldat, t7 = 1 pour Meryl (réveil au bout de NPC_WAKE images)
+cave_wake:
     addu t0, s0, t8
     lw t0, 0(t0)
     li t1, SLEEP
-    lw t0, 0x18(t0)
+    lw t2, 0x18(t0)
     nop
-    bne t0, t1, cave_wake_ret
-    andi t0, s1, 63
+    bne t2, t1, cave_wake_ret
+    andi t3, s1, 63
+    beqz t7, wake_zzz           # soldat : jamais de réveil
+    slti t4, s1, NPC_WAKE
+    bnez t4, wake_zzz           # Meryl : se relève après NPC_WAKE images au sol
+    nop
+    move v0, zero               # délai 0 : le jeu la relève tout de suite
+    jr ra
+    sw zero, 0x18(t0)           # réveillée : plus endormie
+wake_zzz:
     li t1, 1
-    bne t0, t1, cave_wake_sleep
+    bne t3, t1, cave_wake_sleep
     nop
     addiu sp, sp, -0x30
     sw ra, 0x28(sp)
+    sw v0, 0x2C(sp)
+    sw t7, 0x24(sp)
     lw t0, 0x9C(s0)             # tête (comme les étoiles)
     nop
     lw t1, 0x284(t0)
@@ -601,9 +615,13 @@ cave_wake:                      # t8 = décalage de la cible dans le soldat
     jal zzz
     sh t3, 0x14(sp)
     lw ra, 0x28(sp)
+    lw v0, 0x2C(sp)
+    lw t7, 0x24(sp)
     addiu sp, sp, 0x30
 cave_wake_sleep:
-    move v0, s1                 # jamais de réveil
+    bnez t7, cave_wake_ret      # Meryl : délai d'origine
+    nop
+    move v0, s1                 # soldat : jamais de réveil
 cave_wake_ret:
     jr ra
     nop
@@ -765,7 +783,9 @@ def build_cave(stage, sites, v="FR"):
     """Assemble le code ajouté, avec un relais par variante de soldat (voir scan_overlay)."""
     stubs = []
     for t in sorted({s["target"] for ss in sites.values() for s in ss}):
-        stubs += [f"wake_{t:x}:", "    j cave_wake", f"    li t8, {t}"]
+        stubs += [f"wake_{t:x}:", "    li t7, 0", "    j cave_wake", f"    li t8, {t}"]
+    for t in sorted({s["target"] for ss in sites.values() for s in ss if s["npc"]}):
+        stubs += [f"wake_{t:x}_npc:", "    li t7, 1", "    j cave_wake", f"    li t8, {t}"]
     for x, t in sorted({(s["piyo"], s["target"]) for ss in sites.values() for s in ss if s["piyo"]}):
         stubs += [f"piyo_{x:x}_{t:x}:", f"    lui t9, %hi({x})", f"    addiu t9, t9, %lo({x})",
                   "    j cave_piyo", f"    li t8, {t}"]
@@ -838,9 +858,41 @@ def is_piyo(w, addr, ovb):
     return False
 
 
-def scan_overlay(ovl, ovb):
+NPC_FILES = ("meryl",)   # acteurs de l'histoire au code de soldat : réveil normal
+
+
+def actor_files(ovl, w, ovb, set_named):
+    """(fonction act, nom du fichier source) de chaque GV_SetNamedActor(acteur, act, die, "x.c")
+    de l'overlay (a1 et a3 posés par lui + addiu juste avant l'appel)."""
+    out = []
+    jal = 3 << 26 | (set_named >> 2) & 0x3FFFFFF
+    for i, x in enumerate(w):
+        if x != jal:
+            continue
+        r = {}
+        for k in range(max(0, i - 12), min(len(w), i + 2)):
+            y = w[k]
+            if y >> 26 == 0xF:
+                r[(y >> 16) & 31] = (y & 0xFFFF) << 16
+            elif y >> 26 == 9 and (y >> 21) & 31 in r and (y >> 21) & 31 == (y >> 16) & 31:
+                r[(y >> 16) & 31] = (r[(y >> 21) & 31] + ((y & 0xFFFF) ^ 0x8000) - 0x8000) & 0xFFFFFFFF
+        o = r.get(7, ovb - 1) - ovb
+        e = ovl.find(b"\0", o) if 5 in r and 0 <= o < len(ovl) else -1
+        if e > 0:
+            out.append((r[5], ovl[o:e].decode("latin1")))
+    return sorted(out)
+
+
+def site_owner(acts, addr):
+    """Fichier de l'acteur (soldat, zako, Meryl) dont la fonction act précède le site."""
+    own = [(a, n) for a, n in acts if a <= addr and n.startswith(("watcher", "zako", "meryl"))]
+    return max(own)[1] if own else None
+
+
+def scan_overlay(ovl, ovb, set_named=None):
     """Repère chaque mode « soldat au sol » : test de réveil, appel des étoiles, décalages."""
     w = words(ovl)
+    acts = actor_files(ovl, w, ovb, set_named) if set_named else []
     sites = []
     for i in range(len(w) - 6):
         # lh v0,DELAI(s0); nop; slt v0,v0,s1; beqz v0,..; nop; lw v1,CIBLE(s0)
@@ -854,7 +906,8 @@ def scan_overlay(ovl, ovb):
         if not {0x8E02009C, 0x2604009C} & {w[k] for k in body}:  # modèle du soldat en 0x9c
             continue
         piyo = [k for k in body if jal_target(w[k]) and is_piyo(w, jal_target(w[k]), ovb)]
-        sites.append(dict(wake=i, delay=w[i] & 0xFFFF, target=w[i + 5] & 0xFFFF,
+        owner = site_owner(acts, ovb + 4 * i) if acts else None
+        sites.append(dict(wake=i, owner=owner, npc=bool(owner and owner.startswith(NPC_FILES)), delay=w[i] & 0xFFFF, target=w[i + 5] & 0xFFFF,
                           piyo=jal_target(w[piyo[0]]) if len(piyo) == 1 else None,
                           piyo_at=piyo[0] if len(piyo) == 1 else None))
     return sites
@@ -879,7 +932,8 @@ def patch_overlay(ovl, sites, sym, ovb):
         out[4 * k:4 * k + len(new)] = new
 
     for s in sites:
-        put(s["wake"], f"jal wake_{s['target']:x}\nlh v0, {s['delay']}(s0)")
+        npc = "_npc" if s["npc"] else ""
+        put(s["wake"], f"jal wake_{s['target']:x}{npc}\nlh v0, {s['delay']}(s0)")
         if s["piyo"]:
             put(s["piyo_at"], f"jal piyo_{s['piyo']:x}_{s['target']:x}")
     k = old_switch(ovl)
@@ -896,7 +950,8 @@ def patch_files(exe, stage):
     if is_patched_exe(exe, v):
         return None
     ovb = pal.ovb(v)
-    sites = {name: scan_overlay(ovl, ovb) for name, ovl, _ in overlays(stage)}
+    set_named = pal.addr(v, SYM["GV_SetNamedActor"])
+    sites = {name: scan_overlay(ovl, ovb, set_named) for name, ovl, _ in overlays(stage)}
     sites = {k: s for k, s in sites.items() if s}
     code, sym = build_cave(stage, sites, v)
     new_exe = patch_exe(exe, code, sym, v)
