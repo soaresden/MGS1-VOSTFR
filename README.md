@@ -32,6 +32,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--titre` : écran titre « METAL GEAR SOLID - SHADOW FIXES », by Soaresden, v1.0 | ✅ fait, testé (écran « PRESS START BUTTON » et menu) |
 | Page web : fabrication dans le navigateur, options à cocher, hors ligne possible | ✅ fait, mêmes images que Python octet pour octet |
 | Version USA (Rev 1, NTSC) + mods : toutes les options, CD Combiner compris | ✅ fait, tout testé dans PCSX-Redux : écran titre, Codec au Carré, vue subjective, L2/R2, M9 (garde endormi), PSG1 debout, bandana, barre de vie, porte à carte de la grotte, PSG1 dans la grotte puis combat contre Wolf ; image 1 CD : démarrage, fin du disque 1 enchaînée sur le disque 2, Codec du disque 2 |
+| Mods pour le **recomp PC** de MGS1 (USA, paquets `.psxmod`) | ✅ fait, testé dans le recomp (Windows) : écran titre « Shadow Fixes », Codec au Carré, M9, « SNAKE » dans la barre de vie ; disque 2 pas encore testé |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Option `--combine` : les 2 disques en **une seule image** (émulateurs, son allégé) | ✅ fait, testé dans PCSX-Redux (intro, Codec des deux disques, passage au disque 2 depuis une sauvegarde, sans changer de disque) ; VOSTFR, VF et EN, toutes options |
 
@@ -189,6 +190,20 @@ Résultat : `Metal Gear Solid (VOSTFR) (1 CD).bin/.cue` (ou `(VF)`, `(EN)`, `(US
 
 Donne les **deux disques** : la table du test sonore du disque 2 sert aussi à apparier exactement les voix du disque 1.
 
+### Les mods dans le recomp PC (paquets `.psxmod`)
+
+[Metal Gear Solid Recompiled](https://github.com/alexbeavs-ps1-ports/metal-gear-solid-recomp) (alexbeavs, moteur [psxrecomp](https://github.com/RetroPortingToolKit/psxrecomp)) fait tourner MGS1 en natif sur PC (Windows, Linux, macOS) à partir des disques **USA (Rev 1)** d'origine. Il refuse les images modifiées, mais accepte des mods en paquets `.psxmod` qu'il applique à la volée sur le disque intact. `tools/psxmod.py` fabrique ces paquets avec tous nos mods de la version USA (une case par mod dans le lanceur ; barre de vie : SNAKE, SOLID SNAKE, FOXHOUND ou VIE) :
+
+```bash
+python psxmod.py --us1 US_D1.chd --us2 US_D2.chd      # -> work/psxmod/MGS1-Mods-USA-Disc1.psxmod et ...Disc2.psxmod
+```
+
+- Il faut les dumps **Redump** USA Rev 1 (le script vérifie le SHA-1) ; les paquets ne sont pas dans le dépôt, car ils contiennent des octets du jeu d'origine (les vérifications avant chaque patch).
+- Installer les deux paquets depuis le lanceur du recomp, puis **ne cocher que le paquet du disque monté** : le recomp refuse de démarrer si un paquet coché vise l'autre disque. Au changement de disque en cours de partie, les mods ne suivent pas : sauvegarder, relancer avec le disque 2, cocher le paquet du disque 2 et décocher celui du disque 1.
+- Le recomp demande le BIOS SCPH-1001 exact (SHA-256 `71af94d1…`). Le test a été fait avec un SCPH-5501 (USA), en changeant le BIOS dans `game.toml` et `CMakeLists.txt` du recomp : avec le bon SCPH-1001, rien à changer.
+
+![Écran titre « Shadow Fixes » dans le recomp PC](docs/previews/recomp_titre.png) ![M9 dans le recomp PC, « SNAKE » dans la barre de vie](docs/previews/recomp_m9.png)
+
 ## Comment ça marche
 
 ### Cinématiques
@@ -253,6 +268,7 @@ Les versions du jeu sont dans `versions/` (un fichier par version : numéros des
 | `tools/psg1loup.py` | Code du mod `psg1loup` : le PSG1 dans la grotte, là où Meryl attendait, avant Sniper Wolf |
 | `tools/bandana.py` | Code du mod `bandana` : bandana visible, très long pan animé (comme MGS2) |
 | `tools/titre.py` | Code du mod `titre` : écran titre « Shadow Fixes », by Soaresden, v1.0 |
+| `tools/psxmod.py` | Nos mods USA en paquets `.psxmod` pour le recomp PC (un paquet par disque) |
 | `tools/combine.py` | Les 2 disques en une seule image (son allégé, pas de changement de disque) ; aussi dans la page web (case « CD Combiner ») |
 | `tools/spuadpcm.py` | ADPCM du SPU : décodage, encodage, rééchantillonnage entier |
 | `tools/gcx.py` | Lecture exacte des scripts GCX de `STAGE.DIR` (codes des voix et des cinématiques) |

@@ -16,8 +16,10 @@ ailleurs) devient un choix entre quelques textes.
 Un paquet par disque : le recomp ne résout les mods que pour le disque monté au lancement
 (STAGE.DIR n'est pas au même endroit sur les deux disques ; un patch du disque 1 lu sur le
 disque 2 coupe tous les patches disque). Les deux EXE USA sont identiques, donc les patches
-d'EXE sont les mêmes. Après le changement de disque en jeu, il faut sauvegarder et relancer
-le recomp avec le disque 2 pour retrouver les mods.
+d'EXE sont les mêmes. **Ne cocher que le paquet du disque monté** : le recomp refuse de
+démarrer si un paquet coché ne vise pas le disque monté (« package does not target this
+game/image »). Après le changement de disque en jeu, sauvegarder, relancer avec le disque 2
+et cocher le paquet du disque 2 (décocher celui du disque 1).
 
   python psxmod.py --us1 work/US1.bin --us2 work/US2.bin [--out work/psxmod]
       -> work/psxmod/MGS1-Mods-USA-Disc1.psxmod, MGS1-Mods-USA-Disc2.psxmod
@@ -118,10 +120,11 @@ class Package:
             'author = "soaresden"',
             "description = " + toml_str(
                 f"Mods from github.com/soaresden/MGS1-VOSTFR for the USA (Rev 1) disc {d}. "
-                f"Active when disc {d} is the mounted disc at launch: after the in-game disc change, "
-                "save and relaunch with the other disc. / Mods du projet MGS1-VOSTFR pour le disque "
-                f"{d} USA (Rev 1) : actifs quand le disque {d} est monté au lancement ; après le "
-                "changement de disque, sauvegarder et relancer."),
+                f"Enable it only while disc {d} is mounted (enable just one of the two disc packages). "
+                "After the in-game disc change, save, relaunch with the other disc and switch packages. "
+                f"/ Mods du projet MGS1-VOSTFR pour le disque {d} USA (Rev 1). À cocher seulement quand "
+                f"le disque {d} est monté (un seul des deux paquets). Après le changement de disque : "
+                "sauvegarder, relancer avec l'autre disque et changer de paquet."),
             'resolver = "declarative"',
             'save_compatibility = "shared"',
             "",
