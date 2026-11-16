@@ -168,6 +168,20 @@ class Package:
                 self.patch(mid, "disc_user", f"offset = {base + k}", a[k:end], b[k:end], when)
                 k = end
 
+    def bank_patch(self, mid, lba, a, b, when=None):
+        """Banque VOX / DEMO réécrite : un seul overlay du premier au dernier octet changé (tout
+        ce qui suit un bloc de sous-titres agrandi est décalé ; un diff octet par octet donnait
+        des centaines de milliers de petits patches), ou des patches si c'est court."""
+        import numpy as np
+        diff = np.nonzero(np.frombuffer(a, np.uint8) != np.frombuffer(b, np.uint8))[0]
+        if not len(diff):
+            return
+        s, e = int(diff[0]), int(diff[-1]) + 1
+        if e - s >= OVERLAY_MIN:
+            self.overlay(mid, lba * 2048 + s, a[s:e], b[s:e], when)
+        else:
+            self.stage_patches(mid, lba, a, b, when)
+
     def overlay(self, mid, offset, old, new, when=None):
         name = f"payload/{mid}/{offset:010d}.bin"
         self.files[name] = new
@@ -209,20 +223,22 @@ class Package:
 
 CODEC_FR = {
     "id": "codec-fr",
-    "en": "French subtitles (Codec + in-game voices)",
-    "enS": "Codec calls and in-game voice subtitles in French (texts of the French version, English voices), accented letters added to the font.",
-    "frS": "Le Codec et les sous-titres des voix en jeu en français (textes de la version française, voix anglaises), lettres accentuées ajoutées à la police.",
+    "en": "French subtitles (Codec, in-game voices, cutscenes)",
+    "enS": "Codec calls, in-game voices and cutscenes subtitled in French (texts of the French version, English voices), accented letters added to the font.",
+    "frS": "Le Codec, les voix en jeu et les cinématiques sous-titrés en français (textes de la version française, voix anglaises), lettres accentuées ajoutées à la police.",
 }
 
 
 def codec_fr(p, disc, fl, us_path, fr_path, st0, seen):
-    """Codec et voix en jeu en FR (tools/codec_us.py, vox_us.py) : RADIO.DAT reconstruit, posé dans la zone vide DUMMY3M.DAT
-    (overlay) et l'enregistrement de répertoire de RADIO.DAT pointé dessus (le recomp résout
-    les fichiers par les enregistrements patchés, comme le jeu) ; codes radio et police de
-    STAGE.DIR ; banques VOX réécrites à leur place (Codec recalé, sous-titres des voix en jeu)."""
+    """Codec, voix en jeu et cinématiques en FR (tools/codec_us.py, vox_us.py) : RADIO.DAT
+    reconstruit, posé dans la zone vide DUMMY3M.DAT avec les banques trop grosses pour leur place
+    (overlay), l'enregistrement de répertoire de RADIO.DAT pointé dessus (le recomp résout les
+    fichiers par les enregistrements patchés, comme le jeu) ; codes radio / VOX / DEMO et police
+    de STAGE.DIR ; banques VOX et DEMO réécrites à leur place."""
     import codec_us
     mid = CODEC_FR["id"]
-    radio, st1, banks = codec_us.build(str(us_path), str(fr_path), log=lambda *a, **k: None)
+    r = codec_us.build(str(us_path), str(fr_path), log=lambda *a, **k: None)
+    st1, radio = r["stage"], r["radio"]
     p.feature(CODEC_FR)
     for s, e in runs(st0, st1, 0):
         for k in range(s, e):
@@ -231,17 +247,19 @@ def codec_fr(p, disc, fl, us_path, fr_path, st0, seen):
                 raise SystemExit(f"{mid} et {o} écrivent le même octet (stage 0x{k:X})")
     p.stage_patches(mid, fl["MGS/STAGE.DIR"][0], st0, st1)
     dlba, dsize = fl["DUMMY3M.DAT"]
-    if len(radio) > dsize:
+    area = codec_us.dummy_area(r)
+    if len(area) > dsize:
         raise SystemExit("RADIO.DAT FR trop gros pour DUMMY3M.DAT")
-    old = bytes(disc.read(dlba, len(radio)))
-    p.overlay(mid, dlba * 2048, old, radio)
-    vlba = fl["MGS/VOX.DAT"][0]
-    for off, data in sorted(banks.items()):
-        p.stage_patches(mid, vlba + off // 2048, bytes(disc.read(vlba + off // 2048, len(data))), data)
+    p.overlay(mid, dlba * 2048, bytes(disc.read(dlba, len(area))), area)
+    for k in ("VOX", "DEMO"):
+        flba = fl[f"MGS/{k}.DAT"][0]
+        for off, data in sorted(r[k.lower()].items()):
+            p.bank_patch(mid, flba + off // 2048, bytes(disc.read(flba + off // 2048, len(data))), data)
     slba, roff = codec_us.radio_record(disc)
     rec = bytes(disc.sector(slba))[roff + 2:roff + 18]
     p.patch(mid, "disc_user", f"offset = {slba * 2048 + roff + 2}", rec, codec_us.record_extent(dlba, len(radio)), None)
-    print(f"  codec-fr : RADIO.DAT {len(radio)} octets au LBA {dlba}, {len(banks)} banques VOX")
+    print(f"  codec-fr : RADIO.DAT {len(radio)} octets + {len(r['tail'])} de banques déplacées au LBA {dlba},"
+          f" {len(r['vox'])} banques VOX, {len(r['demo'])} cinématiques")
 
 
 def package(d, bin_path, out, fr_path=None):

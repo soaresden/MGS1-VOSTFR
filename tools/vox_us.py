@@ -28,7 +28,7 @@ import gcx
 import vox
 import vox_vostfr as vv
 
-VOICE = (b"\x80\x7c", (37, 40, 43), 2)   # sous-titre en jeu : retour à la ligne, largeurs, lignes
+VOICE = (b"\x80\x7c", (37, 40, 43), 2, "égales")  # sous-titre : retour, largeurs, lignes, lignes égales
 
 
 def stage_voices(st, v):
@@ -54,12 +54,73 @@ def pair(st_us, vu, st_fr, vf):
     return {a: c.most_common(1)[0][0] for a, c in votes.items()}
 
 
+def pair_demos(du, df):
+    """{secteur US: secteur FR} des cinématiques de DEMO.DAT : mêmes banques, même ordre (les
+    blocs son sont identiques, sauf la banque 28 du disque 2, « Snaaaake !!! » plus long en VF ;
+    les données de scène diffèrent, NTSC 60 Hz contre PAL 50 Hz)."""
+    bu, bf = vox.banks(du), vox.banks(df)
+    if len(bu) != len(bf):
+        raise ValueError(f"DEMO.DAT : {len(bu)} banques US, {len(bf)} FR")
+    return {su // 2048: sf // 2048 for (su, _), (sf, _) in zip(bu, bf)}
+
+
 def caps_of(v, code):
     return [x for c, o, _ in vox.blocks(v, code * 2048) if c == vox.CAPS1 for x in vv.caption_block(v, o)["caps"]]
 
 
+def anchors(fr, us, tol=30):
+    """Paires (i, j) croissantes d'entrées FR / US qui commencent au même moment (à tol près :
+    mêmes unités d'horaire dans les deux versions), le plus de paires possible."""
+    n, m = len(fr), len(us)
+    best = [[(0, 0)] * (m + 1) for _ in range(n + 1)]   # (paires, -écart total)
+    for i in range(1, n + 1):
+        for j in range(1, m + 1):
+            v = max(best[i - 1][j], best[i][j - 1])
+            dt = abs(fr[i - 1][0] - us[j - 1][0])
+            if dt <= tol:
+                p, e = best[i - 1][j - 1]
+                v = max(v, (p + 1, e - dt))
+            best[i][j] = v
+    out, i, j = [], n, m
+    while i and j:
+        if best[i][j] == best[i - 1][j]:
+            i -= 1
+        elif best[i][j] == best[i][j - 1]:
+            j -= 1
+        else:
+            out.append((i - 1, j - 1))
+            i, j = i - 1, j - 1
+    return out[::-1]
+
+
+def split_timed(fr, us, fmt=VOICE):
+    """Textes FR (entrées (t, d, texte)) répartis sur les entrées US : groupes entre deux
+    entrées qui commencent ensemble, chacun redécoupé (codec_us.resegment). (textes, lignes max)."""
+    cuts = [(0, 0)] + [a for a in anchors(fr, us) if a != (0, 0)] + [(len(fr), len(us))]
+    groups = []
+    for (i0, j0), (i1, j1) in zip(cuts, cuts[1:]):
+        if groups and (i0 == i1 or j0 == j1):   # un côté vide : fondu dans le groupe d'avant
+            groups[-1] = (groups[-1][0], i1, groups[-1][2], j1)
+        else:
+            groups.append((i0, i1, j0, j1))
+    if groups and (groups[0][0] == groups[0][1] or groups[0][2] == groups[0][3]):
+        if len(groups) == 1:
+            return None, 0
+        (a, _, c, _), (_, b, _, d) = groups[0], groups[1]
+        groups[:2] = [(a, b, c, d)]
+    out, worst = [], 0
+    for i0, i1, j0, j1 in groups:
+        new, nl = codec_us.resegment([x for _, _, x in fr[i0:i1]], [x for _, _, x in us[j0:j1]], fmt)
+        if new is None:
+            return None, 0
+        out += new
+        worst = max(worst, nl)
+    return out, worst
+
+
 def plan(vu, vf, mapping, skip=()):
-    """Nouveaux sous-titres (textes FR encore en 1F xx) : {code US: [[(t, durée, texte)] par bloc]}."""
+    """Nouveaux sous-titres (textes FR encore en 1F xx) : {code US: [[(t, durée, texte)] par bloc]}.
+    Sert aussi pour DEMO.DAT (même format de banque ; code = secteur dans DEMO.DAT)."""
     out, stats = {}, Counter()
     for cu, cf in sorted(mapping.items()):
         if cu in skip:
@@ -70,7 +131,9 @@ def plan(vu, vf, mapping, skip=()):
         if not us or not fr:
             stats["sans sous-titres"] += 1
             continue
-        new, nl = codec_us.resegment([x for _, _, x in fr], [x for _, _, x, _ in us], VOICE)
+        new, nl = split_timed(fr, [(t, d, x) for t, d, x, _ in us])
+        if new is None or nl > VOICE[2]:
+            new, nl = codec_us.resegment([x for _, _, x in fr], [x for _, _, x, _ in us], VOICE)
         per = [[] for _ in blocks]
         if new is not None and nl <= VOICE[2]:
             for (t, d, _, n), x in zip(us, new):
@@ -99,14 +162,25 @@ COMPACT = [
 ]
 
 
-def encode(vu, code, per, accents):
+def encode(vu, code, per, accents, grow=False):
     """Banque US réécrite (sous-titres FR, accents en 80 xx), à la taille de ses secteurs ; si
-    elle déborde, textes compactés pas à pas (COMPACT). None si elle ne tient toujours pas."""
+    elle déborde, textes compactés pas à pas (COMPACT). Sinon : None, ou avec grow, la banque
+    entière non compactée (complétée au secteur), à poser ailleurs (relocate)."""
     for k in range(len(COMPACT) + 1):
         b = _encode(vu, code, [[(t, d, _compact(x, k)) for t, d, x in blk] for blk in per], accents)
         if b is not None:
             return b
+    if grow:
+        b = _encode(vu, code, per, accents, fit=False)
+        return b.ljust((len(b) + 2047) // 2048 * 2048, b"\0")
     return None
+
+
+def room(v, code):
+    """Place d'origine d'une banque : sa taille arrondie au secteur."""
+    lst = list(vox.blocks(v, code * 2048))
+    end = lst[-1][1] + lst[-1][2]
+    return (end - code * 2048 + 2047) // 2048 * 2048
 
 
 def _compact(x, k):
@@ -115,7 +189,7 @@ def _compact(x, k):
     return x
 
 
-def _encode(vu, code, per, accents):
+def _encode(vu, code, per, accents, fit=True):
     s = code * 2048
     lst = list(vox.blocks(vu, s))
     caps = [o for c, o, _ in lst if c == vox.CAPS1]
@@ -129,9 +203,13 @@ def _encode(vu, code, per, accents):
                 raise ValueError(f"banque {code:#x} : bloc de sous-titres de {len(blk)} octets")
             out += blk
         else:
+            if vu[o + 3]:
+                raise ValueError(f"banque {code:#x} : bloc {c:#x} de plus de 64 Ko")
             out += vu[o:o + size]
     end = lst[-1][1] + lst[-1][2]
     room = (end - s + 2047) // 2048 * 2048
+    if not fit:
+        return bytes(out)
     if len(out) > room:
         return None
     return bytes(out).ljust(room, b"\0")

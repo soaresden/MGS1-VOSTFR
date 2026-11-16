@@ -33,7 +33,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Page web : fabrication dans le navigateur, options à cocher, hors ligne possible | ✅ fait, mêmes images que Python octet pour octet |
 | Version USA (Rev 1, NTSC) + mods : toutes les options, CD Combiner compris | ✅ fait, tout testé dans PCSX-Redux : écran titre, Codec au Carré, vue subjective, L2/R2, M9 (garde endormi), PSG1 debout, bandana, barre de vie, porte à carte de la grotte, PSG1 dans la grotte puis combat contre Wolf ; image 1 CD : démarrage, fin du disque 1 enchaînée sur le disque 2, Codec du disque 2 |
 | Mods pour le **recomp PC** de MGS1 (USA, paquets `.psxmod`) | ✅ fait, testé dans le recomp (Windows) : écran titre « Shadow Fixes », Codec au Carré, M9, « SNAKE » dans la barre de vie ; disque 2 pas encore testé |
-| **Codec et voix en jeu en français sur la version USA** (voix US, textes FR, accents ajoutés à la police) : image PS1 (`tools/codec_us.py`) et case « French subtitles » du recomp PC | ✅ fait, testé : PCSX-Redux (premier Codec du quai, appel de Campbell au 140.85, Briefing) et recomp PC (premier Codec, Briefing) ; disque 2 généré mais pas testé en jeu ; cinématiques : pas encore |
+| **Codec, voix en jeu et cinématiques en français sur la version USA** (voix US, textes FR, accents ajoutés à la police) : image PS1 (`tools/codec_us.py`) et case « French subtitles » du recomp PC | ✅ fait, testé : PCSX-Redux (premier Codec du quai, appel de Campbell au 140.85, Briefing, cinématique d'intro) et recomp PC (premier Codec, Briefing, cinématique d'intro) ; disque 2 généré mais pas testé en jeu ; menus de l'EXE : pas encore |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Option `--combine` : les 2 disques en **une seule image** (émulateurs, son allégé) | ✅ fait, testé dans PCSX-Redux (intro, Codec des deux disques, passage au disque 2 depuis une sauvegarde, sans changer de disque) ; VOSTFR, VF et EN, toutes options |
 
@@ -197,18 +197,18 @@ Donne les **deux disques** : la table du test sonore du disque 2 sert aussi à a
 
 ```bash
 python psxmod.py --us1 US_D1.chd --us2 US_D2.chd      # -> work/psxmod/MGS1-Mods-USA-Disc1.psxmod et ...Disc2.psxmod
-python psxmod.py --us1 US_D1.chd --us2 US_D2.chd --fr1 FR_D1.chd --fr2 FR_D2.chd   # + Codec et voix en jeu en français
+python psxmod.py --us1 US_D1.chd --us2 US_D2.chd --fr1 FR_D1.chd --fr2 FR_D2.chd   # + Codec, voix en jeu et cinématiques en français
 ```
 
-- Avec les disques FR (`--fr1` / `--fr2`), une case de plus : **« French subtitles (Codec + in-game voices) »**, le Codec et les sous-titres des voix en jeu en français avec les voix US (voir « Codec en français sur la version USA » plus bas). Elle va avec toutes les autres cases.
+- Avec les disques FR (`--fr1` / `--fr2`), une case de plus : **« French subtitles (Codec, in-game voices, cutscenes) »**, le Codec, les voix en jeu et les cinématiques sous-titrés en français avec les voix US (voir « Codec en français sur la version USA » plus bas). Elle va avec toutes les autres cases.
 
 - Il faut les dumps **Redump** USA Rev 1 (le script vérifie le SHA-1) ; les paquets ne sont pas dans le dépôt, car ils contiennent des octets du jeu d'origine (les vérifications avant chaque patch).
 - Installer les deux paquets depuis le lanceur du recomp, puis **ne cocher que le paquet du disque monté** : le recomp refuse de démarrer si un paquet coché vise l'autre disque. Au changement de disque en cours de partie, les mods ne suivent pas : sauvegarder, relancer avec le disque 2, cocher le paquet du disque 2 et décocher celui du disque 1.
 - Le recomp demande le BIOS SCPH-1001 exact (SHA-256 `71af94d1…`). Le test a été fait avec un SCPH-5501 (USA), en changeant le BIOS dans `game.toml` et `CMakeLists.txt` du recomp : avec le bon SCPH-1001, rien à changer.
 
-![Écran titre « Shadow Fixes » dans le recomp PC](docs/previews/recomp_titre.png) ![M9 dans le recomp PC, « SNAKE » dans la barre de vie](docs/previews/recomp_m9.png) ![Le Codec en français dans le recomp PC](docs/previews/recomp_codec_fr.png) ![Le Briefing sous-titré en français dans le recomp PC](docs/previews/recomp_voix_fr.png)
+![Écran titre « Shadow Fixes » dans le recomp PC](docs/previews/recomp_titre.png) ![M9 dans le recomp PC, « SNAKE » dans la barre de vie](docs/previews/recomp_m9.png) ![Le Codec en français dans le recomp PC](docs/previews/recomp_codec_fr.png) ![Le Briefing sous-titré en français dans le recomp PC](docs/previews/recomp_voix_fr.png) ![La cinématique d'intro sous-titrée en français dans le recomp PC](docs/previews/recomp_cinematique_fr.png)
 
-Le Codec et les voix en jeu en français existent aussi en image PS1 USA (émulateur ou vraie console) :
+Le Codec, les voix en jeu et les cinématiques en français existent aussi en image PS1 USA (émulateur ou vraie console) :
 
 ```bash
 python tools/codec_us.py --us work/US1.bin --fr work/FR1.bin --out work/us_codec/US1.bin   # + US1.cue
@@ -231,7 +231,7 @@ Là, les doublages n'ont pas la même durée : `VOX.DAT` anglais fait 196 Mo con
 
 Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en allemand dans le disque FR) : elles restent en VF.
 
-### Codec et voix en jeu en français sur la version USA (`codec_us.py`, `vox_us.py`)
+### Codec, voix en jeu et cinématiques en français sur la version USA (`codec_us.py`, `vox_us.py`)
 
 La VOSTFR garde le jeu FR et lui rend les voix anglaises ; la version USA, elle, garde son jeu et ses voix et reçoit les textes du Codec FR :
 
@@ -239,9 +239,13 @@ La VOSTFR garde le jeu FR et lui rend les voix anglaises ; la version USA, elle,
 2. **Répliques** : pendant une voix, le Codec passe à la réplique suivante à chaque sous-titre de la banque VOX US. Le nombre de répliques US est donc gardé, et le texte FR est regroupé ou coupé aux fins de phrase pour tomber au plus près. Quand le français ne tient pas en 4 lignes, on garde les pages FR et on recale la banque VOX US (une entrée de sous-titre par page, minutage US réparti), à taille égale.
 3. **Accents** : l'EXE US ignore les codes `1F xx` de la VF, mais dessine déjà les codes `80 xx` avec sa police. On ajoute à la police US 15 lettres accentuées (é, è, à, ç, «, »…), dessinées à partir des lettres US.
 4. **Disque** : `RADIO.DAT` grossit (1,78 → 1,91 Mo) ; il va dans la zone vide `DUMMY3M.DAT` et son entrée de répertoire ISO pointe dessus. Les codes radio de `STAGE.DIR` (octet + nombre de secteurs) sont recalculés. Rien d'autre ne bouge : c'est ce qui permet d'en faire un `.psxmod`.
-5. **Voix en jeu** (Briefing, scènes avec les personnages, cris des gardes…) : les scripts US et FR lancent les mêmes voix dans le même ordre, stage par stage. Chaque banque VOX US garde son nombre de sous-titres et leurs horaires (des personnages des scènes attendent un nombre de sous-titres donné), et reçoit le texte FR redécoupé dessus, 2 lignes au plus. La banque grossit un peu mais reste à sa place, dans ses secteurs ; une seule (la scène du chef du DARPA) a dû être compactée (espaces en trop, retour à la ligne sur 1 octet). Disque 1 : 233 banques sous-titrées ; disque 2 : 112.
+5. **Voix en jeu** (Briefing, scènes avec les personnages, cris des gardes…) : les scripts US et FR lancent les mêmes voix dans le même ordre, stage par stage. Chaque banque VOX US garde son nombre de sous-titres et leurs horaires (des personnages des scènes attendent un nombre de sous-titres donné), et reçoit le texte FR redécoupé dessus, 2 lignes au plus. Les lignes sont équilibrées (pas de mot seul sur la 2e ligne). La banque grossit un peu ; si elle ne tient plus dans ses secteurs, on compacte d'abord le texte (espaces en trop, retour à la ligne sur 1 octet). Disque 1 : 233 banques sous-titrées ; disque 2 : 112.
+6. **Cinématiques** (`DEMO.DAT`) : les deux versions ont les mêmes cinématiques dans le même ordre (79 sur le disque 1, 40 sur le disque 2). Leurs données de scène diffèrent (NTSC 60 Hz contre PAL 50 Hz) : on garde les banques US et on ne remplace que leurs blocs de sous-titres. Les horaires US et FR sont proches : les sous-titres qui commencent ensemble servent de repères, et le texte FR est redécoupé entre deux repères. Disque 1 : 70 cinématiques sous-titrées ; disque 2 : 36.
+7. **Banques trop grosses** : une banque qui ne tient plus à sa place (même compactée) est posée dans `DUMMY3M.DAT`, juste après `RADIO.DAT`, et son code est réécrit dans `STAGE.DIR`. Disque 1 : la vidéo du Briefing de Liquid (VOX 0x1d1b) et une cinématique (0x8581) ; disque 2 : la même vidéo et une cinématique (0xd7f6). Vérifié dans PCSX-Redux en déplaçant exprès d'autres banques (le Briefing de Liquid, la cinématique d'intro).
 
-![Le Briefing sous-titré en français sur la version USA (PCSX-Redux)](docs/previews/us_voix_fr.png)
+![Le Briefing sous-titré en français sur la version USA (PCSX-Redux)](docs/previews/us_voix_fr.png) ![La cinématique d'intro sous-titrée en français sur la version USA (PCSX-Redux)](docs/previews/us_cinematique_fr.png)
+
+Les paquets `.psxmod` avec cette case pèsent 188 Mo (disque 1) et 135 Mo (disque 2) : un bloc de sous-titres qui grossit décale tout le son de sa banque, qu'il faut donc reprendre (une seule tranche par banque). Ils se fabriquent en local et ne sont pas publiés.
 
 ### Une seule image (`combine.py`)
 
@@ -290,9 +294,9 @@ Les versions du jeu sont dans `versions/` (un fichier par version : numéros des
 | `tools/psg1loup.py` | Code du mod `psg1loup` : le PSG1 dans la grotte, là où Meryl attendait, avant Sniper Wolf |
 | `tools/bandana.py` | Code du mod `bandana` : bandana visible, très long pan animé (comme MGS2) |
 | `tools/titre.py` | Code du mod `titre` : écran titre « Shadow Fixes », by Soaresden, v1.0 |
-| `tools/psxmod.py` | Nos mods USA en paquets `.psxmod` pour le recomp PC (un paquet par disque) ; avec les disques FR, le Codec et les voix en jeu en français |
-| `tools/codec_us.py` | Codec en français sur la version USA : `RADIO.DAT` reconstruit, codes radio, banques VOX recalées, image de test |
-| `tools/vox_us.py` | Sous-titres FR des voix en jeu sur la version USA (banques VOX US réécrites à leur place) |
+| `tools/psxmod.py` | Nos mods USA en paquets `.psxmod` pour le recomp PC (un paquet par disque) ; avec les disques FR, le Codec, les voix en jeu et les cinématiques en français |
+| `tools/codec_us.py` | Sous-titres FR sur la version USA : `RADIO.DAT` reconstruit, codes radio, banques VOX et DEMO réécrites ou déplacées, image de test |
+| `tools/vox_us.py` | Sous-titres FR des voix en jeu et des cinématiques sur la version USA (blocs de sous-titres des banques US réécrits) |
 | `tools/usfont.py` | Lettres accentuées ajoutées à la police US (codes `80 xx`) |
 | `tools/radiotree.py` | Fragments de `RADIO.DAT` en arbre (TALK, VOICE, IF, SWITCH…) pour les réécrire avec des tailles justes |
 | `tools/combine.py` | Les 2 disques en une seule image (son allégé, pas de changement de disque) ; aussi dans la page web (case « CD Combiner ») |

@@ -39,6 +39,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import numpy as np
 
+import gcx
 import psxiso
 import radiotree as rt
 import usfont
@@ -235,12 +236,51 @@ CODEC = (NL, (WIDTH, 40), LINES)  # format d'un TALK : retour à la ligne, large
 
 
 def layout(ws, fmt=CODEC):
-    """Lignes de la première largeur, d'une suivante si ça évite des lignes de trop."""
-    nl, widths, nmax = fmt
+    """Lignes de la première largeur, d'une suivante si ça évite des lignes de trop.
+    Format à 4 éléments (sous-titres) : le moins de lignes possible à la 2e largeur, coupées
+    là où les lignes sont le plus égales (pas de mot seul sur la 2e ligne)."""
+    nl, widths, nmax = fmt[:3]
+    if len(fmt) > 3:
+        n = len(wrap(ws, widths[1]))
+        if n > 1:
+            lines = balanced(ws, n, widths[-1]) or wrap(ws, widths[1])
+        else:
+            lines = [b" ".join(ws)]
+        return nl.join(lines), len(lines)
     lines = wrap(ws, widths[0])
     if len(lines) > nmax:
         lines = min((wrap(ws, w) for w in widths), key=len)
     return nl.join(lines), len(lines)
+
+
+def balanced(ws, n, wmax):
+    """ws en n lignes de wmax au plus, la plus longue la plus courte possible (coupe après une
+    ponctuation un peu favorisée). None si impossible."""
+    import functools
+
+    @functools.lru_cache(None)
+    def best(i, k):
+        if k == 1:
+            w = width(b" ".join(ws[i:]))
+            return (w, ()) if w <= wmax and i < len(ws) else None
+        out = None
+        for j in range(i + 1, len(ws)):
+            w = width(b" ".join(ws[i:j]))
+            if w > wmax:
+                break
+            r = best(j, k - 1)
+            if r is None:
+                continue
+            score = max(w, r[0]) - (3 if re.search(rb"[.,!?;:]$", ws[j - 1]) else 0)
+            if out is None or score < out[0]:
+                out = (score, (j,) + r[1])
+        return out
+
+    r = best(0, n)
+    if r is None:
+        return None
+    cuts = (0,) + r[1] + (len(ws),)
+    return [b" ".join(ws[a:b]) for a, b in zip(cuts, cuts[1:])]
 
 
 def units(talks):
@@ -352,8 +392,10 @@ def needed(frag, top):
 
 
 def build(us_bin, fr_bin, log=print, force=(), voices=True):
-    """Renvoie (RADIO.DAT, STAGE.DIR, {offset dans VOX.DAT: octets de banque réécrite}).
-    voices : sous-titres FR des voix en jeu aussi (vox_us.py)."""
+    """Renvoie {"radio": RADIO.DAT, "stage": STAGE.DIR, "vox": {offset dans VOX.DAT: banque},
+    "demo": {offset dans DEMO.DAT: banque}, "tail": banques déplacées (après RADIO.DAT, au
+    secteur suivant, dans la zone DUMMY3M.DAT)}.
+    voices : sous-titres FR des voix en jeu et des cinématiques aussi (vox_us.py)."""
     du, fus, st_us, r_us, codes_us, fu, sq_us = load(us_bin)
     df, ffs, _, _, _, ff, sq_fr = load(fr_bin)
     vu = bytes(du.read(*fus["MGS/VOX.DAT"]))
@@ -465,8 +507,14 @@ def build(us_bin, fr_bin, log=print, force=(), voices=True):
         vmap = vox_us.pair(st_us, vu, df.read(*ffs["MGS/STAGE.DIR"]), vf)
         vplan, vstats = vox_us.plan(vu, vf, vmap, skip=banks)
         log(f"  voix en jeu : {len(vmap)} banques appariées ; " + ", ".join(f"{k} {v}" for k, v in sorted(vstats.items())))
-    font, accents = usfont.extend(usfont.read_font(st_us),
-                                  usfont.used([c.text for c in talks] + (vox_us.texts(vplan) if voices else [])))
+        dm_u = bytes(du.read(*fus["MGS/DEMO.DAT"]))
+        dm_f = bytes(df.read(*ffs["MGS/DEMO.DAT"]))
+        dplan, dstats = vox_us.plan(dm_u, dm_f, vox_us.pair_demos(dm_u, dm_f))
+        log(f"  cinématiques : " + ", ".join(f"{k} {v}" for k, v in sorted(dstats.items())))
+    else:
+        dplan = {}
+    font, accents = usfont.extend(usfont.read_font(st_us), usfont.used(
+        [c.text for c in talks] + (vox_us.texts(vplan) + vox_us.texts(dplan) if voices else [])))
     for c in talks:
         if b"\x1f" in c.text:
             c.set_text(usfont.convert(c.text, accents))
@@ -491,6 +539,32 @@ def build(us_bin, fr_bin, log=print, force=(), voices=True):
         if o in new_code:
             struct.pack_into(">I", st, p + 1, new_code[o])
             n += 1
+    # banques réécrites à leur place ; trop grosses : déplacées après RADIO.DAT (zone DUMMY3M),
+    # leurs codes (secteur relatif au début de VOX.DAT / DEMO.DAT) réécrits dans STAGE.DIR
+    lba = {k: fus[f"MGS/{k}.DAT"][0] for k in ("VOX", "DEMO")}
+    dlba = fus["DUMMY3M.DAT"][0]
+    base = dlba + (len(out) + 2047) // 2048
+    demo, tail, moved = {}, bytearray(), {}
+    for kind, data, p_, dest in (("VOX", vu, vplan, banks), ("DEMO", dm_u if voices else b"", dplan, demo)):
+        for code, per in p_.items():
+            b = vox_us.encode(data, code, per, accents, grow=True)
+            if len(b) <= vox_us.room(data, code):
+                dest[code] = b
+                continue
+            moved[(kind.lower(), code)] = base + len(tail) // 2048 - lba[kind]
+            tail += b
+    if moved:
+        secs = {k: {s_ // 2048 for s_, _ in vox.banks(d_)} for k, d_ in (("vox", vu), ("demo", dm_u))}
+        nm = 0
+        for p, kind, _ in gcx.codes(st_us, secs["vox"], secs["demo"]):
+            v = struct.unpack_from(">I", st_us, p + 1)[0]
+            if (kind, v) in moved:
+                struct.pack_into(">I", st, p + 1, moved[(kind, v)])
+                nm += 1
+        log(f"  banques déplacées dans DUMMY3M : " + ", ".join(f"{k} {c:#x}" for k, c in moved)
+            + f" ({len(tail)} octets, {nm} codes réécrits)")
+    if (base - dlba) * 2048 + len(tail) > fus["DUMMY3M.DAT"][1]:
+        raise ValueError("RADIO.DAT + banques déplacées : trop gros pour DUMMY3M.DAT")
     st, pack, room = usfont.patch_stage(st, font)
     log(f"  police : {len(accents)} lettres accentuées ajoutées (pack résident {pack}/{room} octets)")
     tops = [c >> 24 for c in new_code.values()]
@@ -499,31 +573,30 @@ def build(us_bin, fr_bin, log=print, force=(), voices=True):
     log("  " + ", ".join(f"{k} {v}" for k, v in sorted(stats.items())))
     lines = Counter(len(SPLIT_LINES.split(c.text)) for c in talks)
     log(f"  lignes par TALK : {dict(sorted(lines.items()))}")
-    big = []
-    for code, per in vplan.items():
-        b = vox_us.encode(vu, code, per, accents)
-        if b is None:
-            big.append(code)
-        else:
-            banks[code] = b
-    if vplan:
-        log(f"  voix en jeu : {len(vplan) - len(big)} banques en FR"
-            + (f", trop grosses pour leur place (restées en anglais) : {', '.join(hex(c) for c in big)}" if big else ""))
-    return bytes(out), bytes(st), {code * 2048: b for code, b in sorted(banks.items())}
+    if voices:
+        log(f"  voix en jeu : {len(vplan)} banques en FR ; cinématiques : {len(dplan)}")
+    return {"radio": bytes(out), "stage": bytes(st), "tail": bytes(tail),
+            "vox": {code * 2048: b for code, b in sorted(banks.items())},
+            "demo": {code * 2048: b for code, b in sorted(demo.items())}}
 
 
-def write_image(us_bin, out_bin, radio, stage, vox_banks, log=print):
+def dummy_area(r):
+    """Ce qui va au début de DUMMY3M.DAT : RADIO.DAT, puis les banques déplacées."""
+    return r["radio"] + bytes(-len(r["radio"]) % 2048) + r["tail"]
+
+
+def write_image(us_bin, out_bin, r, log=print):
     shutil.copyfile(us_bin, out_bin)
     d = psxiso.Disc(out_bin)
     f = d.files()
     dlba, dsize = f["DUMMY3M.DAT"]
-    if len(radio) > dsize:
-        raise ValueError("RADIO.DAT trop gros pour DUMMY3M.DAT")
-    write_file_inplace(out_bin, f["MGS/STAGE.DIR"][0], stage)
-    write_file_inplace(out_bin, dlba, radio)
-    vlba = f["MGS/VOX.DAT"][0]
-    for off, data in vox_banks.items():
-        write_file_inplace(out_bin, vlba + off // 2048, data)
+    radio = r["radio"]
+    write_file_inplace(out_bin, f["MGS/STAGE.DIR"][0], r["stage"])
+    write_file_inplace(out_bin, dlba, dummy_area(r))
+    for k in ("VOX", "DEMO"):
+        flba = f[f"MGS/{k}.DAT"][0]
+        for off, data in r[k.lower()].items():
+            write_file_inplace(out_bin, flba + off // 2048, data)
     slba, off = radio_record(d)
     d.f.close()
     with open(out_bin, "r+b") as fh:
@@ -564,10 +637,10 @@ def main():
     ap.add_argument("--pages-fr", default="", help="test : codes VOX US (hex, virgules) forcés en pages FR")
     a = ap.parse_args()
     force = {int(x, 16) for x in a.pages_fr.split(",") if x}
-    radio, stage, banks = build(a.us, a.fr, force=force)
+    r = build(a.us, a.fr, force=force)
     if a.out:
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)
-        write_image(a.us, a.out, radio, stage, banks)
+        write_image(a.us, a.out, r)
         cue = Path(a.out).with_suffix(".cue")
         cue.write_text(f'FILE "{Path(a.out).name}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n')
 
