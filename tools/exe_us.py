@@ -7,7 +7,8 @@ Le jeu trouve ces textes par des tables de pointeurs (mêmes tables, même ordre
 EXE) : les textes FR (accents 1F xx -> 80 xx, usfont.py) vont à la place des textes US, et ce qui
 ne tient pas dans deux fonctions jamais appelées (ni par l'EXE ni par les overlays des deux
 disques) : la fin de 0x80081f24 (sub_8007F3F8 ; bandana.py en prend le début, 1092 octets) et
-0x8008f4d4 (variante de CdControl de libcd, 308 octets). Le texte « mode HARD » du détecteur de
+0x8008f4d4 (variante de CdControl de libcd, 308 octets ; ses 20 premiers octets : table des descriptions
+FR du mod m9, lue par m9.py, pour que les deux cases restent indépendantes). Le texte « mode HARD » du détecteur de
 mines est lu par un lui/addiu (0x8003da10) : réécrit aussi. Le chiffre du niveau de la carte PAN
 est écrit par le jeu dans le texte, à une position fixe (sb à 0x8003d9e8) : remis sur le « 1 »
 du texte FR.
@@ -61,8 +62,11 @@ def fr_bytes(s):
                 b = ch.encode("mac_roman")[0]
                 out += bytes([0x1F, b - 0x7F]) if b >= 0x80 else bytes([b])
     return bytes(out)
+# table des descriptions FR du mod m9 : repère, puis M9, PSG1-T, -, CLAY.ZZZ (rang = bit du mode), lue par m9.py
+FR_DESC, FR_DESC_MAGIC = 0x8008F4D4, b"FRDS"
 CAVES = [(0x80081F24 + 1120, 0x80082640),      # après le code du bandana (1092 octets)
-         (0x8008F4D4, 0x8008F608)]               # fonction de libcd jamais appelée
+         (FR_DESC + 20, 0x8008F608),             # fonction de libcd jamais appelée (après la table)
+         (0x80092A1C, 0x80092B28)]               # deux fonctions de la bibliothèque jamais appelées
 
 
 def _w(b, a):
@@ -97,10 +101,17 @@ def hard_text(exe_fr):
     return name[:name.index(TITLE)] + t[t.index(TITLE):]
 
 
+def m9_texts():
+    """Descriptions FR du mod m9 (M9, PSG1-T, CLAY.ZZZ), dans l'ordre de la table FR_DESC."""
+    import m9
+    return [b"\xb0\x14" + name.encode("ascii") + TITLE + NL + fr_bytes(" ".join(lines))
+            for name, lines in m9.DESCRIPTIONS["fr"].values()]
+
+
 def texts(exe_us, exe_fr):
     """Textes FR (avec leurs 1F xx) : pour choisir les accents de la police."""
     return ([sf for _, _, sf in slots(exe_us, exe_fr)] + [hard_text(exe_fr)]
-            + [fr_bytes(b) for _, b in REWRITES] + [y for _, y in FIXES])
+            + [fr_bytes(b) for _, b in REWRITES] + [y for _, y in FIXES] + m9_texts())
 
 
 def widths(font):
@@ -144,12 +155,14 @@ def layout(t, width, wmax=WMAX):
 
 
 def prepare(exe_us, exe_fr, accents, font):
-    """{texte US encodé : [entrées US (None = texte HARD)]}, nombre de descriptions remises en lignes."""
+    """{texte US encodé : [entrées US (None = texte HARD, entier k = description m9 n° k)]},
+    nombre de descriptions remises en lignes."""
     width = widths(font)
     card_slot = TABLES[0][1] + 4 * CARD_SLOT
     k = _w(exe_fr, CARD_SB_FR) & 0xFFFF
     want, wide = {}, 0
-    for a, _, sf in slots(exe_us, exe_fr) + [(None, None, hard_text(exe_fr))]:
+    extra = [(None, None, hard_text(exe_fr))] + [(k, None, x) for k, x in zip((1, 2, 4), m9_texts())]
+    for a, _, sf in slots(exe_us, exe_fr) + extra:
         t = sf
         if a == card_slot:
             if t[k:k + 1] != b"1":
@@ -213,6 +226,7 @@ def patch(exe_us, exe_fr, accents, font):
     where, compact = res
     for a, e in free:
         out[a - BASE:e - BASE] = bytes(e - a)
+    out[FR_DESC - BASE:FR_DESC + 4 - BASE] = FR_DESC_MAGIC
     used = 0
     for t, slots_ in want.items():
         a, b = where[t]
@@ -224,10 +238,12 @@ def patch(exe_us, exe_fr, accents, font):
             if any(lo <= a < hi for lo, hi in CAVES):
                 used += len(b) + 1
         for slot in slots_:
-            if slot is None:
+            if slot is not None and slot < 8:       # description du mod m9 : table FR_DESC
+                struct.pack_into("<I", out, FR_DESC + 4 * slot - BASE, a)
+            elif slot is None:
                 struct.pack_into("<I", out, HARD_LUI - BASE, 0x3C050000 | (a + 0x8000) >> 16)
                 struct.pack_into("<I", out, HARD_LUI + 4 - BASE, 0x24A50000 | a & 0xFFFF)
             else:
                 struct.pack_into("<I", out, slot - BASE, a)
-    return bytes(out), {"entrées": len(sl) + 1, "textes": len(want), "grottes": used,
+    return bytes(out), {"entrées": len(sl) + 4, "textes": len(want), "grottes": used,
                         "retour court": compact, "remises en lignes": wide}

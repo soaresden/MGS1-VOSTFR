@@ -34,7 +34,7 @@ Toutes les retouches vérifient les octets d'origine (motifs) avant d'écrire.
   python m9.py image.bin [image2.bin ...]     patch en place (images VOSTFR, FR ou UK d'origine)
 """
 
-import struct, sys
+import hashlib, struct, sys
 
 import mips, pal, psxiso
 from cdsector import write_file_inplace
@@ -42,6 +42,9 @@ from cdsector import write_file_inplace
 LOAD = 0x80010000  # adresse de chargement de l'EXE (en-tête PS-X EXE de 0x800 octets)
 CAVE, CAVE_END = 0x800447E4, 0x80045400  # suite : fps.py (0x80045400), carre.py (0x80045900), psg1.py (0x80045a08)
 CAVE2, CAVE2_END = 0x80045980, 0x80045A08  # 2e zone (chiens), fin de celle de carre.py
+# version USA seulement : fonction jamais appelée (ni par l'EXE ni par les overlays des deux disques),
+# pour lire la table des descriptions FR posée par exe_us.py (case « French texts » des .psxmod)
+US_FR_CAVE, US_FR_CAVE_END, US_FR_CAVE_SHA1 = 0x8009271C, 0x800927E4, "b2aa0423100ca6e782ae849f4a3270461241564e"
 
 SYM = dict(
     MODES=0x800B59E6,        # var_buf + 0x736 (GCL, sauvegardé, aucun script n'y touche) : bit 0 = M9,
@@ -856,6 +859,20 @@ def encode_desc(name, lines):
     return bytes(out) + b"\0"
 
 
+def fr_desc_src():
+    """Version USA : si exe_us.py a posé sa table (repère FRDS, puis les pointeurs des descriptions
+    FR du M9, du PSG1-T et de CLAY.ZZZ aux rangs 1, 2 et 4 = bit du mode), la description FR
+    remplace l'anglaise. m9 ne fait que lire la table : les deux cases restent indépendantes."""
+    import exe_us
+    a, magic = exe_us.FR_DESC, struct.unpack("<I", exe_us.FR_DESC_MAGIC)[0]
+    return (f"fr_desc:                        # v0 = bit du mode (1, 2 ou 4), a0 = texte anglais\n"
+            "    beqz v0, fr_desc_go            # arme sans mode tranquillisant : texte d'origine\n"
+            f"    lui t3, %hi({a:#x})\n    addiu t3, t3, %lo({a:#x})\n    lw t0, 0(t3)\n"
+            f"    lui t4, {magic >> 16:#x}\n    ori t4, t4, {magic & 0xFFFF:#x}\n"
+            "    bne t0, t4, fr_desc_go\n    sll t2, v0, 2\n    addu t3, t3, t2\n    lw a0, 0(t3)\n"
+            "    nop\nfr_desc_go:\n    j PRINT_DESC\n    nop\n")
+
+
 def build_cave(stage, sites, v="FR"):
     """Assemble le code ajouté, avec un relais par variante de soldat (voir scan_overlay)."""
     stubs = []
@@ -871,11 +888,13 @@ def build_cave(stage, sites, v="FR"):
     # gp+0x2f0/0x2f4 (description du menu) : décalages traduits pour la version (les mêmes en UK, pas en US)
     for off in (0x2F0, 0x2F4):
         cave_src = cave_src.replace(f"0x{off:X}(gp)", f"{pal.gp(v, off):#x}(gp)")
+    if v == "US":   # le saut vers menu_printDescription passe par la table des descriptions FR
+        cave_src = cave_src.replace("cave_desc_go:\n    j PRINT_DESC\n", "cave_desc_go:\n    j US_FR_CAVE\n")
     for key, (name, lines) in DESCRIPTIONS[pal.lang(v)].items():
         cave_src = cave_src.replace(key, "    .byte " + ", ".join(str(b) for b in encode_desc(name, lines)))
     src = "\n".join([cave_src + "    .byte " + ", ".join(str(b) for b in script), ".align 2"] + stubs) + "\n"
     sym = pal.syms(v, SYM)
-    sym.update(OVB=pal.ovb(v), **dog_offsets(stage, v))
+    sym.update(OVB=pal.ovb(v), US_FR_CAVE=US_FR_CAVE, **dog_offsets(stage, v))
     code, sym = mips.assemble(src, pal.addr(v, CAVE), sym)
     if CAVE + len(code) > CAVE_END:
         raise SystemExit(f"code M9 trop gros ({len(code)} octets)")
@@ -893,6 +912,13 @@ def patch_exe(exe, code, code2, sym, v="FR"):
     for zone, c in ((CAVE, code), (CAVE2, code2)):
         off = 0x800 + pal.addr(v, zone) - LOAD
         out[off:off + len(c)] = c
+    if v == "US":
+        lo, hi = 0x800 + US_FR_CAVE - LOAD, 0x800 + US_FR_CAVE_END - LOAD
+        if hashlib.sha1(exe[lo:hi]).hexdigest() != US_FR_CAVE_SHA1:
+            raise SystemExit("EXE US inattendu : zone des descriptions FR déjà utilisée ?")
+        c, _ = mips.assemble(fr_desc_src(), US_FR_CAVE, sym)
+        assert lo + len(c) <= hi
+        out[lo:lo + len(c)] = c
     for addr, orig, src in HOOKS:
         a = pal.addr(v, addr)
         new, _ = mips.assemble(src, a, sym)
