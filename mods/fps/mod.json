@@ -10,7 +10,8 @@
   "aide": "viser et tirer au SOCOM / M9 en vue subjective",
   "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
   ],
   "fr": "Viser en vue subjective",
   "en": "Aim in first-person view",

@@ -57,6 +57,14 @@ globalThis.MGS_MODS = {
     "1": "SLES_015.06",
     "2": "SLES_115.06"
    },
+   "exe": {
+    "1": [
+     "MGS/MGS1.EXE"
+    ],
+    "2": [
+     "MGS/MGS2.EXE"
+    ]
+   },
    "nomCourt": "VF",
    "langue": "fr",
    "disqueFr": "France",
@@ -85,6 +93,14 @@ globalThis.MGS_MODS = {
    "disques": {
     "1": "SLES_013.70",
     "2": "SLES_113.70"
+   },
+   "exe": {
+    "1": [
+     "MGS/MGS1.EXE"
+    ],
+    "2": [
+     "MGS/MGS2.EXE"
+    ]
    },
    "nomCourt": "EN",
    "langue": "en",
@@ -115,6 +131,59 @@ globalThis.MGS_MODS = {
     "The text added by the mods (weapon menu…) is in English."
    ],
    "version": true
+  },
+  {
+   "id": "US",
+   "disques": {
+    "1": "SLUS_005.94",
+    "2": "SLUS_007.76"
+   },
+   "exe": {
+    "1": [
+     "SLUS_005.94",
+     "MGS/SLUS_005.94"
+    ],
+    "2": [
+     "SLUS_007.76",
+     "MGS/SLUS_007.76"
+    ]
+   },
+   "nomCourt": "US",
+   "langue": "en",
+   "disqueFr": "USA",
+   "disqueEn": "USA",
+   "fr": "Version américaine d'origine",
+   "en": "Original US version",
+   "frS": "Voix et textes anglais, NTSC (60 Hz), avec tes mods. Disques USA (Rev 1) seulement.",
+   "enS": "English voices and text, NTSC (60 Hz), with your mods. US discs (Rev 1) only.",
+   "shots": [
+    [
+     "docs/previews/us_titre.png",
+     "Écran titre de la version USA, avec le mod « Shadow Fixes »",
+     "US title screen, with the \"Shadow Fixes\" mod"
+    ],
+    [
+     "docs/previews/us_codec.png",
+     "Codec en anglais (version USA)",
+     "Codec in English (US version)"
+    ],
+    [
+     "docs/previews/us_menu.png",
+     "Menu de la version USA",
+     "US version menu"
+    ]
+   ],
+   "fl": [
+    "Le jeu américain (Rev 1) tel quel, avec les mods cochés.",
+    "Les textes ajoutés par les mods (menu des armes…) sont en anglais.",
+    "NTSC : il faut une console ou un émulateur qui lit les jeux américains."
+   ],
+   "el": [
+    "The US game (Rev 1) as it is, with the ticked mods.",
+    "The text added by the mods (weapon menu…) is in English.",
+    "NTSC: needs a console or emulator that plays US games."
+   ],
+   "version": true
   }
  ],
  "mods": [
@@ -122,6 +191,10 @@ globalThis.MGS_MODS = {
    "id": "combine",
    "rang": 10,
    "type": "final",
+   "versions": [
+    "FR",
+    "UK"
+   ],
    "need2": true,
    "fr": "CD Combiner",
    "en": "CD Combiner",
@@ -190,7 +263,8 @@ globalThis.MGS_MODS = {
    "type": "option",
    "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
    ],
    "fr": "Carré fait défiler le Codec",
    "en": "Square skips through the Codec",
@@ -220,7 +294,8 @@ globalThis.MGS_MODS = {
    "type": "option",
    "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
    ],
    "fr": "Armes tranquillisantes",
    "en": "Tranquilizer weapons",
@@ -272,7 +347,8 @@ globalThis.MGS_MODS = {
    "type": "option",
    "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
    ],
    "fr": "Viser en vue subjective",
    "en": "Aim in first-person view",
@@ -307,7 +383,8 @@ globalThis.MGS_MODS = {
    "type": "option",
    "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
    ],
    "fr": "Se pencher avec L2 / R2",
    "en": "Lean with L2 / R2",
@@ -337,7 +414,8 @@ globalThis.MGS_MODS = {
    "type": "option",
    "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
    ],
    "fr": "PSG1 debout ou accroupi",
    "en": "PSG1 standing or crouching",
@@ -372,7 +450,8 @@ globalThis.MGS_MODS = {
    "type": "option",
    "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
    ],
    "off": true,
    "fr": "Bandana visible, façon MGS2",
@@ -408,7 +487,8 @@ globalThis.MGS_MODS = {
    "type": "option",
    "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
    ],
    "fr": "Portes à carte sans équiper la carte",
    "en": "Card doors without equipping the card",
@@ -448,7 +528,8 @@ globalThis.MGS_MODS = {
    "type": "option",
    "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
    ],
    "off": true,
    "fr": "PSG1 dans la grotte",
@@ -479,7 +560,8 @@ globalThis.MGS_MODS = {
    "type": "option",
    "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
    ],
    "fr": "Écran titre « Shadow Fixes »",
    "en": "\"Shadow Fixes\" title screen",
@@ -509,7 +591,8 @@ globalThis.MGS_MODS = {
    "type": "texte",
    "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
    ],
    "text": true,
    "fr": "Barre de vie : ton texte",
@@ -549,6 +632,8 @@ globalThis.MGS_MODS = {
   "SLES_015.06": "FR1",
   "SLES_115.06": "FR2",
   "SLES_013.70": "UK1",
-  "SLES_113.70": "UK2"
+  "SLES_113.70": "UK2",
+  "SLUS_005.94": "US1",
+  "SLUS_007.76": "US2"
  }
 };

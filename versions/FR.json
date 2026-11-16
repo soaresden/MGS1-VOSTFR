@@ -4,6 +4,14 @@
     "1": "SLES_015.06",
     "2": "SLES_115.06"
   },
+  "exe": {
+    "1": [
+      "MGS/MGS1.EXE"
+    ],
+    "2": [
+      "MGS/MGS2.EXE"
+    ]
+  },
   "nomCourt": "VF",
   "langue": "fr",
   "disqueFr": "France",

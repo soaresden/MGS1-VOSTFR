@@ -198,6 +198,15 @@ Un mod = `mods/<id>/mod.json` + `mods/<id>/patch.py` ; une version du jeu = `ver
 - build.py : `--jeu FR|UK` (= --vf / --vo), disques `--<version><n>` générés depuis versions/. webpatches.py vérifie l'additivité sur chaque paire et sur l'ensemble (plus toutes les combinaisons : 2^n).
 - Vérifié à la réorganisation : build.py avant / après, VOSTFR + toutes les options + life + combine, et --vo + toutes les options : images identiques.
 
+## Version USA (Rev 1, NTSC), depuis le 2026-11-16
+
+Disques de Denis : `D:\batocera\roms\psx\multicd\Metal Gear Solid (USA) (Disc 1|2) (Rev 1).chd` -> work/US1.bin, US2.bin. SLUS-00594 / SLUS-00776 ; **un seul EXE pour les deux disques** (même SHA-1), en deux copies identiques par disque : `SLUS_005.94` à la racine (démarré) et `MGS/SLUS_005.94` (disque 2 : SLUS_007.76) ; les deux sont patchées (versions/US.json, champ `exe`). Écran 224 lignes (images du titre plus basses : visage 116 x 181).
+- Code du même source que FR, compilation un peu différente : `pal_us.py` (palmap.py FR1 EXE -> US, argument `US`). palmap.py allonge maintenant les morceaux tant que les instructions masquées sont égales (extend) et ajoute les débuts de fonction retrouvés par les jal appariés (calls) : sans ça, GV_DestroyActor, GM_InitObjectNoRots et NewJirai restaient hors table. pal_uk.py régénéré : mêmes adresses pour tout ce qui était déjà couvert (patches.js FR/UK identique).
+- Décalages gp différents en US (gp+0x828 -> 0x89c, 0x814 -> 0x888, 0x2F0 -> 0x358, 0x2F4 -> 0x35c) : carre.py et m9.py les traduisent avec pal.gp() au lieu de l'assert « mêmes décalages ».
+- Tous les mods « option » et « texte » s'appliquent (US1/US2) ; CD Combiner pas porté (combine.py cherche MGS1.EXE / MGS2.EXE). VOSTFR avec les voix USA : pas fait (vostfr = FR + UK).
+- Testé dans PCSX-Redux (-cli, EMU_OUT **absolu**, sinon le journal du harnais part relatif au dossier de Redux) : intro, écran titre « Shadow Fixes » et menu, nouvelle partie Normal, premier Codec du quai passé au Carré, quai en jeu, vue subjective, R2 penche. Boutons US : START puis CIRCLE dans le menu (CROSS = retour). Pas encore testés en jeu : M9, PSG1, cartes, PSG1 grotte, bandana, barre de vie.
+- Vérifié : page = build.py (--jeu US, toutes les options + life) ; VF + toutes les options page = build.py après ces changements.
+
 ## Page web (fabrication dans le navigateur)
 
 - `index.html` (GitHub Pages) + `docs/mgs-vostfr.js` : portage JS fidèle de build.py (CHD avec LZMA/deflate maison, ISO, EDC/ECC, voxalign, vox_vostfr, isorebuild). Vérifié : images **identiques octet pour octet** à build.py, sans option et avec toutes les options (`node tools/webtest.js build --fr1 ... --out work/web_x [--carre ...]` puis `cmp`). ~4 min, ~1 Go de RAM sous Node.

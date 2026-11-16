@@ -4,6 +4,14 @@
     "1": "SLES_013.70",
     "2": "SLES_113.70"
   },
+  "exe": {
+    "1": [
+      "MGS/MGS1.EXE"
+    ],
+    "2": [
+      "MGS/MGS2.EXE"
+    ]
+  },
   "nomCourt": "EN",
   "langue": "en",
   "disqueFr": "Europe (anglais)",

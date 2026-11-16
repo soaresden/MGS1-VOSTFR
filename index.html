@@ -76,12 +76,12 @@
           text-align: center; cursor: pointer; background: var(--card2); font: 600 13.5px Inter, sans-serif; color: var(--blue-dk); }
   #drop:hover, #drop.over { border-color: var(--blue); background: var(--blue-lt); }
   #drop input { display: none; }
-  .slots { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+  .slots { display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, auto); grid-auto-columns: minmax(0, 1fr); gap: 6px; margin-top: 8px; }
   .slot { border: 1px solid var(--line); border-radius: 6px; padding: 5px 8px; background: #fff; min-width: 0; }
   .slot b { display: block; color: var(--title); font-weight: 600; font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .slot span { display: block; font: 11px var(--mono); color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .slot.ok { border-color: #7fb39a; background: #e6f4ec; } .slot.ok span { color: #17663f; }
-  @media (max-width: 700px) { .slots { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 700px) { .slots { grid-auto-flow: row; grid-template-rows: none; grid-template-columns: repeat(2, minmax(0, 1fr)); } }
   .hint { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
 
   /* étape 2 : les patchs, chacun avec son image */
@@ -314,8 +314,8 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
   var MODS = D.mods.map(function (m) { return Object.assign({}, m); });
   var SIDES = D.versions.filter(function (v) { return !v.besoin; });
   var slots = $('slots');
-  ['1', '2'].forEach(function (d) {
-    SIDES.forEach(function (v) {
+  SIDES.forEach(function (v) {  // une colonne par version (disque 1 au-dessus du disque 2), une rangée sur mobile
+    ['1', '2'].forEach(function (d) {
       var el = document.createElement('div'), n = v.disques[d].replace('_', '-').replace('.', '');
       el.className = 'slot'; el.id = 'slot-' + v.id + d;
       el.innerHTML = '<b>' + SBT(v.disqueFr + ' · disque ' + d, v.disqueEn + ' · disc ' + d) + '</b><span>' + n + '</span>';
@@ -361,8 +361,9 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
     return v.need.length > 1 ? both(v.need, '1') || both(v.need, '2') : has(v.need[0]);
   }
   function sideOf(version) { var v = VERSIONS.filter(function (x) { return x.id === version; })[0]; return v ? v.need[0] : 'FR'; }
+  function verOk(m) { return !m.versions || m.versions.indexOf(sideOf(st.version)) >= 0; }
   function modOk(m) {  // le mod existe-t-il pour la version choisie ?
-    if (m.soon) return false;
+    if (m.soon || !verOk(m)) return false;
     if (m.need2) {  // CD Combiner : les deux disques de la version
       if (!any()) return true;
       var v = curV();
@@ -420,7 +421,7 @@ python build.py --carre --m9 --psg1 --l2r2 --fps \
       var d = box.querySelector('[data-id="' + m.id + '"]'), ok = modOk(m), inp = d.querySelector('input');
       inp.checked = ok && st.mods[m.id]; inp.disabled = !ok;
       d.classList.toggle('na', !ok);
-      d.querySelector('.na-tag').textContent = m.soon ? SBT('bientôt', 'soon') : m.need2 ? SBT('il faut les 2 disques', 'needs both discs') : SBT('bientôt en anglais', 'soon in English');
+      d.querySelector('.na-tag').textContent = m.soon ? SBT('bientôt', 'soon') : !verOk(m) ? SBT('pas encore pour cette version', 'not yet for this version') : m.need2 ? SBT('il faut les 2 disques', 'needs both discs') : SBT('pas encore pour cette version', 'not yet for this version');
       if (m.text) {
         d.querySelector('.txt').disabled = !ok;
         d.querySelector('.err').textContent = lifeError() || '';

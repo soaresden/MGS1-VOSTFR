@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 """
 pal.py - Versions de l'EXE gérées par les patchs : PAL France (SLES-01506/11506, adresses de
-référence des patchs) et PAL Europe anglaise (SLES-01370/11370).
+référence des patchs), PAL Europe anglaise (SLES-01370/11370) et NTSC USA (SLUS-00594/00776, Rev 1).
 
-Les patchs sont écrits avec les adresses de la version française ; pour la version anglaise,
-addr() les traduit avec la table de pal_uk.py (générée par palmap.py : code et données décalés
-par morceaux, même compilation). Les octets d'origine sont vérifiés instruction par instruction
+Les patchs sont écrits avec les adresses de la version française ; pour les autres versions,
+addr() les traduit avec la table de pal_uk.py / pal_us.py (générées par palmap.py : code et
+données décalés par morceaux, même code source). Les octets d'origine sont vérifiés instruction par instruction
 sans les champs qui dépendent des adresses, et les cibles de jal/j exactement.
 """
 
 import hashlib, struct
 
-import pal_uk
+import pal_uk, pal_us
 
 LOAD = 0x80010000
 FR_SIG = "afa7b2e0ba7a6157ced6d66afaa17be8be0e77a1"   # SHA-1 de exe[0x800:0x1000] (textes du début)
@@ -25,44 +25,46 @@ class VersionError(SystemExit):
 
 
 def version(exe):
-    """'FR' ou 'UK' ; exception claire pour une autre version (US, japonaise...)."""
+    """'FR', 'UK' ou 'US' ; exception claire pour une autre version (japonaise...)."""
     s = hashlib.sha1(exe[0x800:0x1000]).hexdigest()
     if s == FR_SIG:
         return "FR"
-    if s == pal_uk.SIG:
-        return "UK"
-    raise VersionError("EXE non reconnu : il faut Metal Gear Solid PAL France (SLES-01506/11506) "
-                       "ou PAL Europe anglaise (SLES-01370/11370)")
+    for v, t in TABLES.items():
+        if s == t.SIG:
+            return v
+    raise VersionError("EXE non reconnu : il faut Metal Gear Solid PAL France (SLES-01506/11506), "
+                       "PAL Europe anglaise (SLES-01370/11370) ou USA Rev 1 (SLUS-00594/00776)")
 
 
-def lookup(tab, a, data=False):
-    for seg in ([] if data else tab["CODE"]) + tab["DATA"]:
+TABLES = {"UK": pal_uk, "US": pal_us}
+
+
+def lookup(v, a, data=False):
+    t = TABLES[v]
+    for seg in ([] if data else t.CODE) + t.DATA:
         if seg[0] <= a < seg[1]:
             return a + seg[2]
-    raise VersionError(f"adresse {a:08x} sans équivalent connu dans la version anglaise (palmap.py)")
-
-
-UK = dict(CODE=pal_uk.CODE, DATA=pal_uk.DATA)
+    raise VersionError(f"adresse {a:08x} sans équivalent connu dans la version {v} (palmap.py)")
 
 
 def addr(v, a):
     """Adresse de la version française -> même adresse dans la version v."""
-    return a if v == "FR" else lookup(UK, a)
+    return a if v == "FR" else lookup(v, a)
 
 
 def daddr(v, a):
     """Idem pour une donnée (variable, table)."""
-    return a if v == "FR" else lookup(UK, a, data=True)
+    return a if v == "FR" else lookup(v, a, data=True)
 
 
 def gp(v, off):
     """Décalage relatif à gp de la version française -> version v."""
-    return off if v == "FR" else lookup(UK, pal_uk.GP_FR + off, data=True) - pal_uk.GP
+    return off if v == "FR" else lookup(v, TABLES[v].GP_FR + off, data=True) - TABLES[v].GP
 
 
 def ovb(v):
     """Adresse de chargement des overlays de stage."""
-    return FR_OVB if v == "FR" else pal_uk.OVB
+    return FR_OVB if v == "FR" else TABLES[v].OVB
 
 
 def syms(v, d):
@@ -76,7 +78,7 @@ def cave_ok(v, exe, lo, hi, fr_sha):
     """La zone de code ajouté [lo, hi) (adresses françaises) a-t-elle ses octets d'origine ?"""
     a, b = addr(v, lo), addr(v, hi - 4) + 4
     sha = hashlib.sha1(exe[0x800 + a - LOAD:0x800 + b - LOAD]).hexdigest()
-    return sha == (fr_sha if v == "FR" else pal_uk.CAVE_SHA1[lo])
+    return sha == (fr_sha if v == "FR" else TABLES[v].CAVE_SHA1[lo])
 
 
 def mask(x):

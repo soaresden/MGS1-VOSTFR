@@ -868,8 +868,9 @@ def build_cave(stage, sites, v="FR"):
                   "    j cave_piyo", f"    li t8, {t}"]
     script = zzz_script(stage, pal.ovb(v))
     cave_src = CAVE_SRC
-    # gp+0x2f0/0x2f4 (description du menu) : mêmes décalages dans les deux versions
-    assert pal.gp(v, 0x2F0) == 0x2F0 and pal.gp(v, 0x2F4) == 0x2F4
+    # gp+0x2f0/0x2f4 (description du menu) : décalages traduits pour la version (les mêmes en UK, pas en US)
+    for off in (0x2F0, 0x2F4):
+        cave_src = cave_src.replace(f"0x{off:X}(gp)", f"{pal.gp(v, off):#x}(gp)")
     for key, (name, lines) in DESCRIPTIONS[pal.lang(v)].items():
         cave_src = cave_src.replace(key, "    .byte " + ", ".join(str(b) for b in encode_desc(name, lines)))
     src = "\n".join([cave_src + "    .byte " + ", ".join(str(b) for b in script), ".align 2"] + stubs) + "\n"

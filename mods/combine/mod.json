@@ -5,6 +5,10 @@
   "type": "final",
   "cli": "combine",
   "aide": "aussi les 2 disques en une seule image (émulateurs, son allégé)",
+  "versions": [
+    "FR",
+    "UK"
+  ],
   "need2": true,
   "fr": "CD Combiner",
   "en": "CD Combiner",

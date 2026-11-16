@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """
-palmap.py - Outil de développement : correspondance d'adresses EXE PAL France -> PAL Europe (UK).
+palmap.py - Outil de développement : correspondance d'adresses EXE PAL France -> autre version
+(PAL Europe anglaise « UK », NTSC USA « US »).
 
-Les deux EXE viennent de la même compilation, seuls les textes changent de longueur : le code
-et les données sont décalés par morceaux. On compare les instructions en masquant ce qui dépend
+Les EXE viennent du même code (la version USA est une compilation un peu différente), les
+textes changent de longueur : le code et les données sont décalés par morceaux. On compare les instructions en masquant ce qui dépend
 des adresses (cibles de jal/j, immédiats de lui/addiu/lw/sw...) : chaque fenêtre de 8 instructions
 masquées présente une seule fois dans les deux EXE donne une ancre. Les données sont retrouvées
 par les références du code (paires lui + addiu/lw/sw, accès relatifs à gp).
 
-Écrit tools/pal_uk.py (segments de code et de données, gp, base des overlays, SHA-1 des zones
+Écrit tools/pal_uk.py ou pal_us.py (segments de code et de données, gp, base des overlays, SHA-1 des zones
 de code ajouté), utilisé par pal.py. À relancer si un patch utilise une adresse hors des segments.
 
-  python palmap.py work/FR1/MGS/MGS1.EXE work/UK1/MGS/MGS1.EXE
+  python palmap.py work/FR1/MGS/MGS1.EXE work/UK1/MGS/MGS1.EXE          -> pal_uk.py
+  python palmap.py work/FR1/MGS/MGS1.EXE work/US1/SLUS_005.94 US      -> pal_us.py
 """
 
 import collections, hashlib, struct, sys
@@ -29,7 +31,7 @@ LOADST = {0x09, 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x28, 0x29, 0x2A, 0x2B
 CAVES = [(0x800447E4, 0x80045400), (0x80045400, 0x80045834), (0x80045834, 0x80045900),
          (0x80045900, 0x80045980), (0x80045980, 0x80045A08), (0x80045A08, 0x80045BB8), (0x80045BB8, 0x80045C08),
          (0x80080B28, 0x80081244)]
-OUT = Path(__file__).resolve().parent / "pal_uk.py"
+HERE = Path(__file__).resolve().parent
 
 
 def words(d):
@@ -112,6 +114,44 @@ def fill(fr, uk, code, data):
     return [tuple(x) for x in out]
 
 
+def extend(MF, MU, code):
+    """Allonge chaque morceau, avant et après, tant que les instructions masquées sont les mêmes
+    (les fenêtres de K instructions s'arrêtent avant une différence : un début de fonction juste
+    après du code modifié, comme NewJirai en version USA, restait en dehors)."""
+    out = []
+    for n, (a, b, d) in enumerate(code):
+        lo = out[-1][1] if out else CODE_START
+        hi = code[n + 1][0] if n + 1 < len(code) else B + 4 * len(MF)
+        i, j = (a - B) // 4, (b - B) // 4
+        while B + 4 * (i - 1) >= lo and 0 <= i - 1 + d // 4 < len(MU) and MF[i - 1] == MU[i - 1 + d // 4]:
+            i -= 1
+        while B + 4 * j < hi and j + d // 4 < len(MU) and MF[j] == MU[j + d // 4]:
+            j += 1
+        out.append((B + 4 * i, B + 4 * j, d))
+    return out
+
+
+def calls(F, U, imap, code):
+    """Débuts de fonction hors des morceaux (code un peu différent autour, version USA) : retrouvés
+    par les jal appariés (jal X dans un morceau <-> jal Y à la place correspondante) ; un seul
+    mot (le début de la fonction), pour les appels et les symboles des patchs."""
+    tab = dict(CODE=code, DATA=[])
+    tgt = collections.defaultdict(collections.Counter)
+    for i, j in imap.items():
+        if F[i] >> 26 == 3 and U[j] >> 26 == 3:
+            tgt[B & 0xF0000000 | (F[i] & 0x3FFFFFF) << 2][B & 0xF0000000 | (U[j] & 0x3FFFFFF) << 2] += 1
+    out = []
+    for a, c in sorted(tgt.items()):
+        (b, n), = c.most_common(1)
+        if n < 2 or n < sum(c.values()) * 0.9:
+            continue   # appariement douteux
+        try:
+            lookup(tab, a)
+        except SystemExit:
+            out.append((a, a + 4, b - a))
+    return out
+
+
 def build(fr, uk):
     F, U = words(fr), words(uk)
     MF, MU = [mask(x) for x in F], [mask(x) for x in U]
@@ -126,6 +166,7 @@ def build(fr, uk):
                 imap.setdefault(i + k, h[0] + k)
     code = [c for c in segments(sorted((B + 4 * i, B + 4 * j) for i, j in imap.items()))
             if c[1] - c[0] >= 0x80 and c[0] >= CODE_START]   # pas de faux morceaux dans les textes
+    code = sorted(extend(MF, MU, code) + calls(F, U, imap, code))
 
     data = collections.defaultdict(collections.Counter)
     for i in range(len(F) - 8):
@@ -156,22 +197,24 @@ def build(fr, uk):
 
 def main():
     fr, uk = (open(p, "rb").read() for p in sys.argv[1:3])
+    ver = sys.argv[3] if len(sys.argv) > 3 else "UK"
+    out = HERE / f"pal_{ver.lower()}.py"
     code, data, gpf, gpu = build(fr, uk)
     tab = dict(CODE=code, DATA=data)
     caves = {}
     for lo, hi in CAVES:
         a, b = lookup(tab, lo), lookup(tab, hi - 4) + 4
         if b - a != hi - lo:
-            raise SystemExit(f"zone {lo:08x} : taille différente en UK")
+            raise SystemExit(f"zone {lo:08x} : taille différente en {ver}")
         caves[f"{lo:08X}"] = hashlib.sha1(uk[0x800 + a - B:0x800 + b - B]).hexdigest()
-    lines = ['"""Table générée par palmap.py : EXE PAL France -> PAL Europe (UK). Ne pas modifier à la main."""',
+    lines = [f'"""Table générée par palmap.py : EXE PAL France -> {ver}. Ne pas modifier à la main."""',
              "", f"SIG = {hashlib.sha1(uk[0x800:0x1000]).hexdigest()!r}", f"GP = 0x{gpu:08X}",
              f"GP_FR = 0x{gpf:08X}", f"OVB = 0x{lookup(tab, 0x800C47D8, data=True):08X}",
              "CAVE_SHA1 = {"] + [f"    0x{k}: {v!r}," for k, v in caves.items()] + ["}", "CODE = ["]
     lines += [f"    (0x{a:08X}, 0x{b:08X}, {d}),"for a, b, d in code] + ["]", "DATA = ["]
     lines += [f"    (0x{a:08X}, 0x{b:08X}, {d}),"for a, b, d in data] + ["]", ""]
-    OUT.write_text("\n".join(lines), encoding="utf-8")
-    print(f"{OUT.name} : {len(code)} segments de code, {len(data)} de données, gp {gpf:08x} -> {gpu:08x}")
+    out.write_text("\n".join(lines), encoding="utf-8")
+    print(f"{out.name} : {len(code)} segments de code, {len(data)} de données, gp {gpf:08x} -> {gpu:08x}")
 
 
 if __name__ == "__main__":

@@ -1577,7 +1577,7 @@
       var pd = PATCHES && PATCHES.discs[side + d];
       if (!pd) throw new Error('patches.js manquant');
       log('Disque ' + d);
-      var files = await fr.files(), exeName = files.has('MGS/MGS1.EXE') ? 'MGS/MGS1.EXE' : 'MGS/MGS2.EXE';
+      var exeName = pd.exe, exes = pd.exes || [pd.exe];  // version USA : deux copies identiques de l'EXE
       var exe = await fr.readFile(exeName);
       if (crc32(exe) !== pd.exeCrc) throw new Error('disque ' + d + ' : version du jeu inattendue');
       var rep = new Map(), stage = null;
@@ -1595,7 +1595,7 @@
         log('  option ' + o);
       }
       if (life) { applyLife(exe, pd, life); log('  barre de vie'); }
-      rep.set(exeName, exe);
+      exes.forEach(function (n) { rep.set(n, exe); });
       if (stage) rep.set('MGS/STAGE.DIR', stage);
       var name = 'Metal Gear Solid (' + tag + ') (Disc ' + d + ')';
       var writer = await openWriter(name + '.bin');

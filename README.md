@@ -31,6 +31,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--bandana` : le bandana se voit, avec un très long pan qui flotte derrière Snake (comme dans MGS2) | ✅ prototype, testé (Snowfield FR et anglais, Blast Furnace : pan au repos, en course, équiper / déséquiper) |
 | Option `--titre` : écran titre « METAL GEAR SOLID - SHADOW FIXES », by Soaresden, v1.0 | ✅ fait, testé (écran « PRESS START BUTTON » et menu) |
 | Page web : fabrication dans le navigateur, options à cocher, hors ligne possible | ✅ fait, mêmes images que Python octet pour octet |
+| Version USA (Rev 1, NTSC) + mods : toutes les options sauf le CD Combiner | ✅ fait, testé dans PCSX-Redux (écran titre, menu, Codec au Carré, vue subjective, L2/R2) ; M9, PSG1, cartes, grotte et bandana pas encore testés en jeu |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Option `--combine` : les 2 disques en **une seule image** (émulateurs, son allégé) | ✅ fait, testé dans PCSX-Redux (intro, Codec des deux disques, passage au disque 2 depuis une sauvegarde, sans changer de disque) ; VOSTFR, VF et EN, toutes options |
 
@@ -40,6 +41,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 |---|---|---|
 | France | SLES-01506 | SLES-11506 |
 | Europe (anglais) | SLES-01370 | SLES-11370 |
+| USA (Rev 1), mods seulement | SLUS-00594 | SLUS-00776 |
 
 En CHD (comme dans Batocera) ou en BIN/CUE. Pas besoin de chdman : le CHD est lu directement en Python, et le SHA-1 brut est vérifié.
 
@@ -47,17 +49,17 @@ En CHD (comme dans Batocera) ou en BIN/CUE. Pas besoin de chdman : le CHD est lu
 
 ### Le plus simple : la page web
 
-**[soaresden.github.io/MGS1-VOSTFR](https://soaresden.github.io/MGS1-VOSTFR/#fabriquer)** : balance tes disques (CHD ou BIN), choisis la version et les options, et la page fabrique les images **dans ton navigateur**. Trois versions au choix : **VOSTFR** (disques français + européens), **version française d'origine + mods** (disques français seuls) ou **version anglaise d'origine + mods** (disques européens seuls ; textes ajoutés au menu des armes en anglais). Rien n'est envoyé : tout se passe sur ton ordinateur, et les images sont écrites dans le dossier que tu choisis (Chrome ou Edge conseillé, environ 3 Go de mémoire libre, quelques minutes).
+**[soaresden.github.io/MGS1-VOSTFR](https://soaresden.github.io/MGS1-VOSTFR/#fabriquer)** : balance tes disques (CHD ou BIN), choisis la version et les options, et la page fabrique les images **dans ton navigateur**. Quatre versions au choix : **VOSTFR** (disques français + européens), **version française d'origine + mods** (disques français seuls) **version anglaise d'origine + mods** (disques européens seuls ; textes ajoutés au menu des armes en anglais) ou **version américaine d'origine + mods** (disques USA Rev 1 seuls, NTSC). Rien n'est envoyé : tout se passe sur ton ordinateur, et les images sont écrites dans le dossier que tu choisis (Chrome ou Edge conseillé, environ 3 Go de mémoire libre, quelques minutes).
 
 La page marche aussi **hors ligne** : télécharge le projet ([zip](https://github.com/soaresden/MGS1-VOSTFR/archive/refs/heads/main.zip)), décompresse-le et double-clique sur `index.html`.
 
-Elle utilise `docs/mgs-vostfr.js`, un portage en JavaScript des scripts Python : sur les mêmes disques, les images sont **identiques octet pour octet** à celles de `build.py` (vérifié avec `tools/webtest.js`). Les options y sont des différences d'octets exportées par `tools/webpatches.py` vers `docs/patches.js` : **à relancer après chaque modification d'une option** (`python tools/webpatches.py work/FR1.bin work/FR2.bin work/UK1.bin work/UK2.bin`). La liste des options, leurs textes et leurs captures viennent de `docs/mods.js`, généré par `python tools/mods.py` (voir « Les mods » plus bas).
+Elle utilise `docs/mgs-vostfr.js`, un portage en JavaScript des scripts Python : sur les mêmes disques, les images sont **identiques octet pour octet** à celles de `build.py` (vérifié avec `tools/webtest.js`). Les options y sont des différences d'octets exportées par `tools/webpatches.py` vers `docs/patches.js` : **à relancer après chaque modification d'une option** (`python tools/webpatches.py work/FR1.bin work/FR2.bin work/UK1.bin work/UK2.bin work/US1.bin work/US2.bin`). La liste des options, leurs textes et leurs captures viennent de `docs/mods.js`, généré par `python tools/mods.py` (voir « Les mods » plus bas).
 
 ### En ligne de commande
 
 Python 3.10+ avec `numpy`.
 
-Sans VOSTFR, juste les mods sur ton jeu d'origine : `--jeu FR` (disques français, `--fr1/--fr2` ; ou `--vf`) ou `--jeu UK` (disques européens anglais, `--uk1/--uk2` ; ou `--vo`), avec au moins une option. Exemple : `python build.py --jeu FR --m9 --fps --fr1 ... --fr2 ... --out ../work/out` donne `Metal Gear Solid (VF) (Disc 1/2)`. `python build.py -h` liste toutes les options (une par dossier de `mods/`).
+Sans VOSTFR, juste les mods sur ton jeu d'origine : `--jeu FR` (disques français, `--fr1/--fr2` ; ou `--vf`) `--jeu UK` (disques européens anglais, `--uk1/--uk2` ; ou `--vo`) ou `--jeu US` (disques USA Rev 1, `--us1/--us2`), avec au moins une option. Exemple : `python build.py --jeu FR --m9 --fps --fr1 ... --fr2 ... --out ../work/out` donne `Metal Gear Solid (VF) (Disc 1/2)`. `python build.py -h` liste toutes les options (une par dossier de `mods/`).
 
 ```bash
 cd tools
@@ -222,7 +224,7 @@ Chaque mod est un dossier `mods/<id>/`, la VOSTFR comprise :
 
 Types : `option` (octets de l'EXE et/ou de `STAGE.DIR`), `texte` (pareil, avec un texte : la barre de vie), `base` (la VOSTFR, qui reconstruit `DEMO.DAT`, `VOX.DAT` et `RADIO.DAT`), `final` (sur les images finies : le CD Combiner).
 
-Les versions du jeu sont dans `versions/` (un fichier par version : numéros des disques, nom court, textes de la page). Aujourd'hui : France (`FR`) et Europe anglaise (`UK`). Un mod dit dans son `mod.json` quelles versions il gère ; la page grise un mod qui ne gère pas les disques déposés.
+Les versions du jeu sont dans `versions/` (un fichier par version : numéros des disques, nom court, textes de la page). Aujourd'hui : France (`FR`), Europe anglaise (`UK`) et USA Rev 1 (`US`, NTSC ; l'EXE y est en deux copies identiques, `SLUS_005.94` à la racine et dans `MGS/`, toutes deux patchées). Un mod dit dans son `mod.json` quelles versions il gère ; la page grise un mod qui ne gère pas les disques déposés.
 
 `build.py`, `webpatches.py`, `webtest.js` et la page lisent ces dossiers : **ajouter un mod = ajouter un dossier**, puis `python tools/mods.py` (page) et `python tools/webpatches.py ...` (patchs de la page).
 
@@ -255,6 +257,6 @@ Les versions du jeu sont dans `versions/` (un fichier par version : numéros des
 | `tools/spuadpcm.py` | ADPCM du SPU : décodage, encodage, rééchantillonnage entier |
 | `tools/gcx.py` | Lecture exacte des scripts GCX de `STAGE.DIR` (codes des voix et des cinématiques) |
 | `tools/mips.py` | Petit assembleur MIPS (R3000) pour les patchs |
-| `tools/pal.py` | Version de l'EXE (PAL France ou PAL Europe anglaise) et traduction des adresses des patchs |
-| `tools/palmap.py` | Outil de développement : génère `tools/pal_uk.py` (adresses FR → UK) |
+| `tools/pal.py` | Version de l'EXE (PAL France, PAL Europe anglaise ou USA) et traduction des adresses des patchs |
+| `tools/palmap.py` | Outil de développement : génère `tools/pal_uk.py` et `tools/pal_us.py` (adresses FR → UK, FR → US) |
 | `tools/emu.py`, `tools/emu_drive.lua` | Test automatique dans PCSX-Redux (captures d'écran) |

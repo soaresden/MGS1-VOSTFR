@@ -1,0 +1,52 @@
+{
+  "id": "US",
+  "disques": {
+    "1": "SLUS_005.94",
+    "2": "SLUS_007.76"
+  },
+  "exe": {
+    "1": [
+      "SLUS_005.94",
+      "MGS/SLUS_005.94"
+    ],
+    "2": [
+      "SLUS_007.76",
+      "MGS/SLUS_007.76"
+    ]
+  },
+  "nomCourt": "US",
+  "langue": "en",
+  "disqueFr": "USA",
+  "disqueEn": "USA",
+  "fr": "Version américaine d'origine",
+  "en": "Original US version",
+  "frS": "Voix et textes anglais, NTSC (60 Hz), avec tes mods. Disques USA (Rev 1) seulement.",
+  "enS": "English voices and text, NTSC (60 Hz), with your mods. US discs (Rev 1) only.",
+  "shots": [
+    [
+      "docs/previews/us_titre.png",
+      "Écran titre de la version USA, avec le mod « Shadow Fixes »",
+      "US title screen, with the \"Shadow Fixes\" mod"
+    ],
+    [
+      "docs/previews/us_codec.png",
+      "Codec en anglais (version USA)",
+      "Codec in English (US version)"
+    ],
+    [
+      "docs/previews/us_menu.png",
+      "Menu de la version USA",
+      "US version menu"
+    ]
+  ],
+  "fl": [
+    "Le jeu américain (Rev 1) tel quel, avec les mods cochés.",
+    "Les textes ajoutés par les mods (menu des armes…) sont en anglais.",
+    "NTSC : il faut une console ou un émulateur qui lit les jeux américains."
+  ],
+  "el": [
+    "The US game (Rev 1) as it is, with the ticked mods.",
+    "The text added by the mods (weapon menu…) is in English.",
+    "NTSC: needs a console or emulator that plays US games."
+  ]
+}

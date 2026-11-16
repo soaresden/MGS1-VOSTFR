@@ -10,7 +10,7 @@ Retouches (même nombre de secteurs pour le DAR, STAGE.DIR ne change pas de tail
 - logo (PCX 0x26F0, 230 x 45, 8 bits) : la bande claire sous « METAL GEAR », qui portait
   « S O L I D », porte « SOLID - SHADOW FIXES » (lettres refaites, mêmes couleurs : dégradé des
   index 17-30, une couleur par rangée) ;
-- visage de Snake (PCX 0xC76A, 116 x 206, 8 bits, au centre de l'écran) : « by Soaresden  v1.0 »
+- visage de Snake (PCX 0xC76A, 116 x 206, 8 bits, au centre de l'écran ; 116 x 181 en NTSC USA) : « by Soaresden  v1.0 »
   juste au-dessus du menu (NEW GAME / PRESS START BUTTON), en rose (la couleur la plus claire de l'image) cerné de
   sombre.
 Les polices viennent de Windows (Arial gras, graissé d'un pixel pour la bande), rendues sans lissage.
@@ -144,13 +144,13 @@ def patch_logo(b):
 
 def patch_face(b):
     w, h, pix, _ = pcx_decode(b)
-    assert (w, h) == (116, 206)
+    assert (w, h) in ((116, 206), (116, 181))    # PAL ; NTSC (USA) : même image, 224 lignes au lieu de 256
     pal = b[-768:]
     lum = lambda i: sum(pal[3 * i:3 * i + 3])
     ink = max(range(1, 256), key=lum)
     dark = min((i for i in range(1, 256) if lum(i) > 0), key=lum)
     m = _mask(CREDIT, _font("arialbd.ttf", 10), w - 4, 10)
-    top = 138                                      # au-dessus du menu (écran y 178-186)
+    top = round(138 * h / 206)                     # au-dessus du menu (PAL : rangée 138, écran y 178-186)
     on = {(2 + i, top + j) for j, r in enumerate(m) for i, v in enumerate(r) if v}
     for x, y in on:                                # cerne sombre
         for dx in (-1, 0, 1):

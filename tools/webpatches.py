@@ -15,7 +15,7 @@ simplement absent de cette version (la page le grise). Les options doivent être
 combinaison = l'union des différences de chaque option) : c'est vérifié sur chaque paire et sur
 l'ensemble (toutes les combinaisons : 2^n constructions, trop long passé une dizaine de mods).
 
-  python webpatches.py work/FR1.bin work/FR2.bin work/UK1.bin work/UK2.bin   -> docs/patches.js
+  python webpatches.py work/FR1.bin work/FR2.bin work/UK1.bin work/UK2.bin work/US1.bin work/US2.bin   -> docs/patches.js
 
 À relancer après chaque modification d'une option.
 """
@@ -29,6 +29,7 @@ MODS = [m for m in mods.mods() if m["type"] == "option"]
 ORDER = [m["id"] for m in MODS]  # ordre de build.py
 TEXT = [m for m in mods.mods() if m["type"] == "texte"]
 IDS = mods.disc_ids()
+EXES = {v["id"] + d: names for v in mods.versions() for d, names in v["exe"].items()}
 OUT = Path(__file__).resolve().parent.parent / "docs" / "patches.js"
 
 
@@ -73,7 +74,7 @@ def main():
         ident = IDS.get(re.search(r"cdrom:\\?([A-Z0-9_.]+)", cnf, re.I).group(1).upper())
         if not ident:
             raise SystemExit(f"{path} : disque inconnu")
-        exe_name = next(f for f in files if f in ("MGS/MGS1.EXE", "MGS/MGS2.EXE"))
+        exe_name = EXES[ident][0]   # les autres copies (version USA) sont identiques
         exe0, st0 = disc.read(*files[exe_name]), disc.read(*files["MGS/STAGE.DIR"])
         opts, missing = {}, {}
         for o in ORDER:
@@ -94,7 +95,7 @@ def main():
                 e2, s2 = apply(e2, opts[o]["exe"]), apply(s2, opts[o]["stage"])
             if (e2, s2) != (exe, st):
                 raise SystemExit(f"{ident} : options non additives {combo}")
-        discs[ident] = {"exe": exe_name, "exeCrc": zlib.crc32(exe0), "stageCrc": zlib.crc32(st0), "options": opts}
+        discs[ident] = {"exe": exe_name, "exes": EXES[ident], "exeCrc": zlib.crc32(exe0), "stageCrc": zlib.crc32(st0), "options": opts}
         for m in TEXT:  # barre de vie : pointeur u32 LE à écrire et zone de 16 octets pour le texte
             try:
                 discs[ident][m["id"]] = mods.module(m).web(exe0)

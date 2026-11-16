@@ -210,10 +210,12 @@ def patch(exe):
         if not pal.same(v, cur, ORIG[addr]):
             raise SystemExit(f"EXE inattendu à {a:08x} ({v})")
         out[off:off + n] = words(new)
-    # gp+0x828 et gp+0x814 : mêmes décalages dans les deux versions (pal.gp)
-    assert pal.gp(v, 0x828) == 0x828 and pal.gp(v, 0x814) == 0x814
+    # gp+0x828 et gp+0x814 : décalages traduits pour la version (pal.gp ; les mêmes en UK, pas en US)
+    src = CAVE_SRC
+    for off in (0x828, 0x814):
+        src = src.replace(f"{off:#x}(gp)", f"{pal.gp(v, off):#x}(gp)")
     cave = pal.addr(v, CAVE)
-    code, sym = mips.assemble(CAVE_SRC, cave, {"END_CHECK": pal.addr(v, END_CHECK)})
+    code, sym = mips.assemble(src, cave, {"END_CHECK": pal.addr(v, END_CHECK)})
     assert CAVE + len(code) <= CAVE_END
     off = 0x800 + cave - LOAD
     if bytes(out[off:off + len(code)]) != code:

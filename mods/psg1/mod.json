@@ -10,7 +10,8 @@
   "aide": "PSG1 utilisable debout ou accroupi",
   "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
   ],
   "fr": "PSG1 debout ou accroupi",
   "en": "PSG1 standing or crouching",

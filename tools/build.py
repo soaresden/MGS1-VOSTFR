@@ -13,6 +13,7 @@ appliquée dans l'ordre de son mod.json. « python build.py -h » les liste.
   python build.py --fr1 FR_D1.chd --uk1 UK_D1.chd --fr2 FR_D2.chd --uk2 UK_D2.chd --out sortie [--carre] [--m9] [--life SNAKE] ...
   python build.py --jeu FR --fr1 FR_D1.chd --fr2 FR_D2.chd --out sortie --m9 ...   (jeu français + mods ; --vf pareil)
   python build.py --jeu UK --uk1 UK_D1.chd --uk2 UK_D2.chd --out sortie --m9 ...   (jeu anglais + mods ; --vo pareil)
+  python build.py --jeu US --us1 US_D1.chd --us2 US_D2.chd --out sortie --m9 ...   (jeu américain Rev 1 + mods)
 
 --combine : en plus des 2 disques, une image unique « (1 CD) » pour émulateurs (mods/combine,
             son allégé pour tenir sous 99 minutes, pas de changement de disque).
@@ -48,17 +49,19 @@ def read(path, name):
     return d.read(*d.files()[f"MGS/{name}"])
 
 
-def build_disc(fr, out_bin, chosen, texts, base=None):
-    """Une image : la VOSTFR si base = (uk, ctx), puis les mods choisis (mods/, dans l'ordre)."""
+def build_disc(fr, out_bin, chosen, texts, exes, disc2, base=None):
+    """Une image : la VOSTFR si base = (uk, ctx), puis les mods choisis (mods/, dans l'ordre).
+    exes : les copies de l'EXE du disque (versions/ ; deux copies identiques en version USA)."""
     rep = {}
-    exe = next(f for f in psxiso.Disc(fr).files() if f in ("MGS/MGS1.EXE", "MGS/MGS2.EXE"))
     if base:
         uk, ctx = base
-        mods.module(VOSTFR).patch(fr, uk, ctx, rep, exe == "MGS/MGS2.EXE", read)
-    f = mods.Files(rep.get(exe), rep.get("MGS/STAGE.DIR"), lambda: read(fr, exe[4:]), lambda: read(fr, "STAGE.DIR"))
+        mods.module(VOSTFR).patch(fr, uk, ctx, rep, disc2, read)
+    d = psxiso.Disc(fr)
+    f = mods.Files(None, rep.get("MGS/STAGE.DIR"), lambda: d.read(*d.files()[exes[0]]), lambda: read(fr, "STAGE.DIR"))
     mods.apply(f, chosen, texts)
     if "exe" in f.changed:
-        rep[exe] = f.exe
+        for e in exes:
+            rep[e] = f.exe
     if "stage" in f.changed:
         rep["MGS/STAGE.DIR"] = f.stage
 
@@ -119,8 +122,11 @@ def main():
                 continue
             print(f"Disque {d}")
             out_bin = out / f"Metal Gear Solid ({tag}) (Disc {d}).bin"
-            build_disc(to_bin(disc(a.jeu, d), f"{a.jeu}{d}"), out_bin, chosen, texts)
+            build_disc(to_bin(disc(a.jeu, d), f"{a.jeu}{d}"), out_bin, chosen, texts, vers[a.jeu]["exe"][d], d == "2")
             names.append(out_bin.with_suffix(".cue").name)
+        for m in [m for m in final if a.jeu not in m["versions"]]:
+            print(f"--{m['cli']} : pas encore disponible pour la version {a.jeu}, ignoré")
+            final.remove(m)
         finish(out, tag, names, final)
         return
 
@@ -132,7 +138,7 @@ def main():
     for d, (fr, uk) in imgs.items():
         print(f"Disque {d}")
         out_bin = out / f"Metal Gear Solid (VOSTFR) (Disc {d}).bin"
-        build_disc(fr, out_bin, chosen, texts, (uk, ctx[d]))
+        build_disc(fr, out_bin, chosen, texts, vers[src]["exe"][d], d == "2", (uk, ctx[d]))
         names.append(out_bin.with_suffix(".cue").name)
     finish(out, "VOSTFR", names, final)
 

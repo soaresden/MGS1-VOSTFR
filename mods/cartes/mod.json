@@ -10,7 +10,8 @@
   "aide": "portes à carte ouvertes sans équiper la carte (elle s'équipe alors toute seule)",
   "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
   ],
   "fr": "Portes à carte sans équiper la carte",
   "en": "Card doors without equipping the card",

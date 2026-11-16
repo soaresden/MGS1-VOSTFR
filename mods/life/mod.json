@@ -10,7 +10,8 @@
   "aide": "texte à la place de « LIFE » dans la barre de vie (ex. SNAKE)",
   "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
   ],
   "text": true,
   "fr": "Barre de vie : ton texte",

@@ -4,7 +4,7 @@
  *
  *   node webtest.js check disque.chd disque.bin [secteurs]   lecture CHD == BIN ?
  *   node webtest.js combine disque1.bin disque2.bin sortie.bin   CD Combiner (comme combine.py)
- *   node webtest.js build --fr1 a.chd --uk1 b.chd --fr2 c.chd --uk2 d.chd --out dossier [--carre --m9 ... : les options de mods/] [--vf | --vo] [--life TEXTE] [--combine]
+ *   node webtest.js build --fr1 a.chd --uk1 b.chd --fr2 c.chd --uk2 d.chd --out dossier [--carre --m9 ... : les options de mods/] [--vf | --vo | --jeu US] [--life TEXTE] [--combine]
  *
  * Sert à vérifier que la page produit exactement les mêmes images que build.py.
  */
@@ -48,14 +48,14 @@ async function build(args) {
   const out = get('out');
   fs.mkdirSync(out, { recursive: true });
   const discs = {};
-  for (const k of ['fr1', 'uk1', 'fr2', 'uk2']) {
+  for (const k of globalThis.MGS_MODS.versions.filter(v => !v.besoin).flatMap(v => ['1', '2'].map(d => v.id.toLowerCase() + d))) {
     if (!get(k)) continue;
     const id = await M.identify(await openFile(get(k)));
     if (id.id !== k.toUpperCase()) throw new Error(`${get(k)} : ${id.id || id.exe}, attendu ${k.toUpperCase()}`);
     discs[id.id] = id.disc;
   }
   const opts = globalThis.MGS_PATCHES.order.filter(o => args.includes('--' + o));  // mods « option » (mods/)
-  const mode = args.includes('--vf') ? 'fr' : args.includes('--vo') ? 'en' : 'vostfr';
+  const mode = args.includes('--vf') ? 'FR' : args.includes('--vo') ? 'UK' : get('jeu') || 'vostfr';
   const t = Date.now();
   let last = '';
   await M.build(discs, opts, async name => {
