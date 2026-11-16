@@ -33,6 +33,7 @@ This repository contains **no game data**: only the scripts that build the image
 | Web page: build in the browser, options to tick, works offline | ✅ done, same images as Python byte for byte |
 | US version (Rev 1, NTSC) + mods: every option, CD Combiner included | ✅ done, all tested in PCSX-Redux: title screen, Codec skipped with Square, first-person view, L2/R2, M9 (guard asleep), standing PSG1, bandana, life bar, cave card door, PSG1 in the cave then the Wolf fight; 1-CD image: boot, end of disc 1 straight on to disc 2, disc 2 Codec |
 | Mods for the MGS1 **PC recomp** (USA, `.psxmod` packages) | ✅ done, tested in the recomp (Windows): "Shadow Fixes" title screen, Codec skipped with Square, M9, "SNAKE" in the life bar; disc 2 not tested yet |
+| **French Codec on the USA version** (US voices, French Codec texts, accented letters added to the font): PS1 image (`tools/codec_us.py`) and "French Codec subtitles" box in the PC recomp | ✅ done, tested: PCSX-Redux (first Codec at the dock, Campbell's 140.85 call) and PC recomp (first Codec); disc 2 built but not tested in game; in-game voice subtitles and cutscenes: not yet |
 | French dub credits in the intro → English cast | 🔧 to do |
 | `--combine` option: both discs in **a single image** (emulators, lighter sound) | ✅ done, tested in PCSX-Redux (intro, Codec on both discs, switch to disc 2 from a save, no disc change); VOSTFR, VF and EN, all options |
 
@@ -196,13 +197,22 @@ Give **both discs**: disc 2's sound test table is also used to pair disc 1's voi
 
 ```bash
 python psxmod.py --us1 US_D1.chd --us2 US_D2.chd      # -> work/psxmod/MGS1-Mods-USA-Disc1.psxmod and ...Disc2.psxmod
+python psxmod.py --us1 US_D1.chd --us2 US_D2.chd --fr1 FR_D1.chd --fr2 FR_D2.chd   # + the French Codec
 ```
+
+- With the French discs (`--fr1` / `--fr2`), one more box: **"French Codec subtitles"**, the Codec in French with the US voices (see "French Codec on the USA version" below). It works together with all the other boxes.
 
 - You need the **Redump** USA Rev 1 dumps (the script checks the SHA-1); the packages are not in the repository because they hold bytes of the original game (the checks done before each patch).
 - Install both packages from the recomp launcher, then **enable only the package of the mounted disc**: the recomp refuses to start if an enabled package targets the other disc. The mods do not follow an in-game disc change: save, relaunch with disc 2, enable the disc 2 package and disable the disc 1 one.
 - The recomp asks for the exact SCPH-1001 BIOS (SHA-256 `71af94d1…`). The test used an SCPH-5501 (USA), switching the BIOS in the recomp's `game.toml` and `CMakeLists.txt`: with the right SCPH-1001, nothing to change.
 
-!["Shadow Fixes" title screen in the PC recomp](docs/previews/recomp_titre.png) ![M9 in the PC recomp, "SNAKE" in the life bar](docs/previews/recomp_m9.png)
+!["Shadow Fixes" title screen in the PC recomp](docs/previews/recomp_titre.png) ![M9 in the PC recomp, "SNAKE" in the life bar](docs/previews/recomp_m9.png) ![The Codec in French in the PC recomp](docs/previews/recomp_codec_fr.png)
+
+The French Codec also exists as a USA PS1 image (emulator or real console):
+
+```bash
+python tools/codec_us.py --us work/US1.bin --fr work/FR1.bin --out work/us_codec/US1.bin   # + US1.cue
+```
 
 ## How it works
 
@@ -220,6 +230,15 @@ Here the two dubs have different lengths: the English `VOX.DAT` is 196 MB agains
 4. **Disc image**: `VOX.DAT` grows, so `ZMOVIE.STR` and `DUMMY3M.DAT` are shifted (raw sectors copied), the ISO 9660 directory records and the volume size are rewritten, and EDC/ECC recomputed. The game finds its files by name at boot: no other address to fix.
 
 Two lines on disc 2 only exist in French (one of them a German leftover on the French disc): they stay in French.
+
+### French Codec on the USA version (`codec_us.py`)
+
+The VOSTFR keeps the French game and gives it back the English voices; the USA version keeps its own game and voices and gets the French Codec texts:
+
+1. **Pairing**: the `STAGE.DIR` scripts call the same `RADIO.DAT` fragments in the same order in both versions; inside a fragment, the blocks of lines are paired (difflib).
+2. **Lines**: during a voice, the Codec moves to the next line at each subtitle entry of the US VOX bank. So the number of US lines is kept, and the French text is grouped or split at sentence ends to match them as closely as possible. When the French does not fit in 4 lines, the French pages are kept and the US VOX bank is retimed (one subtitle entry per page, US timing spread out), at the same size.
+3. **Accents**: the US EXE ignores the `1F xx` codes of the French version, but already draws `80 xx` codes with its font. 15 accented letters (é, è, à, ç, «, »…) are added to the US font, drawn from the US letters.
+4. **Disc**: `RADIO.DAT` grows (1.78 → 1.91 MB); it goes into the empty `DUMMY3M.DAT` area and its ISO directory record points there. The radio codes in `STAGE.DIR` (byte offset + sector count) are recomputed. Nothing else moves: that is what makes a `.psxmod` possible.
 
 ### One image (`combine.py`)
 
@@ -268,7 +287,10 @@ The game versions are in `versions/` (one file per version: disc numbers, short 
 | `tools/psg1loup.py` | Code of the `psg1loup` mod: the PSG1 in the cave, where Meryl was waiting, before Sniper Wolf |
 | `tools/bandana.py` | Code of the `bandana` mod: visible bandana, very long animated tail (like MGS2) |
 | `tools/titre.py` | Code of the `titre` mod: "Shadow Fixes" title screen, by Soaresden, v1.0 |
-| `tools/psxmod.py` | Our US mods as `.psxmod` packages for the PC recomp (one package per disc) |
+| `tools/psxmod.py` | Our US mods as `.psxmod` packages for the PC recomp (one package per disc); with the French discs, the French Codec |
+| `tools/codec_us.py` | French Codec on the USA version: rebuilt `RADIO.DAT`, radio codes, retimed VOX banks, test image |
+| `tools/usfont.py` | Accented letters added to the US font (`80 xx` codes) |
+| `tools/radiotree.py` | `RADIO.DAT` fragments as a tree (TALK, VOICE, IF, SWITCH…) to rewrite them with correct sizes |
 | `tools/combine.py` | Both discs in a single image (lighter sound, no disc change); also in the web page ("CD Combiner" box) |
 | `tools/spuadpcm.py` | SPU ADPCM: decoding, encoding, integer resampling |
 | `tools/gcx.py` | Exact parsing of the `STAGE.DIR` GCX scripts (voice and cutscene codes) |

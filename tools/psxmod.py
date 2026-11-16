@@ -10,6 +10,10 @@ mods à la volée, d'après un manifeste (format psxrecomp, docs/MOD_PACKAGES.md
 - différences de STAGE.DIR -> [[patch]] target = "disc_user" (LBA * 2048 + octet, sans
   déborder d'un secteur), ou [[overlay]] (fichier) pour les longs morceaux ; vérifiés aussi.
 
+Avec les disques FR (--fr1 / --fr2), feature « codec-fr » en plus : le Codec en français
+(tools/codec_us.py ; RADIO.DAT reconstruit dans la zone vide DUMMY3M.DAT, son enregistrement
+de répertoire pointé dessus).
+
 Un mod de mods/ = une « feature » (case à cocher du lanceur). La barre de vie (texte libre
 ailleurs) devient un choix entre quelques textes.
 
@@ -21,7 +25,7 @@ démarrer si un paquet coché ne vise pas le disque monté (« package does not 
 game/image »). Après le changement de disque en jeu, sauvegarder, relancer avec le disque 2
 et cocher le paquet du disque 2 (décocher celui du disque 1).
 
-  python psxmod.py --us1 work/US1.bin --us2 work/US2.bin [--out work/psxmod]
+  python psxmod.py --us1 work/US1.bin --us2 work/US2.bin [--fr1 work/FR1.bin --fr2 work/FR2.bin] [--out work/psxmod]
       -> work/psxmod/MGS1-Mods-USA-Disc1.psxmod, MGS1-Mods-USA-Disc2.psxmod
       à copier dans le dossier du recomp (bouton d'installation de mods du lanceur, ou
       <dossier du jeu>/mods/installed/), puis cocher les mods voulus dans le lanceur.
@@ -45,7 +49,7 @@ REDUMP_SHA1 = {"1": "37498e6598ce4eabf00630b6a9197b20861e55a0",
 GAP = 8                          # deux différences à moins de 8 octets = un seul patch
 OVERLAY_MIN = 1024               # au-delà : [[overlay]] (fichier) au lieu d'un patch hexadécimal
 LIFE_CHOICES = ["SNAKE", "SOLID SNAKE", "FOXHOUND", "VIE"]
-GROUPS = {"carre": "Codec", "titre": "Presentation", "life": "Presentation", "bandana": "Presentation"}
+GROUPS = {"carre": "Codec", "codec-fr": "Codec", "titre": "Presentation", "life": "Presentation", "bandana": "Presentation"}
 
 
 def runs(a, b, gap=GAP):
@@ -152,27 +156,31 @@ class Package:
             self.patch(mid, "main_exe", f"address = 0x{0x80010000 + s - 0x800:08X}", a[s:e], b[s:e], when)
 
     def stage_patches(self, mid, lba, a, b, when=None):
+        """Différences de a -> b, fichier au LBA lba : patches disc_user, overlays si longues."""
         base = lba * 2048
         for s, e in runs(a, b):
             if e - s >= OVERLAY_MIN:
-                name = f"payload/{mid}/{base + s:010d}.bin"
-                self.files[name] = b[s:e]
-                self.lines += [
-                    "[[overlay]]",
-                    f'feature = "{mid}"',
-                    'target = "disc_user"',
-                    f"offset = {base + s}",
-                    f'file = "{name}"',
-                    f'sha256 = "{hashlib.sha256(b[s:e]).hexdigest()}"',
-                    f'expected_sha256 = "{hashlib.sha256(a[s:e]).hexdigest()}"',
-                ] + ([self.when(when)] if when else []) + [""]
-                self.count["overlay"] += 1
+                self.overlay(mid, base + s, a[s:e], b[s:e], when)
                 continue
             k = s
             while k < e:  # un patch disc_user ne déborde pas d'un secteur
                 end = min(e, (base + k) // 2048 * 2048 + 2048 - base)
                 self.patch(mid, "disc_user", f"offset = {base + k}", a[k:end], b[k:end], when)
                 k = end
+
+    def overlay(self, mid, offset, old, new, when=None):
+        name = f"payload/{mid}/{offset:010d}.bin"
+        self.files[name] = new
+        self.lines += [
+            "[[overlay]]",
+            f'feature = "{mid}"',
+            'target = "disc_user"',
+            f"offset = {offset}",
+            f'file = "{name}"',
+            f'sha256 = "{hashlib.sha256(new).hexdigest()}"',
+            f'expected_sha256 = "{hashlib.sha256(old).hexdigest()}"',
+        ] + ([self.when(when)] if when else []) + [""]
+        self.count["overlay"] += 1
 
     @staticmethod
     def when(w):
@@ -199,7 +207,44 @@ class Package:
         return files["manifest.toml"]
 
 
-def package(d, bin_path, out):
+CODEC_FR = {
+    "id": "codec-fr",
+    "en": "French Codec subtitles",
+    "enS": "Codec calls in French (texts of the French version, English voices), accented letters added to the font.",
+    "frS": "Le Codec en français (textes de la version française, voix anglaises), lettres accentuées ajoutées à la police.",
+}
+
+
+def codec_fr(p, disc, fl, us_path, fr_path, st0, seen):
+    """Codec FR (tools/codec_us.py) : RADIO.DAT reconstruit, posé dans la zone vide DUMMY3M.DAT
+    (overlay) et l'enregistrement de répertoire de RADIO.DAT pointé dessus (le recomp résout
+    les fichiers par les enregistrements patchés, comme le jeu) ; codes radio et police de
+    STAGE.DIR ; banques VOX recalées."""
+    import codec_us
+    mid = CODEC_FR["id"]
+    radio, st1, banks = codec_us.build(str(us_path), str(fr_path), log=lambda *a, **k: None)
+    p.feature(CODEC_FR)
+    for s, e in runs(st0, st1, 0):
+        for k in range(s, e):
+            o = seen.setdefault(("stage", k), mid)
+            if o != mid:
+                raise SystemExit(f"{mid} et {o} écrivent le même octet (stage 0x{k:X})")
+    p.stage_patches(mid, fl["MGS/STAGE.DIR"][0], st0, st1)
+    dlba, dsize = fl["DUMMY3M.DAT"]
+    if len(radio) > dsize:
+        raise SystemExit("RADIO.DAT FR trop gros pour DUMMY3M.DAT")
+    old = bytes(disc.read(dlba, len(radio)))
+    p.overlay(mid, dlba * 2048, old, radio)
+    vlba = fl["MGS/VOX.DAT"][0]
+    for off, data in sorted(banks.items()):
+        p.stage_patches(mid, vlba + off // 2048, bytes(disc.read(vlba + off // 2048, len(data))), data)
+    slba, roff = codec_us.radio_record(disc)
+    rec = bytes(disc.sector(slba))[roff + 2:roff + 18]
+    p.patch(mid, "disc_user", f"offset = {slba * 2048 + roff + 2}", rec, codec_us.record_extent(dlba, len(radio)), None)
+    print(f"  codec-fr : RADIO.DAT {len(radio)} octets au LBA {dlba}, {len(banks)} banques VOX")
+
+
+def package(d, bin_path, out, fr_path=None):
     sha1 = sha1_file(bin_path)
     if sha1 != REDUMP_SHA1[d]:
         raise SystemExit(f"disque {d} : SHA-1 {sha1}, pas le dump Redump USA (Rev 1) attendu par le recomp")
@@ -243,6 +288,8 @@ def package(d, bin_path, out):
                             raise SystemExit(f"{mid} et {o} écrivent le même octet ({kind} 0x{k:X})")
             p.exe_patches(mid, exe0, exe1, when)
             p.stage_patches(mid, lba, st0, st1, when)
+    if fr_path:
+        codec_fr(p, disc, fl, bin_path, fr_path, st0, seen)
     path = out / f"MGS1-Mods-USA-Disc{d}.psxmod"
     p.write(path)
     print(f"  {path.name} : {p.count['main_exe']} patches EXE, {p.count['disc_user']} patches STAGE.DIR, "
@@ -254,16 +301,18 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--us1", metavar="BIN", help="disque 1 USA (Rev 1), BIN Redump (ou CHD)")
     ap.add_argument("--us2", metavar="BIN", help="disque 2 USA (Rev 1), BIN Redump (ou CHD)")
+    ap.add_argument("--fr1", metavar="BIN", help="disque 1 FR (BIN ou CHD) : ajoute la feature codec-fr")
+    ap.add_argument("--fr2", metavar="BIN", help="disque 2 FR (BIN ou CHD) : ajoute la feature codec-fr")
     ap.add_argument("--out", default=str(ROOT / "work" / "psxmod"))
     a = ap.parse_args()
     if not a.us1 and not a.us2:
         ap.error("donner --us1 et/ou --us2")
     import build
     out = Path(a.out)
-    for d, src in (("1", a.us1), ("2", a.us2)):
+    for d, src, fr in (("1", a.us1, a.fr1), ("2", a.us2, a.fr2)):
         if src:
             print(f"Disque {d}")
-            package(d, build.to_bin(src, f"US{d}"), out)
+            package(d, build.to_bin(src, f"US{d}"), out, fr and build.to_bin(fr, f"FR{d}"))
 
 
 if __name__ == "__main__":
