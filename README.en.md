@@ -31,7 +31,7 @@ This repository contains **no game data**: only the scripts that build the image
 | `--bandana` option: the bandana shows, with a very long tail flowing behind Snake (like in MGS2) | ✅ prototype, tested (Snowfield French and English, Blast Furnace: tail at rest, running, equip / unequip) |
 | `--titre` option: "METAL GEAR SOLID - SHADOW FIXES" title screen, by Soaresden, v1.0 | ✅ done, tested ("PRESS START BUTTON" screen and menu) |
 | Web page: build in the browser, options to tick, works offline | ✅ done, same images as Python byte for byte |
-| US version (Rev 1, NTSC) + mods: every option except the CD Combiner | ✅ done, all tested in PCSX-Redux: title screen, Codec skipped with Square, first-person view, L2/R2, M9 (guard asleep), standing PSG1, bandana, life bar, cave card door, PSG1 in the cave then the Wolf fight |
+| US version (Rev 1, NTSC) + mods: every option, CD Combiner included | ✅ done, all tested in PCSX-Redux: title screen, Codec skipped with Square, first-person view, L2/R2, M9 (guard asleep), standing PSG1, bandana, life bar, cave card door, PSG1 in the cave then the Wolf fight; 1-CD image: boot, end of disc 1 straight on to disc 2, disc 2 Codec |
 | French dub credits in the intro → English cast | 🔧 to do |
 | `--combine` option: both discs in **a single image** (emulators, lighter sound) | ✅ done, tested in PCSX-Redux (intro, Codec on both discs, switch to disc 2 from a save, no disc change); VOSTFR, VF and EN, all options |
 
@@ -183,7 +183,7 @@ python build.py --fr1 ... --uk1 ... --fr2 ... --uk2 ... --out ../work/out --comb
 python combine.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"   # from 2 existing images
 ```
 
-Result: `Metal Gear Solid (VOSTFR) (1 CD).bin/.cue` (or `(VF)`, `(EN)`), on top of the two discs. Works with the three versions and all options. Allow 3 to 4 extra minutes (sound re-encoding). Memory card saves from the 2-disc images work as they are.
+Result: `Metal Gear Solid (VOSTFR) (1 CD).bin/.cue` (or `(VF)`, `(EN)`, `(US)`), on top of the two discs. Works with the four versions and all options. Allow 3 to 4 extra minutes (sound re-encoding). Memory card saves from the 2-disc images work as they are.
 
 ![Disc 2 save loaded on the single image](docs/previews/combine_on.png) ![Disc 2 Codec on the single image](docs/previews/combine_codec_d2.png)
 

@@ -203,7 +203,8 @@ globalThis.MGS_MODS = {
    "type": "final",
    "versions": [
     "FR",
-    "UK"
+    "UK",
+    "US"
    ],
    "need2": true,
    "fr": "CD Combiner",

@@ -49,13 +49,16 @@ class Disc:
         return r[24:24 + (2324 if form2 else 2048)]
 
     def read(self, lba, size):
-        out = bytearray()
         n = (size + 2047) // 2048
+        out = bytearray(n * 2048)
         self.f.seek(lba * SECTOR)
-        buf = self.f.read(n * SECTOR)
-        for i in range(n):
-            out += buf[i * SECTOR + 24:i * SECTOR + 24 + 2048]
-        return bytes(out[:size])
+        for c in range(0, n, 4096):                     # par morceaux : ~2 fois la taille en mémoire, pas 4
+            k = min(4096, n - c)
+            buf = self.f.read(k * SECTOR)
+            for i in range(k):
+                out[(c + i) * 2048:(c + i + 1) * 2048] = buf[i * SECTOR + 24:i * SECTOR + 24 + 2048]
+        del out[size:]
+        return bytes(out)
 
     def files(self):
         """{chemin: (lba, taille)} de tout le disque."""

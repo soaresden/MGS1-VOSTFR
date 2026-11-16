@@ -5,7 +5,8 @@ combine.py - « CD Combiner » : les 2 disques de MGS1 PS1 en une seule image BI
   python combine.py disque1.bin disque2.bin [sortie.bin]
 
 Entrées : deux images déjà construites par build.py (VOSTFR, VF ou EN, avec ou sans options),
-dans n'importe quel ordre (le disque est reconnu par MGS1.EXE / MGS2.EXE). Sortie par défaut :
+dans n'importe quel ordre (le disque est reconnu par le nom de son EXE dans MGS/ : MGS1.EXE /
+MGS2.EXE en PAL, SLUS_005.94 / SLUS_007.76 en USA, d'après versions/*.json). Sortie par défaut :
 « <nom du disque 1 sans (Disc 1)> (1 CD).bin » à côté du disque 1.
 
 Pourquoi le son change : une position CD est un MSF en BCD (99:59:74 au plus = 449 849 secteurs,
@@ -22,9 +23,10 @@ Image pour émulateurs seulement (trop grande pour un CD-R).
 2. Codes : RADIO.DAT (commandes VOICE, radio.scan) et scripts GCX de STAGE.DIR (gcx.codes)
    renumérotés ; stage « sound » (test sonore, codes du disque 2, mêmes octets sur les deux disques) :
    celui du disque 2 renuméroté est recopié dans le STAGE.DIR du disque 1.
-3. EXE (MGS1.EXE et MGS2.EXE, FR et UK, retrouvés par motifs) : répertoire « MGS » ou « MGS2 »
-   selon FS_DiskNum, reset logiciel -> MGS1.EXE, pilote de flux : fréquence 0x400 à la place
-   de 0xC00 (une interruption sur quatre).
+3. EXE (FR, UK et USA, retrouvés par motifs) : répertoire « MGS » ou « MGS2 » selon FS_DiskNum,
+   reset logiciel -> EXE du disque 1 (MGS_DiskName[0]), pilote de flux : fréquence 0x400 à la
+   place de 0xC00 (une interruption sur quatre). En USA, le jeu démarre sur la copie de l'EXE à
+   la racine (SLUS_005.94) : elle est patchée aussi (même taille, mêmes secteurs).
 4. Overlays abst / title / change / demosel de STAGE.DIR : pas d'attente du capot, FS_DiskNum
    = disque voulu avant la relecture des fichiers (FS_ResetCdFilePosition) ; logo METAL GEAR retiré
    de change (fin du disque 1 : enchaînement direct sur Blast Furnace), délai porté à 160 images
@@ -34,7 +36,7 @@ modifiée : MGS2 ajouté, DUMMY3M.DAT retiré), fichiers du disque 1 dans MGS/, 
 et fichiers du disque 2 (BRF.DAT / FACE.DAT identiques : partagés), 150 secteurs de fin.
 """
 
-import struct, sys, time
+import os, struct, sys, time
 from multiprocessing import Pool
 from pathlib import Path
 
@@ -47,7 +49,9 @@ from isorebuild import copy_raw, form1_sectors, set_msf
 EXE_LOAD = 0x80010000
 LIMIT = 449850 - 150                      # dernier secteur adressable : 99:59:74
 TARGETS = {"VOX.DAT": (1, 2, 0x400), "DEMO.DAT": (2, 3, 0x800)}   # (up, down, fréquence SPU)
-OVB = {0x800AE1D8: 0x800C47D8, 0x800ADC48: 0x800C4248}            # FS_DiskNum -> overlays (FR, UK)
+OVB = {0x800AE1D8: 0x800C47D8, 0x800ADC48: 0x800C4248, 0x800AF370: 0x800C5970}  # FS_DiskNum -> overlays
+NAMES = {0x800AE1D8: "France", 0x800ADC48: "Europe (anglais)", 0x800AF370: "USA"}
+MGS_STR = b"MGS\0MGS read_sector %d\n\0"   # "MGS" (répertoire) puis une chaîne de printf
 AUDIO, HEAD, END = 0x01, 0x02, 0xF0
 
 
@@ -118,8 +122,8 @@ def shrink_files(jobs, pool):
         up, down, freq = TARGETS[name]
         bk = vox.banks(data)
         spans.append(bk)
-        tasks += [(data[s:e], up, down, freq) for s, e in bk]
-    res = iter(pool.imap(_shrink_task, tasks, chunksize=2))
+        tasks.append(((data[s:e], up, down, freq) for s, e in bk))
+    res = iter(pool.imap(_shrink_task, (t for g in tasks for t in g), chunksize=2))
     out = []
     for (data, name), bk in zip(jobs, spans):
         new, mp, pos = bytearray(), {}, 0
@@ -179,13 +183,19 @@ def _target(w, at):
     return at + 4 + 4 * off
 
 
+def _reset_site(exe, i):
+    """Reset logiciel : lui v0 ; lw v0,FS_DiskNum ; lui a1,0x8001 ; addiu a1,« cdrom:\\MGS\\%s;1 » ;
+    sll v0,v0,2 (addu v0,zero,zero une fois patché)."""
+    return _w(exe, i) == 0x3C058001 and _w(exe, i + 4) >> 16 == 0x24A5 and _w(exe, i + 8) in (0x00021080, 0x00001021) \
+        and _w(exe, i - 8) >> 16 == 0x3C02 and _w(exe, i - 4) >> 16 == 0x8C42
+
+
 def exe_info(exe):
     """FS_DiskNum et FS_ResetCdFilePosition (motifs du reset logiciel et de FS_CDInit)."""
     fs = reset = None
     for i in range(0x800, len(exe) - 20, 4):
-        if _w(exe, i) == 0x3C058001 and _w(exe, i + 4) == 0x24A50ACC and _w(exe, i + 8) in (0x00021080, 0x00001021):
+        if _reset_site(exe, i):
             hi, lo = _w(exe, i - 8), _w(exe, i - 4)
-            assert hi >> 16 == 0x3C02 and lo >> 16 == 0x8C42
             fs = ((hi & 0xFFFF) << 16) + (lo & 0xFFFF) - ((lo & 0x8000) << 1)
         if _w(exe, i) == 0x3C048011 and _w(exe, i + 4) >> 26 == 3 and _w(exe, i + 8) == 0x34847000:
             reset = 0x80000000 | (_w(exe, i + 4) & 0x3FFFFFF) << 2
@@ -200,15 +210,20 @@ def patch_exe(exe):
     addr = lambda i: EXE_LOAD + i - 0x800
     off = lambda a: a - EXE_LOAD + 0x800
     # chaîne "MGS read_sector %d\n" (printf retiré ci-dessous) -> "MGS2"
-    s = off(0x800105F8)
-    if exe[s:s + 5] == b"MGS2\0":
-        return bytes(exe)
-    assert exe[s - 4:s + 20] == b"MGS\0MGS read_sector %d\n\0", "chaîne MGS introuvable"
+    k = exe.find(MGS_STR)
+    if k < 0:
+        k = exe.find(b"MGS\0MGS2\0" + MGS_STR[9:])
+        assert k >= 0, "chaîne MGS introuvable"
+        return bytes(exe)                                   # déjà patché
+    assert exe.find(MGS_STR, k + 1) < 0
+    s = k + 4
+    sa_dir, sa_two = addr(k), addr(s)                       # 0x800105F4 / F8 en PAL, 0x80010724 / 28 en USA
+    assert sa_dir >> 16 == 0x8001 and sa_two >> 16 == 0x8001 and sa_two & 0x8000 == 0
     exe[s:s + 5] = b"MGS2\0"
     # 1. FS_CdMakePositionTable : nom du répertoire = "MGS" + 4·FS_DiskNum
     hits = [i for i in range(0x800, len(exe) - 80, 4)
-            if _w(exe, i) == 0x27A40010 and _w(exe, i + 4) == 0x3C058001 and _w(exe, i + 8) == 0x24A505F4
-            and _w(exe, i + 64) == 0x3C048001 and _w(exe, i + 68) == 0x248405F8]
+            if _w(exe, i) == 0x27A40010 and _w(exe, i + 4) == 0x3C058001 and _w(exe, i + 8) == 0x24A50000 | sa_dir & 0xFFFF
+            and _w(exe, i + 64) == 0x3C048001 and _w(exe, i + 68) == 0x24840000 | sa_two & 0xFFFF]
     assert len(hits) == 1
     i = hits[0]
     w = [_w(exe, i + 4 * k) for k in range(20)]
@@ -216,13 +231,12 @@ def patch_exe(exe):
     bnez_to = _target(w[14], addr(i + 56))
     hi, lo = (fs + 0x8000) >> 16 & 0xFFFF, fs & 0xFFFF
     new = [w[0], 0x3C010000 | hi, 0x8C280000 | lo] + w[3:11] + \
-          [0x00084080, 0x3C058001, 0x00A82821, 0x24A505F4, w[11], w[12], w[13],
+          [0x00084080, 0x3C058001, 0x00A82821, 0x24A50000 | sa_dir & 0xFFFF, w[11], w[12], w[13],
            0x14400000 | ((bnez_to - addr(i + 72) - 4) // 4 & 0xFFFF), w[15]]
     for k, x in enumerate(new):
         _put(exe, i + 4 * k, x)
-    # 2. reset logiciel : toujours MGS_DiskName[0] (MGS1.EXE, dans MGS/)
-    i = next(i for i in range(0x800, len(exe) - 12, 4)
-             if _w(exe, i) == 0x3C058001 and _w(exe, i + 4) == 0x24A50ACC and _w(exe, i + 8) == 0x00021080)
+    # 2. reset logiciel : toujours MGS_DiskName[0] (EXE du disque 1, dans MGS/)
+    i = next(i for i in range(0x800, len(exe) - 12, 4) if _reset_site(exe, i) and _w(exe, i + 8) == 0x00021080)
     _put(exe, i + 8, 0x00001021)                       # sll v0,v0,2 -> addu v0,zero,zero
     # 3. UserSpuIRQProc : case 0xC00 (3 interruptions sur 4) -> case 0x400 (1 sur 4)
     a = [i for i in range(0x800, len(exe) - 8, 4)
@@ -364,8 +378,9 @@ def _form1(raw, data, lba):
     return fix_form1(s).tobytes()
 
 
-def write_image(discs, files, out_bin):
-    """discs : (Disc 1, Disc 2) ; files : ({chemin MGS/...: données | None (copie brute)}, idem)."""
+def write_image(discs, files, out_bin, root=None):
+    """discs : (Disc 1, Disc 2) ; files : ({chemin MGS/...: données | None (copie brute)}, idem) ;
+    root : {fichier de la racine du disque 1 : nouvelles données de même taille} (EXE USA)."""
     d1, d2 = discs
     f1, f2 = d1.files(), d2.files()
     root_lba = _root(d1)
@@ -472,42 +487,73 @@ def write_image(discs, files, out_bin):
         struct.pack_into("<I", pvd, 80, total)
         struct.pack_into(">I", pvd, 84, total)
         put(16, pvd, d1.raw(16))
+        for p, data in (root or {}).items():
+            lba, n = f1[p]
+            assert len(data) == n and lba + (n + 2047) // 2048 <= first, p
+            for k in range(0, n, 2048):
+                put(lba + k // 2048, data[k:k + 2048], d1.raw(lba + k // 2048))
     return total
 
 
 # ---- disques -----------------------------------------------------------------------------------
 
-def disc_number(d):
+def _exe_table():
+    """{nom de l'EXE dans MGS/ : (version, disque, [toutes les copies])} d'après versions/*.json
+    (FR et UK ont les mêmes noms : la version vient ensuite de l'EXE, exe_info)."""
+    import mods
+    out = {}
+    for v in mods.versions():
+        for n, paths in v.get("exe", {}).items():
+            main = next(p for p in paths if p.startswith("MGS/"))
+            out[main] = (v["id"], int(n), paths)
+    return out
+
+
+def disc_info(d):
     names = d.files()
-    return 1 if "MGS/MGS1.EXE" in names else 2 if "MGS/MGS2.EXE" in names else None
+    return next((x for p, x in _exe_table().items() if p in names), None)
+
+
+def disc_number(d):
+    x = disc_info(d)
+    return x[1] if x else None
 
 
 def combine(a, b, out_bin, log=print):
     t0 = time.time()
-    discs = {}
+    discs, info = {}, {}
     for p in (a, b):
         d = psxiso.Disc(p)
-        n = disc_number(d)
-        assert n and n not in discs, f"{p} : disque non reconnu ou en double"
-        discs[n] = d
+        x = disc_info(d)
+        assert x and x[1] not in discs, f"{p} : disque non reconnu ou en double"
+        discs[x[1]], info[x[1]] = d, x
     d1, d2 = discs[1], discs[2]
     rd = lambda d, name: d.read(*d.files()["MGS/" + name])
-    exes = {1: "MGS1.EXE", 2: "MGS2.EXE"}
+    exes = {n: next(p for p in info[n][2] if p.startswith("MGS/"))[4:] for n in (1, 2)}
     fs, reset = exe_info(rd(d1, exes[1]))
     assert exe_info(rd(d2, exes[2])) == (fs, reset), "les deux disques ne sont pas de la même version"
     ovb = OVB[fs]
-    log(f"Version {'France' if fs == 0x800AE1D8 else 'Europe (anglais)'}")
+    log(f"Version {NAMES[fs]}")
     log("Son : voix 22 -> 11 kHz, cinématiques 33 -> 22 kHz...")
-    with Pool() as pool:
-        res = shrink_files([(rd(discs[n], f), f) for n in (1, 2) for f in ("VOX.DAT", "DEMO.DAT")], pool)
+    res = []
+    with Pool(min(8, os.cpu_count() or 1)) as pool:   # un fichier à la fois : moins de mémoire
+        for n in (1, 2):
+            for f in ("VOX.DAT", "DEMO.DAT"):
+                res += shrink_files([(rd(discs[n], f), f)], pool)
     (vox1, vm1), (demo1, dm1), (vox2, vm2), (demo2, dm2) = res
-    log(f"  {time.time() - t0:.0f} s ; VOX {len(rd(d1, 'VOX.DAT')) >> 20}+{len(rd(d2, 'VOX.DAT')) >> 20} -> "
-        f"{len(vox1) >> 20}+{len(vox2) >> 20} Mo, DEMO {len(rd(d1, 'DEMO.DAT')) >> 20}+{len(rd(d2, 'DEMO.DAT')) >> 20} -> "
+    sz = lambda d, f: d.files()["MGS/" + f][1] >> 20
+    log(f"  {time.time() - t0:.0f} s ; VOX {sz(d1, 'VOX.DAT')}+{sz(d2, 'VOX.DAT')} -> "
+        f"{len(vox1) >> 20}+{len(vox2) >> 20} Mo, DEMO {sz(d1, 'DEMO.DAT')}+{sz(d2, 'DEMO.DAT')} -> "
         f"{len(demo1) >> 20}+{len(demo2) >> 20} Mo")
     files = []
+    # test sonore (stage « sound ») : en PAL, le même sur les deux disques (même place) avec les
+    # voix du disque 2 ; en USA, chaque disque a le sien (tailles différentes), avec ses propres voix
+    stages = {1: rd(d1, "STAGE.DIR"), 2: rd(d2, "STAGE.DIR")}
+    snd = {n: next((a, e) for nm, a, e in gcx.stage_table(stages[n]) if nm == "sound") for n in (1, 2)}
+    shared = snd[1] == snd[2]
     for n, d, vx, dm, vm, dmm in ((1, d1, vox1, demo1, vm1, dm1), (2, d2, vox2, demo2, vm2, dm2)):
         radio_new, nr, miss = renumber_radio(rd(d, "RADIO.DAT"), vm)
-        st, cnt = renumber_stage(rd(d, "STAGE.DIR"), vm, dmm, vm2)
+        st, cnt = renumber_stage(stages.pop(n), vm, dmm, vm2 if shared else vm)
         st = patch_overlays(st, fs, reset, ovb)
         log(f"Disque {n} : RADIO.DAT {nr} codes ({miss} hors banque), STAGE.DIR {cnt['vox']} voix, "
             f"{cnt['demo']} cinématiques, {cnt['sound']} test sonore")
@@ -515,15 +561,14 @@ def combine(a, b, out_bin, log=print):
         fl.update({"MGS/VOX.DAT": vx, "MGS/DEMO.DAT": dm, "MGS/RADIO.DAT": radio_new, "MGS/STAGE.DIR": st,
                    "MGS/" + exes[n]: patch_exe(rd(d, exes[n]))})
         files.append(fl)
-    # test sonore : le stage « sound » est le même sur les deux disques (même place, mêmes octets)
-    # et porte les codes du disque 2 ; on recopie sur le disque 1 celui du disque 2 renuméroté
-    st1, st2 = bytearray(files[0]["MGS/STAGE.DIR"]), files[1]["MGS/STAGE.DIR"]
-    s1 = next((a, e) for nm, a, e in gcx.stage_table(st1) if nm == "sound")
-    s2 = next((a, e) for nm, a, e in gcx.stage_table(st2) if nm == "sound")
-    if s1 == s2:
-        st1[s1[0]:s1[1]] = st2[s2[0]:s2[1]]
+    # PAL : on recopie sur le disque 1 le test sonore du disque 2 renuméroté (mêmes voix)
+    if shared:
+        st1, st2 = bytearray(files[0]["MGS/STAGE.DIR"]), files[1]["MGS/STAGE.DIR"]
+        st1[slice(*snd[1])] = st2[slice(*snd[2])]
         files[0]["MGS/STAGE.DIR"] = bytes(st1)
-    total = write_image((d1, d2), files, out_bin)
+    # copies de l'EXE à la racine du disque 1 (USA : c'est celle qui démarre)
+    root = {p: patch_exe(d1.read(*d1.files()[p])) for p in info[1][2] if not p.startswith("MGS/")}
+    total = write_image((d1, d2), files, out_bin, root)
     out_bin = Path(out_bin)
     out_bin.with_suffix(".cue").write_text(
         f'FILE "{out_bin.name}" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n', encoding="ascii")

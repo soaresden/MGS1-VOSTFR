@@ -31,7 +31,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--bandana` : le bandana se voit, avec un très long pan qui flotte derrière Snake (comme dans MGS2) | ✅ prototype, testé (Snowfield FR et anglais, Blast Furnace : pan au repos, en course, équiper / déséquiper) |
 | Option `--titre` : écran titre « METAL GEAR SOLID - SHADOW FIXES », by Soaresden, v1.0 | ✅ fait, testé (écran « PRESS START BUTTON » et menu) |
 | Page web : fabrication dans le navigateur, options à cocher, hors ligne possible | ✅ fait, mêmes images que Python octet pour octet |
-| Version USA (Rev 1, NTSC) + mods : toutes les options sauf le CD Combiner | ✅ fait, tout testé dans PCSX-Redux : écran titre, Codec au Carré, vue subjective, L2/R2, M9 (garde endormi), PSG1 debout, bandana, barre de vie, porte à carte de la grotte, PSG1 dans la grotte puis combat contre Wolf |
+| Version USA (Rev 1, NTSC) + mods : toutes les options, CD Combiner compris | ✅ fait, tout testé dans PCSX-Redux : écran titre, Codec au Carré, vue subjective, L2/R2, M9 (garde endormi), PSG1 debout, bandana, barre de vie, porte à carte de la grotte, PSG1 dans la grotte puis combat contre Wolf ; image 1 CD : démarrage, fin du disque 1 enchaînée sur le disque 2, Codec du disque 2 |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Option `--combine` : les 2 disques en **une seule image** (émulateurs, son allégé) | ✅ fait, testé dans PCSX-Redux (intro, Codec des deux disques, passage au disque 2 depuis une sauvegarde, sans changer de disque) ; VOSTFR, VF et EN, toutes options |
 
@@ -183,7 +183,7 @@ python build.py --fr1 ... --uk1 ... --fr2 ... --uk2 ... --out ../work/out --comb
 python combine.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"   # à partir de 2 images déjà faites
 ```
 
-Résultat : `Metal Gear Solid (VOSTFR) (1 CD).bin/.cue` (ou `(VF)`, `(EN)`), en plus des deux disques. Marche avec les trois versions et toutes les options. Compter 3 à 4 minutes de plus (réencodage du son). Les sauvegardes de la carte mémoire des images 2 disques marchent telles quelles.
+Résultat : `Metal Gear Solid (VOSTFR) (1 CD).bin/.cue` (ou `(VF)`, `(EN)`, `(US)`), en plus des deux disques. Marche avec les quatre versions et toutes les options. Compter 3 à 4 minutes de plus (réencodage du son). Les sauvegardes de la carte mémoire des images 2 disques marchent telles quelles.
 
 ![Sauvegarde du disque 2 rechargée sur l'image unique](docs/previews/combine_on.png) ![Codec du disque 2 sur l'image unique](docs/previews/combine_codec_d2.png)
 

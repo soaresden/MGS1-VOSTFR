@@ -1144,7 +1144,9 @@
 
   // ------------------------------------------------------------------ CD Combiner (combine.py)
   var CB_TARGETS = { 'VOX.DAT': [1, 2, 0x400], 'DEMO.DAT': [2, 3, 0x800] };
-  var CB_OVB = { 0x800AE1D8: 0x800C47D8, 0x800ADC48: 0x800C4248 };
+  var CB_OVB = { 0x800AE1D8: 0x800C47D8, 0x800ADC48: 0x800C4248, 0x800AF370: 0x800C5970 };
+  var CB_NAMES = { 0x800AE1D8: 'France', 0x800ADC48: 'Europe (anglais)', 0x800AF370: 'USA' };
+  var CB_MGS_STR = 'MGS\0MGS read_sector %d\n\0';
   var CB_LIMIT = 449850 - 150, EXE_LOAD = 0x80010000;
   function cbBlock(code, data) {
     var out = new Uint8Array(4 + data.length), n = data.length + 4;
@@ -1231,13 +1233,23 @@
     return { data: out, n: n };
   }
   function cbTarget(w, at) { var off = (w & 0xFFFF) - ((w & 0x8000) << 1); return at + 4 + 4 * off; }
+  // reset logiciel : lui v0 ; lw v0,FS_DiskNum ; lui a1,0x8001 ; addiu a1,« cdrom:\MGS\%s;1 » ; sll v0,v0,2
+  function cbResetSite(exe, i) {
+    var x = u32(exe, i + 8);
+    return u32(exe, i) === 0x3C058001 && u32(exe, i + 4) >>> 16 === 0x24A5 && (x === 0x00021080 || x === 0x00001021) &&
+      u32(exe, i - 8) >>> 16 === 0x3C02 && u32(exe, i - 4) >>> 16 === 0x8C42;
+  }
+  function cbFind(b, str, from) {
+    var n = str.length, c0 = str.charCodeAt(0);
+    for (var i = from || 0; i + n <= b.length; i++) if (b[i] === c0 && ascii(b, i, i + n) === str) return i;
+    return -1;
+  }
   function cbExeInfo(exe) {
     var fs = 0, reset = 0;
     for (var i = 0x800; i < exe.length - 20; i += 4) {
       var w = u32(exe, i);
-      if (w === 0x3C058001 && u32(exe, i + 4) === 0x24A50ACC && (u32(exe, i + 8) === 0x00021080 || u32(exe, i + 8) === 0x00001021)) {
+      if (cbResetSite(exe, i)) {
         var hi = u32(exe, i - 8), lo = u32(exe, i - 4);
-        if (hi >>> 16 !== 0x3C02 || lo >>> 16 !== 0x8C42) throw new Error('EXE : FS_DiskNum inattendu');
         fs = (hi & 0xFFFF) * 65536 + (lo & 0xFFFF) - ((lo & 0x8000) * 2);
       }
       if (w === 0x3C048011 && u32(exe, i + 4) >>> 26 === 3 && u32(exe, i + 8) === 0x34847000)
@@ -1252,13 +1264,19 @@
     function off(a) { return a - EXE_LOAD + 0x800; }
     function W(i) { return u32(exe, i); }
     function put(i, v) { w32(exe, i, v >>> 0); }
-    var s = off(0x800105F8);
-    if (ascii(exe, s, s + 5) === 'MGS2\0') return exe;
-    if (ascii(exe, s - 4, s + 20) !== 'MGS\0MGS read_sector %d\n\0') throw new Error('EXE : chaîne MGS introuvable');
+    var kk0 = cbFind(exe, CB_MGS_STR);
+    if (kk0 < 0) {
+      if (cbFind(exe, 'MGS\0MGS2\0' + CB_MGS_STR.slice(9)) >= 0) return exe;      // déjà patché
+      throw new Error('EXE : chaîne MGS introuvable');
+    }
+    if (cbFind(exe, CB_MGS_STR, kk0 + 1) >= 0) throw new Error('EXE : chaîne MGS en double');
+    var s = kk0 + 4, saDir = addr(kk0), saTwo = addr(s);   // 0x800105F4 / F8 en PAL, 0x80010724 / 28 en USA
+    if (saDir >>> 16 !== 0x8001 || saTwo >>> 16 !== 0x8001 || saTwo & 0x8000) throw new Error('EXE : chaîne MGS mal placée');
     exe.set([0x4D, 0x47, 0x53, 0x32, 0], s);
     var hits = [], i, k;
     for (i = 0x800; i < exe.length - 80; i += 4)
-      if (W(i) === 0x27A40010 && W(i + 4) === 0x3C058001 && W(i + 8) === 0x24A505F4 && W(i + 64) === 0x3C048001 && W(i + 68) === 0x248405F8) hits.push(i);
+      if (W(i) === 0x27A40010 && W(i + 4) === 0x3C058001 && W(i + 8) === ((0x24A50000 | saDir & 0xFFFF) >>> 0) &&
+          W(i + 64) === 0x3C048001 && W(i + 68) === ((0x24840000 | saTwo & 0xFFFF) >>> 0)) hits.push(i);
     if (hits.length !== 1) throw new Error('EXE : FS_CdMakePositionTable');
     i = hits[0];
     var w = [];
@@ -1266,11 +1284,11 @@
     if (w[12] >>> 26 !== 3 || w[13] !== 0x00C28825 || w[14] >>> 16 !== 0x1440 || w[15] !== 0x32420001) throw new Error('EXE : motif');
     var bnezTo = cbTarget(w[14], addr(i + 56)), hi = Math.floor((fs + 0x8000) / 65536) & 0xFFFF, lo = fs & 0xFFFF;
     var nw = [w[0], 0x3C010000 | hi, 0x8C280000 | lo].concat(w.slice(3, 11),
-      [0x00084080, 0x3C058001, 0x00A82821, 0x24A505F4, w[11], w[12], w[13],
+      [0x00084080, 0x3C058001, 0x00A82821, (0x24A50000 | saDir & 0xFFFF) >>> 0, w[11], w[12], w[13],
        0x14400000 | (((bnezTo - addr(i + 72) - 4) / 4) & 0xFFFF), w[15]]);
     nw.forEach(function (x, kk) { put(i + 4 * kk, x); });
     for (i = 0x800; i < exe.length - 12; i += 4)
-      if (W(i) === 0x3C058001 && W(i + 4) === 0x24A50ACC && W(i + 8) === 0x00021080) { put(i + 8, 0x00001021); break; }
+      if (cbResetSite(exe, i) && W(i + 8) === 0x00021080) { put(i + 8, 0x00001021); break; }
     var a = [];
     for (i = 0x800; i < exe.length - 8; i += 4)
       if (W(i) === 0x24020C00 && (W(i + 4) >>> 16 === 0x1062 || W(i + 4) >>> 16 === 0x1462)) a.push(i);
@@ -1365,7 +1383,7 @@
     return out;
   }
   function cbSetExtent(sec, i, lba, size) { w32(sec, i + 2, lba); w32be(sec, i + 6, lba); w32(sec, i + 10, size); w32be(sec, i + 14, size); }
-  async function cbWriteImage(d1, d2, files, writer, progress) {
+  async function cbWriteImage(d1, d2, files, writer, progress, root) {
     var f1 = await d1.files(), f2 = await d2.files(), pvd0 = await d1.sector(16), rootLba = u32(pvd0, 158);
     async function mgsDir(d) {
       var r = u32(await d.sector(16), 158), sec = await d.sector(r);
@@ -1435,6 +1453,12 @@
     w32(pvd, 0x84, psize + 12); w32be(pvd, 0x88, psize + 12);
     w32(pvd, 80, total); w32be(pvd, 84, total);
     patches.set(16, pvd);
+    // fichiers de la racine du disque 1 retouchés (USA : l'EXE qui démarre), même taille
+    for (var rp in (root || {})) {
+      var rl = f1.get(rp), rd = root[rp];
+      if (rd.length !== rl[1] || rl[0] + Math.ceil(rl[1] / 2048) > first) throw new Error('CD Combiner : ' + rp);
+      for (var rk = 0; rk < rd.length; rk += 2048) patches.set(rl[0] + rk / 2048, rd.subarray(rk, rk + 2048));
+    }
     // écriture
     var written = 0, B = 4096;
     async function emit(buf) { await writer.write(buf); written += buf.length / SECTOR; if (progress) progress(written / total); }
@@ -1495,12 +1519,23 @@
   }
   async function combine(d1, d2, writer, log, progress) {
     var f1 = await d1.files(), f2 = await d2.files();
-    if (!f1.has('MGS/MGS1.EXE') || !f2.has('MGS/MGS2.EXE')) throw new Error('CD Combiner : il faut le disque 1 et le disque 2');
-    var exe1 = await d1.readFile('MGS/MGS1.EXE'), exe2 = await d2.readFile('MGS/MGS2.EXE');
+    // EXE de chaque disque (versions/*.json) : MGS/MGS1.EXE / MGS2.EXE en PAL, MGS/SLUS_005.94 / SLUS_007.76 en USA
+    var vers = G.MGS_MODS && G.MGS_MODS.versions || [{ exe: { 1: ['MGS/MGS1.EXE'], 2: ['MGS/MGS2.EXE'] } }];
+    function exeOf(f, n) {
+      for (var v of vers) {
+        var paths = v.exe && v.exe[n] || [], main = paths.filter(function (q) { return q.indexOf('MGS/') === 0; })[0];
+        if (main && f.has(main)) return paths;
+      }
+      return null;
+    }
+    var p1 = exeOf(f1, 1), p2 = exeOf(f2, 2);
+    if (!p1 || !p2) throw new Error('CD Combiner : il faut le disque 1 et le disque 2');
+    var m1 = p1.filter(function (q) { return q.indexOf('MGS/') === 0; })[0], m2 = p2.filter(function (q) { return q.indexOf('MGS/') === 0; })[0];
+    var exe1 = await d1.readFile(m1), exe2 = await d2.readFile(m2);
     var info = cbExeInfo(exe1), info2 = cbExeInfo(exe2);
     if (info[0] !== info2[0] || info[1] !== info2[1]) throw new Error('CD Combiner : les deux disques ne sont pas de la même version');
     var fs = info[0], reset = info[1], ovb = CB_OVB[fs];
-    log('CD Combiner : version ' + (fs === 0x800AE1D8 ? 'France' : 'Europe (anglais)') + ', son allégé (voix 11 kHz, cinématiques 22 kHz)');
+    log('CD Combiner : version ' + CB_NAMES[fs] + ', son allégé (voix 11 kHz, cinématiques 22 kHz)');
     var shr = {};
     for (var n of [1, 2]) for (var nm of ['VOX.DAT', 'DEMO.DAT']) {
       var d = n === 1 ? d1 : d2;
@@ -1509,27 +1544,32 @@
       data = null;
     }
     var vm2 = shr['2VOX.DAT'].map, files = [];
+    // test sonore (stage « sound ») : en PAL, le même sur les deux disques (même place) avec les voix
+    // du disque 2 ; en USA, chaque disque a le sien (tailles différentes), avec ses propres voix
+    var stages = { 1: await d1.readFile('MGS/STAGE.DIR'), 2: await d2.readFile('MGS/STAGE.DIR') };
+    function sndOf(st) { return gcxStageTable(st).filter(function (e) { return e[0] === 'sound'; })[0]; }
+    var sn1 = sndOf(stages[1]), sn2 = sndOf(stages[2]), shared = !!(sn1 && sn2 && sn1[1] === sn2[1] && sn1[2] === sn2[2]);
     for (n of [1, 2]) {
       d = n === 1 ? d1 : d2;
       var vm = shr[n + 'VOX.DAT'].map, dm = shr[n + 'DEMO.DAT'].map;
       var rr = cbRenumberRadio(await d.readFile('MGS/RADIO.DAT'), vm);
-      var rs = cbRenumberStage(await d.readFile('MGS/STAGE.DIR'), vm, dm, vm2);
+      var rs = cbRenumberStage(stages[n], vm, dm, shared ? vm2 : vm);
+      stages[n] = null;
       var st = cbPatchOverlays(rs.data, fs, reset, ovb);
       log('  disque ' + n + ' : RADIO.DAT ' + rr.n + ' codes, STAGE.DIR ' + rs.n.vox + ' voix, ' + rs.n.demo + ' cinématiques, ' + rs.n.sound + ' test sonore');
       var fl = {};
       fl['MGS/VOX.DAT'] = shr[n + 'VOX.DAT'].data; fl['MGS/DEMO.DAT'] = shr[n + 'DEMO.DAT'].data;
       fl['MGS/RADIO.DAT'] = rr.data; fl['MGS/STAGE.DIR'] = st;
-      fl['MGS/MGS' + n + '.EXE'] = cbPatchExe(n === 1 ? exe1 : exe2);
+      fl[n === 1 ? m1 : m2] = cbPatchExe(n === 1 ? exe1 : exe2);
       files.push(fl);
     }
     shr = null;
-    // test sonore : le stage « sound » est le même sur les deux disques (même place, mêmes octets)
-    // et porte les codes du disque 2 : on recopie sur le disque 1 celui du disque 2 renuméroté
-    var st1 = files[0]['MGS/STAGE.DIR'], st2 = files[1]['MGS/STAGE.DIR'];
-    var s1 = gcxStageTable(st1).filter(function (e) { return e[0] === 'sound'; })[0];
-    var s2 = gcxStageTable(st2).filter(function (e) { return e[0] === 'sound'; })[0];
-    if (s1 && s2 && s1[1] === s2[1] && s1[2] === s2[2]) st1.set(st2.subarray(s2[1], s2[2]), s1[1]);
-    var total = await cbWriteImage(d1, d2, files, writer, function (f) { progress('1 CD : écriture de l\'image', f); });
+    // PAL : on recopie sur le disque 1 le test sonore du disque 2 renuméroté (mêmes voix)
+    if (shared) files[0]['MGS/STAGE.DIR'].set(files[1]['MGS/STAGE.DIR'].subarray(sn2[1], sn2[2]), sn1[1]);
+    // copies de l'EXE à la racine du disque 1 (USA : c'est celle qui démarre)
+    var root = {};
+    for (var rq of p1) if (rq.indexOf('MGS/') !== 0) root[rq] = cbPatchExe(await d1.readFile(rq));
+    var total = await cbWriteImage(d1, d2, files, writer, function (f) { progress('1 CD : écriture de l\'image', f); }, root);
     log('  image unique : ' + total + ' secteurs (' + Math.round(total * SECTOR / 1e6) + ' Mo, max ' + (CB_LIMIT + 150) + ')');
     return total;
   }
