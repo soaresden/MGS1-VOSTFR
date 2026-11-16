@@ -231,12 +231,16 @@ def wrap(ws, w=WIDTH):
     return lines
 
 
-def layout(ws):
-    """Lignes de 36 caractères, 40 si ça évite une 5e ligne."""
-    lines = wrap(ws)
-    if len(lines) > LINES:
-        lines = min(wrap(ws), wrap(ws, 40), key=len)
-    return NL.join(lines), len(lines)
+CODEC = (NL, (WIDTH, 40), LINES)  # format d'un TALK : retour à la ligne, largeurs essayées, lignes
+
+
+def layout(ws, fmt=CODEC):
+    """Lignes de la première largeur, d'une suivante si ça évite des lignes de trop."""
+    nl, widths, nmax = fmt
+    lines = wrap(ws, widths[0])
+    if len(lines) > nmax:
+        lines = min((wrap(ws, w) for w in widths), key=len)
+    return nl.join(lines), len(lines)
 
 
 def units(talks):
@@ -259,7 +263,7 @@ def units(talks):
     return ws, cost
 
 
-def resegment(fr, us):
+def resegment(fr, us, fmt=CODEC):
     """Textes FR (m TALK) -> n textes, n = nombre de TALK US. Renvoie (textes, nb de lignes max)."""
     n, m = len(us), len(fr)
     if n == m:
@@ -268,7 +272,7 @@ def resegment(fr, us):
     if len(ws) < n:
         return None, 0
     if n == 1:
-        txt, nl = layout(ws)
+        txt, nl = layout(ws, fmt)
         return [txt], nl
     wl = [width(x) + 1 for x in ws]
     tot = sum(wl)
@@ -288,13 +292,13 @@ def resegment(fr, us):
     best = [[INF] * len(cand) for _ in range(n - 1)]
     back = [[-1] * len(cand) for _ in range(n - 1)]
 
-    cap = WIDTH * LINES
+    cap = fmt[1][0] * fmt[2]
     window = max(3 * cap, 3 * tot / n)
 
     def seg_cost(a, b):
         # estimation rapide (les lignes coupées aux mots perdent ~10 %)
         x = cum[b] - cum[a]
-        return 0 if x <= cap * 0.9 else 40 * (x / (cap * 0.9) - 1) * LINES
+        return 0 if x <= cap * 0.9 else 40 * (x / (cap * 0.9) - 1) * fmt[2]
 
     for k in range(n - 1):
         lo = 0
@@ -332,7 +336,7 @@ def resegment(fr, us):
         if a in starts and ends.get(b) == a:
             out.append(starts[a])
         else:
-            txt, nl = layout(ws[a:b])
+            txt, nl = layout(ws[a:b], fmt)
             out.append(txt)
             worst = max(worst, nl)
     return out, worst
@@ -347,8 +351,9 @@ def needed(frag, top):
     return s, s + len(frag.tail)
 
 
-def build(us_bin, fr_bin, log=print, force=()):
-    """Renvoie (RADIO.DAT, STAGE.DIR, {offset dans VOX.DAT: octets de banque réécrite})."""
+def build(us_bin, fr_bin, log=print, force=(), voices=True):
+    """Renvoie (RADIO.DAT, STAGE.DIR, {offset dans VOX.DAT: octets de banque réécrite}).
+    voices : sous-titres FR des voix en jeu aussi (vox_us.py)."""
     du, fus, st_us, r_us, codes_us, fu, sq_us = load(us_bin)
     df, ffs, _, _, _, ff, sq_fr = load(fr_bin)
     vu = bytes(du.read(*fus["MGS/VOX.DAT"]))
@@ -454,7 +459,14 @@ def build(us_bin, fr_bin, log=print, force=()):
     talks = []
     for F in fu.values():
         rt.walk(F.script, lambda c, v: talks.append(c) if c.code == rt.TALK else None)
-    font, accents = usfont.extend(usfont.read_font(st_us), usfont.used(c.text for c in talks))
+    vplan = {}
+    if voices:
+        import vox_us
+        vmap = vox_us.pair(st_us, vu, df.read(*ffs["MGS/STAGE.DIR"]), vf)
+        vplan, vstats = vox_us.plan(vu, vf, vmap, skip=banks)
+        log(f"  voix en jeu : {len(vmap)} banques appariées ; " + ", ".join(f"{k} {v}" for k, v in sorted(vstats.items())))
+    font, accents = usfont.extend(usfont.read_font(st_us),
+                                  usfont.used([c.text for c in talks] + (vox_us.texts(vplan) if voices else [])))
     for c in talks:
         if b"\x1f" in c.text:
             c.set_text(usfont.convert(c.text, accents))
@@ -487,7 +499,17 @@ def build(us_bin, fr_bin, log=print, force=()):
     log("  " + ", ".join(f"{k} {v}" for k, v in sorted(stats.items())))
     lines = Counter(len(SPLIT_LINES.split(c.text)) for c in talks)
     log(f"  lignes par TALK : {dict(sorted(lines.items()))}")
-    return bytes(out), bytes(st), {code * 2048: b for code, b in banks.items()}
+    big = []
+    for code, per in vplan.items():
+        b = vox_us.encode(vu, code, per, accents)
+        if b is None:
+            big.append(code)
+        else:
+            banks[code] = b
+    if vplan:
+        log(f"  voix en jeu : {len(vplan) - len(big)} banques en FR"
+            + (f", trop grosses pour leur place (restées en anglais) : {', '.join(hex(c) for c in big)}" if big else ""))
+    return bytes(out), bytes(st), {code * 2048: b for code, b in sorted(banks.items())}
 
 
 def write_image(us_bin, out_bin, radio, stage, vox_banks, log=print):

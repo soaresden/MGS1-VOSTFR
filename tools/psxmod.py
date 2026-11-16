@@ -209,17 +209,17 @@ class Package:
 
 CODEC_FR = {
     "id": "codec-fr",
-    "en": "French Codec subtitles",
-    "enS": "Codec calls in French (texts of the French version, English voices), accented letters added to the font.",
-    "frS": "Le Codec en français (textes de la version française, voix anglaises), lettres accentuées ajoutées à la police.",
+    "en": "French subtitles (Codec + in-game voices)",
+    "enS": "Codec calls and in-game voice subtitles in French (texts of the French version, English voices), accented letters added to the font.",
+    "frS": "Le Codec et les sous-titres des voix en jeu en français (textes de la version française, voix anglaises), lettres accentuées ajoutées à la police.",
 }
 
 
 def codec_fr(p, disc, fl, us_path, fr_path, st0, seen):
-    """Codec FR (tools/codec_us.py) : RADIO.DAT reconstruit, posé dans la zone vide DUMMY3M.DAT
+    """Codec et voix en jeu en FR (tools/codec_us.py, vox_us.py) : RADIO.DAT reconstruit, posé dans la zone vide DUMMY3M.DAT
     (overlay) et l'enregistrement de répertoire de RADIO.DAT pointé dessus (le recomp résout
     les fichiers par les enregistrements patchés, comme le jeu) ; codes radio et police de
-    STAGE.DIR ; banques VOX recalées."""
+    STAGE.DIR ; banques VOX réécrites à leur place (Codec recalé, sous-titres des voix en jeu)."""
     import codec_us
     mid = CODEC_FR["id"]
     radio, st1, banks = codec_us.build(str(us_path), str(fr_path), log=lambda *a, **k: None)
