@@ -1,0 +1,41 @@
+{
+  "id": "fps",
+  "ordre": 50,
+  "rang": 40,
+  "type": "option",
+  "cli": "fps",
+  "fichiers": [
+    "exe"
+  ],
+  "aide": "viser et tirer au SOCOM / M9 en vue subjective",
+  "versions": [
+    "FR",
+    "UK"
+  ],
+  "fr": "Viser en vue subjective",
+  "en": "Aim in first-person view",
+  "frS": "Tirer au SOCOM ou au M9 depuis la vue subjective, comme dans MGS2.",
+  "enS": "Shoot the SOCOM or the M9 from the first-person view, like in MGS2.",
+  "shots": [
+    [
+      "docs/previews/fps_on.png",
+      "Carré maintenu : l'arme et son laser",
+      "Square held: the weapon and its laser"
+    ],
+    [
+      "docs/previews/fps_off.png",
+      "Triangle seul : la vue subjective",
+      "Triangle alone: the first-person view"
+    ]
+  ],
+  "fl": [
+    "<b>Triangle</b> maintenu : vue subjective.",
+    "<b>Carré</b> maintenu : l'arme apparaît avec son laser rouge ; Carré relâché : le coup part là où tu regardes.",
+    "Avec les armes tranquillisantes, le M9 endort aussi en vue subjective."
+  ],
+  "el": [
+    "Hold <b>Triangle</b>: first-person view.",
+    "Hold <b>Square</b>: the weapon shows with its red laser; release Square: the shot goes where you look.",
+    "With the tranquilizer weapons, the M9 also puts guards to sleep in first-person view."
+  ]
+}

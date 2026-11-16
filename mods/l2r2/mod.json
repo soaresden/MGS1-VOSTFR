@@ -1,0 +1,36 @@
+{
+  "id": "l2r2",
+  "ordre": 40,
+  "rang": 50,
+  "type": "option",
+  "cli": "l2r2",
+  "fichiers": [
+    "exe"
+  ],
+  "aide": "L2/R2 penchent la vue subjective (comme MGS2)",
+  "versions": [
+    "FR",
+    "UK"
+  ],
+  "fr": "Se pencher avec L2 / R2",
+  "en": "Lean with L2 / R2",
+  "frS": "En vue subjective, regarder derrière un coin ou par-dessus un obstacle.",
+  "enS": "In first-person view, look around a corner or over an obstacle.",
+  "shots": [
+    [
+      "docs/previews/l2r2_on.png",
+      "Penché à gauche · L2",
+      "Leaning left · L2"
+    ]
+  ],
+  "fl": [
+    "En vue subjective, <b>L2</b> penche Snake à gauche et <b>R2</b> à droite, comme dans MGS2.",
+    "Penché, les flèches tournent toujours la vue.",
+    "<b>L2 + R2</b> ensemble : Snake se met sur la pointe des pieds."
+  ],
+  "el": [
+    "In first-person view, <b>L2</b> makes Snake lean left and <b>R2</b> right, like in MGS2.",
+    "While leaning, the arrows still turn the view.",
+    "<b>L2 + R2</b> together: Snake stands on tiptoe."
+  ]
+}

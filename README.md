@@ -51,13 +51,13 @@ En CHD (comme dans Batocera) ou en BIN/CUE. Pas besoin de chdman : le CHD est lu
 
 La page marche aussi **hors ligne** : télécharge le projet ([zip](https://github.com/soaresden/MGS1-VOSTFR/archive/refs/heads/main.zip)), décompresse-le et double-clique sur `index.html`.
 
-Elle utilise `docs/mgs-vostfr.js`, un portage en JavaScript des scripts Python : sur les mêmes disques, les images sont **identiques octet pour octet** à celles de `build.py` (vérifié avec `tools/webtest.js`). Les options y sont des différences d'octets exportées par `tools/webpatches.py` vers `docs/patches.js` : **à relancer après chaque modification d'une option** (`python tools/webpatches.py work/FR1.bin work/FR2.bin work/UK1.bin work/UK2.bin`).
+Elle utilise `docs/mgs-vostfr.js`, un portage en JavaScript des scripts Python : sur les mêmes disques, les images sont **identiques octet pour octet** à celles de `build.py` (vérifié avec `tools/webtest.js`). Les options y sont des différences d'octets exportées par `tools/webpatches.py` vers `docs/patches.js` : **à relancer après chaque modification d'une option** (`python tools/webpatches.py work/FR1.bin work/FR2.bin work/UK1.bin work/UK2.bin`). La liste des options, leurs textes et leurs captures viennent de `docs/mods.js`, généré par `python tools/mods.py` (voir « Les mods » plus bas).
 
 ### En ligne de commande
 
 Python 3.10+ avec `numpy`.
 
-Sans VOSTFR, juste les mods sur ton jeu d'origine : `--vf` (disques français, `--fr1/--fr2`) ou `--vo` (disques européens anglais, `--uk1/--uk2`), avec au moins une option. Exemple : `python build.py --vf --m9 --fps --fr1 ... --fr2 ... --out ../work/out` donne `Metal Gear Solid (VF) (Disc 1/2)`.
+Sans VOSTFR, juste les mods sur ton jeu d'origine : `--jeu FR` (disques français, `--fr1/--fr2` ; ou `--vf`) ou `--jeu UK` (disques européens anglais, `--uk1/--uk2` ; ou `--vo`), avec au moins une option. Exemple : `python build.py --jeu FR --m9 --fps --fr1 ... --fr2 ... --out ../work/out` donne `Metal Gear Solid (VF) (Disc 1/2)`. `python build.py -h` liste toutes les options (une par dossier de `mods/`).
 
 ```bash
 cd tools
@@ -211,11 +211,27 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 3. **Deux répertoires** : `MGS/` (disque 1) et `MGS2/` (disque 2) sur la même image. Le jeu cherche ses fichiers par nom au démarrage et à chaque changement de disque : l'EXE choisit le répertoire d'après le numéro de disque en cours. L'écran de changement de disque (overlays `change`, `abst`, `title`, `demosel`) n'attend plus le capot et donne au jeu le disque voulu. Le lecteur de voix du jeu ne connaissait pas 11 kHz : deux instructions retouchées.
 4. **Image** : fichiers des deux disques à la suite (BRF.DAT et FACE.DAT, identiques, partagés), `DUMMY3M.DAT` (remplissage) retiré, tables ISO 9660 mises à jour : 420 719 secteurs, sous la limite de 449 850.
 
+## Les mods (dossier `mods/`)
+
+Chaque mod est un dossier `mods/<id>/`, la VOSTFR comprise :
+
+| Fichier | Contenu |
+|---|---|
+| `mod.json` | Tout ce qu'il faut savoir sur le mod : son option en ligne de commande (`cli`), son type, l'ordre d'application, les versions du jeu gérées, et pour la page son nom, sa description en français et en anglais, ses captures |
+| `patch.py` | `patch(f)` : modifie `f.exe` (l'EXE) et/ou `f.stage` (`STAGE.DIR`), renvoie la ligne du journal |
+
+Types : `option` (octets de l'EXE et/ou de `STAGE.DIR`), `texte` (pareil, avec un texte : la barre de vie), `base` (la VOSTFR, qui reconstruit `DEMO.DAT`, `VOX.DAT` et `RADIO.DAT`), `final` (sur les images finies : le CD Combiner).
+
+Les versions du jeu sont dans `versions/` (un fichier par version : numéros des disques, nom court, textes de la page). Aujourd'hui : France (`FR`) et Europe anglaise (`UK`). Un mod dit dans son `mod.json` quelles versions il gère ; la page grise un mod qui ne gère pas les disques déposés.
+
+`build.py`, `webpatches.py`, `webtest.js` et la page lisent ces dossiers : **ajouter un mod = ajouter un dossier**, puis `python tools/mods.py` (page) et `python tools/webpatches.py ...` (patchs de la page).
+
 ## Outils
 
 | Script | Rôle |
 |---|---|
-| `tools/build.py` | Construit les images VOSTFR |
+| `tools/build.py` | Construit les images : VOSTFR et/ou les mods de `mods/` |
+| `tools/mods.py` | Lit `mods/` et `versions/` ; génère `docs/mods.js` pour la page |
 | `tools/chd2bin.py` | CHD v5 → BIN/CUE (cdlz, cdzl), vérification SHA-1 |
 | `tools/psxiso.py` | Liste, extraction, vérification EDC d'une image PS1 |
 | `tools/cdsector.py` | EDC/ECC Mode 2 Form 1 (numpy), réécriture d'un fichier en place |
@@ -225,16 +241,16 @@ Deux répliques du disque 2 n'existent qu'en français (dont une oubliée en all
 | `tools/vox_vostfr.py` | Nouveau `VOX.DAT`, renumérotation de `RADIO.DAT` et `STAGE.DIR` |
 | `tools/radio.py` | Script Codec `RADIO.DAT` (commandes TALK / VOICE) |
 | `tools/demo_vostfr.py` | Remplacement de l'audio des cinématiques |
-| `tools/carre.py` | Patch optionnel : Carré fait défiler le Codec |
-| `tools/m9.py` | Patch optionnel : M9 et PSG1-T tranquillisants |
-| `tools/psg1.py` | Patch optionnel : PSG1 debout ou accroupi |
-| `tools/l2r2.py` | Patch optionnel : vue subjective, L2/R2 penchent, L2+R2 pointe des pieds |
-| `tools/fps.py` | Patch optionnel : tirer au SOCOM / M9 en vue subjective |
-| `tools/life.py` | Patch optionnel : texte à la place de « LIFE » dans la barre de vie (+ aperçu) |
-| `tools/cartes.py` | Patch optionnel : portes à carte ouvertes sans équiper la carte, qui s'équipe alors toute seule |
-| `tools/psg1loup.py` | Patch optionnel : le PSG1 dans la grotte, là où Meryl attendait, avant Sniper Wolf |
-| `tools/bandana.py` | Patch optionnel : bandana visible, très long pan animé (comme MGS2) |
-| `tools/titre.py` | Patch optionnel : écran titre « Shadow Fixes », by Soaresden, v1.0 |
+| `tools/carre.py` | Code du mod `carre` : Carré fait défiler le Codec |
+| `tools/m9.py` | Code du mod `m9` : M9 et PSG1-T tranquillisants |
+| `tools/psg1.py` | Code du mod `psg1` : PSG1 debout ou accroupi |
+| `tools/l2r2.py` | Code du mod `l2r2` : vue subjective, L2/R2 penchent, L2+R2 pointe des pieds |
+| `tools/fps.py` | Code du mod `fps` : tirer au SOCOM / M9 en vue subjective |
+| `tools/life.py` | Code du mod `life` : texte à la place de « LIFE » dans la barre de vie (+ aperçu) |
+| `tools/cartes.py` | Code du mod `cartes` : portes à carte ouvertes sans équiper la carte, qui s'équipe alors toute seule |
+| `tools/psg1loup.py` | Code du mod `psg1loup` : le PSG1 dans la grotte, là où Meryl attendait, avant Sniper Wolf |
+| `tools/bandana.py` | Code du mod `bandana` : bandana visible, très long pan animé (comme MGS2) |
+| `tools/titre.py` | Code du mod `titre` : écran titre « Shadow Fixes », by Soaresden, v1.0 |
 | `tools/combine.py` | Les 2 disques en une seule image (son allégé, pas de changement de disque) ; aussi dans la page web (case « CD Combiner ») |
 | `tools/spuadpcm.py` | ADPCM du SPU : décodage, encodage, rééchantillonnage entier |
 | `tools/gcx.py` | Lecture exacte des scripts GCX de `STAGE.DIR` (codes des voix et des cinématiques) |

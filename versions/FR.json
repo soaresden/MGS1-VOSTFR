@@ -1,0 +1,28 @@
+{
+  "id": "FR",
+  "disques": {
+    "1": "SLES_015.06",
+    "2": "SLES_115.06"
+  },
+  "nomCourt": "VF",
+  "langue": "fr",
+  "disqueFr": "France",
+  "disqueEn": "France",
+  "fr": "Version française d'origine",
+  "en": "Original French version",
+  "frS": "Voix et textes français, avec tes mods. Disques français seulement.",
+  "enS": "French voices and text, with your mods. French discs only.",
+  "shots": [
+    [
+      "docs/shots/menu.png",
+      "Menus en français",
+      "French menus"
+    ]
+  ],
+  "fl": [
+    "Le jeu français tel quel (doublage français), avec les mods cochés."
+  ],
+  "el": [
+    "The French game as it is (French dub), with the ticked mods."
+  ]
+}

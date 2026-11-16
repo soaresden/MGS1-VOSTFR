@@ -1,0 +1,42 @@
+{
+  "id": "bandana",
+  "ordre": 70,
+  "rang": 70,
+  "type": "option",
+  "cli": "bandana",
+  "fichiers": [
+    "exe"
+  ],
+  "aide": "le bandana se voit, avec de très longs pans (comme MGS2)",
+  "versions": [
+    "FR",
+    "UK"
+  ],
+  "off": true,
+  "fr": "Bandana visible, façon MGS2",
+  "en": "Visible bandana, MGS2-style",
+  "frS": "Un très long pan de bandana (1,30 m) flotte derrière Snake. Prototype.",
+  "enS": "A very long (1.30 m) bandana tail flows behind Snake. Prototype.",
+  "shots": [
+    [
+      "docs/previews/bandana_on.png",
+      "Le pan du bandana derrière Snake",
+      "The bandana tail behind Snake"
+    ],
+    [
+      "docs/previews/bandana_dos.png",
+      "Vu de dos (image éclaircie)",
+      "Seen from behind (brightened)"
+    ]
+  ],
+  "fl": [
+    "Le bandana se voit, avec un pan de 1,30 m qui pend dans le dos, se soulève quand Snake court et ondule.",
+    "C'est un modèle de pan prévu par Konami mais inutilisé, rallongé et animé.",
+    "Prototype, décoché par défaut."
+  ],
+  "el": [
+    "The bandana shows, with a 1.30 m tail hanging down the back, lifting when Snake runs and waving.",
+    "It is a tail model planned by Konami but unused, lengthened and animated.",
+    "Prototype, unticked by default."
+  ]
+}

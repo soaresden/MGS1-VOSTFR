@@ -1,0 +1,51 @@
+{
+  "id": "vostfr",
+  "ordre": 0,
+  "type": "base",
+  "aide": "VOSTFR : voix anglaises, textes français (disques français + européens)",
+  "besoin": [
+    "FR",
+    "UK"
+  ],
+  "versions": [
+    "FR"
+  ],
+  "fr": "VOSTFR : voix anglaises, textes français",
+  "en": "VOSTFR: English voices, French text",
+  "frS": "Il faut les disques français et anglais.",
+  "enS": "Needs the French and English discs.",
+  "shots": [
+    [
+      "docs/shots/demo-foxhound.png",
+      "Intro · voix anglaise, sous-titre français",
+      "Intro · English voice, French subtitle"
+    ],
+    [
+      "docs/shots/codec-kurdes.png",
+      "Codec · Campbell",
+      "Codec · Campbell"
+    ],
+    [
+      "docs/shots/codec-naomi.png",
+      "Codec · Naomi",
+      "Codec · Naomi"
+    ],
+    [
+      "docs/shots/jeu-neige.png",
+      "Snowfield",
+      "Snowfield"
+    ]
+  ],
+  "fl": [
+    "Les voix de David Hayter, Jennifer Hale et de toute la distribution d'origine.",
+    "Cinématiques, appels Codec et voix en jeu, sur les deux disques.",
+    "Le texte du Codec suit la voix anglaise, réplique par réplique.",
+    "Menus, objets et textes : ceux de la version française."
+  ],
+  "el": [
+    "The voices of David Hayter, Jennifer Hale and the whole original cast.",
+    "Cutscenes, Codec calls and in-game voices, on both discs.",
+    "The Codec text follows the English voice, line by line.",
+    "Menus, items and text: those of the French version."
+  ]
+}

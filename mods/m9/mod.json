@@ -1,0 +1,59 @@
+{
+  "id": "m9",
+  "ordre": 20,
+  "rang": 30,
+  "type": "option",
+  "cli": "m9",
+  "fichiers": [
+    "exe",
+    "stage"
+  ],
+  "aide": "M9, PSG1-T et claymores tranquillisants",
+  "versions": [
+    "FR",
+    "UK"
+  ],
+  "fr": "Armes tranquillisantes",
+  "en": "Tranquilizer weapons",
+  "frS": "M9, PSG1-T et claymores zzz silencieuses : pour finir le jeu sans tuer.",
+  "enS": "M9, PSG1-T and silent zzz claymores: to finish the game without killing.",
+  "shots": [
+    [
+      "docs/previews/m9_texte.png",
+      "Menu R2 · Triangle passe au M9",
+      "R2 menu · Triangle switches to the M9"
+    ],
+    [
+      "docs/previews/m9_zzz.png",
+      "Garde endormi · zzz",
+      "Guard asleep · zzz"
+    ],
+    [
+      "docs/previews/clay_texte.png",
+      "Menu R2 · CLAY.ZZZ",
+      "R2 menu · CLAY.ZZZ"
+    ],
+    [
+      "docs/previews/clay_pfft.png",
+      "Claymore zzz : un « pfft », pas d'explosion",
+      "zzz claymore: a \"pfft\", no blast"
+    ],
+    [
+      "docs/previews/psg1t_texte.png",
+      "Menu R2 · PSG1-T",
+      "R2 menu · PSG1-T"
+    ]
+  ],
+  "fl": [
+    "Dans le menu des armes (R2), <b>Triangle</b> change le SOCOM en <b>M9</b>, le PSG1 en <b>PSG1-T</b> et les claymores en <b>CLAY.ZZZ</b>.",
+    "Un tir endort un garde pour de bon, avec des zzz. En alerte, il s'endort 8 s plus tard.",
+    "Les claymores zzz ne font aucun bruit : les autres gardes n'entendent rien.",
+    "Boss : dégâts normaux."
+  ],
+  "el": [
+    "In the weapon menu (R2), <b>Triangle</b> turns the SOCOM into the <b>M9</b>, the PSG1 into the <b>PSG1-T</b> and the claymores into <b>CLAY.ZZZ</b>.",
+    "One shot puts a guard to sleep for good, with zzz. During an alert, he falls asleep 8 s later.",
+    "zzz claymores make no noise: the other guards hear nothing.",
+    "Bosses: normal damage."
+  ]
+}

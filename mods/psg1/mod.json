@@ -1,0 +1,41 @@
+{
+  "id": "psg1",
+  "ordre": 30,
+  "rang": 60,
+  "type": "option",
+  "cli": "psg1",
+  "fichiers": [
+    "exe"
+  ],
+  "aide": "PSG1 utilisable debout ou accroupi",
+  "versions": [
+    "FR",
+    "UK"
+  ],
+  "fr": "PSG1 debout ou accroupi",
+  "en": "PSG1 standing or crouching",
+  "frS": "Le fusil de précision sans avoir à se coucher.",
+  "enS": "The sniper rifle without having to lie down.",
+  "shots": [
+    [
+      "docs/previews/psg1_on.png",
+      "Avec l'option : Snake reste debout avec le PSG1",
+      "With the option: Snake stays standing with the PSG1"
+    ],
+    [
+      "docs/previews/psg1_off.png",
+      "Jeu d'origine : Snake doit se coucher",
+      "Original game: Snake has to lie down"
+    ]
+  ],
+  "fl": [
+    "Snake garde sa posture en sortant le PSG1 ; couché, rien ne change.",
+    "Dans la lunette, <b>X</b> passe de debout à accroupi.",
+    "Debout ou accroupi, la lunette ne tremble pas."
+  ],
+  "el": [
+    "Snake keeps his stance when drawing the PSG1; prone, nothing changes.",
+    "In the scope, <b>X</b> switches between standing and crouching.",
+    "Standing or crouching, the scope does not sway."
+  ]
+}

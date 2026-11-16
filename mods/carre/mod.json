@@ -1,0 +1,36 @@
+{
+  "id": "carre",
+  "ordre": 10,
+  "rang": 20,
+  "type": "option",
+  "cli": "carre",
+  "fichiers": [
+    "exe"
+  ],
+  "aide": "Carré fait défiler les dialogues du Codec",
+  "versions": [
+    "FR",
+    "UK"
+  ],
+  "fr": "Carré fait défiler le Codec",
+  "en": "Square skips through the Codec",
+  "frS": "Pratique quand on refait le jeu ou qu'on appelle Mei Ling pour sauvegarder.",
+  "enS": "Handy when replaying the game or calling Mei Ling to save.",
+  "shots": [
+    [
+      "docs/previews/carre_on.png",
+      "Codec en cours",
+      "Codec call"
+    ]
+  ],
+  "fl": [
+    "Pendant un appel, <b>Carré</b> coupe la voix et fait défiler toutes les répliques d'un coup, comme dans MGS2.",
+    "X garde son rôle d'origine : une réplique par appui.",
+    "Les choix (sauvegarde, oui/non) ne sont jamais sautés."
+  ],
+  "el": [
+    "During a call, <b>Square</b> cuts the voice and runs through all the lines at once, like in MGS2.",
+    "X keeps its original role: one line per press.",
+    "Choices (save, yes/no) are never skipped."
+  ]
+}

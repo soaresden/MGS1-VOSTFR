@@ -1535,8 +1535,10 @@
   }
 
   // ------------------------------------------------------------------ identification des disques
-  var IDS = { 'SLES_015.06': 'FR1', 'SLES_115.06': 'FR2', 'SLES_013.70': 'UK1', 'SLES_113.70': 'UK2' };
+  // numéro du disque (SYSTEM.CNF) -> « FR1 »… : docs/mods.js (versions/*.json)
+  var IDS_DEF = { 'SLES_015.06': 'FR1', 'SLES_115.06': 'FR2', 'SLES_013.70': 'UK1', 'SLES_113.70': 'UK2' };
   async function identify(file) {
+    var IDS = G.MGS_MODS && G.MGS_MODS.ids || IDS_DEF;
     var src = await openSource(file), disc = new Disc(src), files = await disc.files();
     var cnf = files.get('SYSTEM.CNF');
     if (!cnf) throw new Error('pas un disque PlayStation');
@@ -1563,9 +1565,11 @@
     return base + ' (1 CD).cue';
   }
 
-  // Jeu d'origine + options seulement : side 'FR' (build.py --vf) ou 'UK' (build.py --vo).
+  // Jeu d'origine + options seulement : side 'FR', 'UK'… (build.py --jeu FR, --jeu UK…).
   async function buildMods(discs, side, opts, openWriter, log, progress, life, settings) {
-    var PATCHES = G.MGS_PATCHES, outputs = [], tag = side === 'FR' ? 'VF' : 'EN';
+    var PATCHES = G.MGS_PATCHES, outputs = [];
+    var ver = G.MGS_MODS && G.MGS_MODS.versions.filter(function (v) { return v.id === side; })[0];
+    var tag = ver ? ver.nomCourt : side === 'FR' ? 'VF' : 'EN';
     if (!opts.length && !life && !(settings && settings.combine)) throw new Error('aucune option choisie');
     for (var d of ['1', '2']) {
       var fr = discs[side + d];
@@ -1611,15 +1615,16 @@
     return outputs;
   }
 
-  // settings.mode : 'vostfr' (défaut), 'fr' (jeu français + options), 'en' (jeu anglais + options).
+  // settings.mode : 'vostfr' (défaut), ou l'id d'une version de versions/ (« FR », « UK »…) pour le
+  // jeu d'origine + options ; 'fr' et 'en' (anciens noms) = 'FR' et 'UK'.
   async function build(discs, opts, openWriter, log, progress, settings) {
     var PATCHES = G.MGS_PATCHES;
     log = log || function () {};
     progress = progress || function () {};
     var mode = settings && (settings.mode || (settings.vostfr === false ? 'fr' : null)) || 'vostfr';
     var life = lifeBytes(settings && settings.life);
-    if (mode === 'fr') return buildMods(discs, 'FR', opts, openWriter, log, progress, life, settings);
-    if (mode === 'en') return buildMods(discs, 'UK', opts, openWriter, log, progress, life, settings);
+    mode = { fr: 'FR', en: 'UK' }[mode] || mode;
+    if (mode !== 'vostfr') return buildMods(discs, mode, opts, openWriter, log, progress, life, settings);
     var both = discs.FR2 && discs.UK2, tab = {}, keep = {};
     var order = both ? ['2', '1'] : ['1'];
     if (!discs.FR1 || !discs.UK1) order = ['2'];

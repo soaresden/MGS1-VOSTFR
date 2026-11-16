@@ -1,0 +1,47 @@
+{
+  "id": "life",
+  "ordre": 60,
+  "rang": 110,
+  "type": "texte",
+  "cli": "life",
+  "fichiers": [
+    "exe"
+  ],
+  "aide": "texte à la place de « LIFE » dans la barre de vie (ex. SNAKE)",
+  "versions": [
+    "FR",
+    "UK"
+  ],
+  "text": true,
+  "fr": "Barre de vie : ton texte",
+  "en": "Life bar: your own text",
+  "frS": "À la place de « LIFE » : SNAKE, ton pseudo… 15 caractères.",
+  "enS": "Instead of \"LIFE\": SNAKE, your nickname… 15 characters.",
+  "shots": [
+    [
+      "#live",
+      "Aperçu en direct",
+      "Live preview"
+    ],
+    [
+      "docs/previews/life_snake.png",
+      "En jeu : « SNAKE »",
+      "In game: \"SNAKE\""
+    ],
+    [
+      "docs/previews/life_max.png",
+      "En jeu : « REVOLVER OCELOT » (15 caractères)",
+      "In game: \"REVOLVER OCELOT\" (15 characters)"
+    ]
+  ],
+  "fl": [
+    "Lettres, chiffres, espace et . : ! ? + - = % ( ) ; les accents sont enlevés.",
+    "Vide ou « LIFE » : la barre ne change pas.",
+    "L'aperçu est dessiné comme dans le jeu."
+  ],
+  "el": [
+    "Letters, digits, space and . : ! ? + - = % ( ); accents are removed.",
+    "Empty or \"LIFE\": the bar does not change.",
+    "The preview is drawn as in the game."
+  ]
+}

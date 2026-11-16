@@ -1,0 +1,36 @@
+{
+  "id": "titre",
+  "ordre": 100,
+  "rang": 100,
+  "type": "option",
+  "cli": "titre",
+  "fichiers": [
+    "stage"
+  ],
+  "aide": "écran titre « METAL GEAR SOLID - SHADOW FIXES », by Soaresden, v1.0",
+  "versions": [
+    "FR",
+    "UK"
+  ],
+  "fr": "Écran titre « Shadow Fixes »",
+  "en": "\"Shadow Fixes\" title screen",
+  "frS": "Le titre devient « METAL GEAR SOLID - SHADOW FIXES », by Soaresden, v1.0 : tu sais tout de suite que c'est la version moddée.",
+  "enS": "The title becomes \"METAL GEAR SOLID - SHADOW FIXES\", by Soaresden, v1.0: you can tell right away it is the modded version.",
+  "shots": [
+    [
+      "docs/previews/titre_on.png",
+      "Écran « PRESS START BUTTON »",
+      "\"PRESS START BUTTON\" screen"
+    ]
+  ],
+  "fl": [
+    "Sous « METAL GEAR », la bande « S O L I D » devient « SOLID - SHADOW FIXES », dans les couleurs du logo.",
+    "« by Soaresden  v1.0 » s'affiche au-dessus du menu, sur le visage de Snake.",
+    "Seul l'écran titre change : le reste du jeu n'est pas touché."
+  ],
+  "el": [
+    "Under \"METAL GEAR\", the \"S O L I D\" band becomes \"SOLID - SHADOW FIXES\", in the logo colours.",
+    "\"by Soaresden  v1.0\" shows above the menu, over Snake's face.",
+    "Only the title screen changes: the rest of the game is untouched."
+  ]
+}

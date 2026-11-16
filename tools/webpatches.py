@@ -1,18 +1,19 @@
 #!/usr/bin/env python3
 """
-webpatches.py - Exporte les options (carre, m9, psg1, l2r2, fps, bandana, cartes, psg1loup) pour la page web.
+webpatches.py - Exporte les mods « option » et « texte » de mods/ pour la page web.
 
 La page fabrique les images dans le navigateur (docs/mgs-vostfr.js) ; les options sont
 des différences d'octets sur l'EXE et STAGE.DIR d'origine, calculées ici avec les mêmes
 scripts que build.py. Seuls les octets écrits par nos patchs sont exportés (notre code
 MIPS et les instructions modifiées), avec le CRC32 des fichiers d'origine pour vérifier.
 
-Une entrée par disque : FR1, FR2 (France), UK1, UK2 (Europe, anglais). La barre de vie
-(--life) n'est que des données : on exporte où écrire (pointeur, zone du texte), la page encode
-le texte elle-même comme life.encode(). Une option qu'un
-script ne sait pas encore appliquer à une version est simplement absente de cette version
-(la page la grise). Les options doivent être additives (la différence de chaque
-combinaison = l'union des différences de chaque option) : c'est vérifié.
+Une entrée par disque, nommée d'après versions/ : FR1, FR2 (France), UK1, UK2 (Europe, anglais).
+Un mod « texte » (la barre de vie) n'est que des données : son patch.py donne avec web(exe) où
+écrire (pointeur, zone du texte), la page encode le texte elle-même comme life.encode(). Un mod
+qui ne sait pas encore s'appliquer à une version (ou ne la liste pas dans son mod.json) est
+simplement absent de cette version (la page le grise). Les options doivent être additives (la différence de chaque
+combinaison = l'union des différences de chaque option) : c'est vérifié sur chaque paire et sur
+l'ensemble (toutes les combinaisons : 2^n constructions, trop long passé une dizaine de mods).
 
   python webpatches.py work/FR1.bin work/FR2.bin work/UK1.bin work/UK2.bin   -> docs/patches.js
 
@@ -22,33 +23,21 @@ combinaison = l'union des différences de chaque option) : c'est vérifié.
 import itertools, json, re, sys, zlib
 from pathlib import Path
 
-import bandana, carre, cartes, fps, l2r2, life, m9, pal, psg1, psg1loup, psxiso
+import mods, psxiso
 
-ORDER = ["carre", "m9", "psg1", "l2r2", "fps", "bandana", "cartes", "psg1loup"]  # ordre de build.py
-IDS = {"SLES_015.06": "FR1", "SLES_115.06": "FR2", "SLES_013.70": "UK1", "SLES_113.70": "UK2"}
+MODS = [m for m in mods.mods() if m["type"] == "option"]
+ORDER = [m["id"] for m in MODS]  # ordre de build.py
+TEXT = [m for m in mods.mods() if m["type"] == "texte"]
+IDS = mods.disc_ids()
 OUT = Path(__file__).resolve().parent.parent / "docs" / "patches.js"
 
 
 def run(exe, stage, opts):
-    if "carre" in opts:
-        exe = carre.patch(exe)
-    if "m9" in opts:
-        exe, stage, _, _ = m9.patch_files(exe, stage)
-    if "psg1" in opts:
-        exe = psg1.patch(exe)
-    if "l2r2" in opts:
-        exe = l2r2.patch(exe)
-    if "fps" in opts:
-        exe = fps.patch(exe)
-    if "bandana" in opts:
-        exe = bandana.patch(exe)
-    if "cartes" in opts:
-        stage, _ = cartes.patch_stage(stage)
-    if "psg1loup" in opts:
-        stage, _ = psg1loup.patch_stage(stage)
-    if not isinstance(exe, (bytes, bytearray)) or not isinstance(stage, (bytes, bytearray)):
+    f = mods.Files(exe, stage)
+    mods.apply(f, opts, log=lambda m: None)
+    if not isinstance(f.exe, (bytes, bytearray)) or not isinstance(f.stage, (bytes, bytearray)):
         raise ValueError("version non gérée par le patch")
-    return bytes(exe), bytes(stage)
+    return bytes(f.exe), bytes(f.stage)
 
 
 def runs(a, b):
@@ -88,6 +77,9 @@ def main():
         exe0, st0 = disc.read(*files[exe_name]), disc.read(*files["MGS/STAGE.DIR"])
         opts, missing = {}, {}
         for o in ORDER:
+            if ident[:-1] not in mods.mods_by_id()[o]["versions"]:
+                missing[o] = "version non listée dans mod.json"
+                continue
             try:
                 exe, st = run(exe0, st0, [o])
             except (Exception, SystemExit) as e:  # option pas encore portée sur cette version
@@ -95,20 +87,19 @@ def main():
                 continue
             opts[o] = {"exe": runs(exe0, exe), "stage": runs(st0, st)}
         have = [o for o in ORDER if o in opts]
-        for r in range(2, len(have) + 1):
-            for combo in itertools.combinations(have, r):
-                exe, st = run(exe0, st0, combo)
-                e2, s2 = exe0, st0
-                for o in combo:
-                    e2, s2 = apply(e2, opts[o]["exe"]), apply(s2, opts[o]["stage"])
-                if (e2, s2) != (exe, st):
-                    raise SystemExit(f"{ident} : options non additives {combo}")
+        for combo in list(itertools.combinations(have, 2)) + ([tuple(have)] if len(have) > 2 else []):
+            exe, st = run(exe0, st0, combo)
+            e2, s2 = exe0, st0
+            for o in combo:
+                e2, s2 = apply(e2, opts[o]["exe"]), apply(s2, opts[o]["stage"])
+            if (e2, s2) != (exe, st):
+                raise SystemExit(f"{ident} : options non additives {combo}")
         discs[ident] = {"exe": exe_name, "exeCrc": zlib.crc32(exe0), "stageCrc": zlib.crc32(st0), "options": opts}
-        try:  # barre de vie (--life) : pointeur u32 LE à écrire et zone de 16 octets pour le texte
-            conf, zone, zaddr = life.offsets(pal.version(exe0))
-            discs[ident]["life"] = [conf, zone, zaddr]
-        except (Exception, SystemExit) as e:
-            print(f"{ident} : pas de barre de vie ({e})")
+        for m in TEXT:  # barre de vie : pointeur u32 LE à écrire et zone de 16 octets pour le texte
+            try:
+                discs[ident][m["id"]] = mods.module(m).web(exe0)
+            except (Exception, SystemExit) as e:
+                print(f"{ident} : pas de {m['id']} ({e})")
         size = sum(len(hx) // 2 for o in opts.values() for k in o.values() for _, hx in k)
         print(f"{ident} : {', '.join(have) or 'aucune option'} ({size} octets)"
               + (f" ; pas encore : {', '.join(missing)}" if missing else ""))

@@ -1,0 +1,35 @@
+{
+  "id": "UK",
+  "disques": {
+    "1": "SLES_013.70",
+    "2": "SLES_113.70"
+  },
+  "nomCourt": "EN",
+  "langue": "en",
+  "disqueFr": "Europe (anglais)",
+  "disqueEn": "Europe (English)",
+  "fr": "Version anglaise d'origine",
+  "en": "Original English version",
+  "frS": "Voix et textes anglais, avec tes mods. Disques européens seulement.",
+  "enS": "English voices and text, with your mods. European discs only.",
+  "shots": [
+    [
+      "docs/previews/m9_texte_en.png",
+      "Menu R2 en anglais · M9",
+      "R2 menu in English · M9"
+    ],
+    [
+      "docs/previews/carre_on_en.png",
+      "Codec en anglais",
+      "Codec in English"
+    ]
+  ],
+  "fl": [
+    "Le jeu européen (anglais) tel quel, avec les mods cochés.",
+    "Les textes ajoutés par les mods (menu des armes…) sont en anglais."
+  ],
+  "el": [
+    "The European (English) game as it is, with the ticked mods.",
+    "The text added by the mods (weapon menu…) is in English."
+  ]
+}

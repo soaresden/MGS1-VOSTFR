@@ -1,0 +1,37 @@
+{
+  "id": "psg1loup",
+  "ordre": 90,
+  "rang": 90,
+  "type": "option",
+  "cli": "psg1loup",
+  "fichiers": [
+    "stage"
+  ],
+  "aide": "PSG1 dans la grotte, là où Meryl attendait (plus de détour par l'armurerie)",
+  "versions": [
+    "FR",
+    "UK"
+  ],
+  "off": true,
+  "fr": "PSG1 dans la grotte",
+  "en": "PSG1 in the cave",
+  "frS": "Le PSG1 t'attend dans la grotte des chiens-loups, là où Meryl attendait : plus de détour par l'armurerie.",
+  "enS": "The PSG1 waits for you in the wolf-dog cave, where Meryl was waiting: no more trip back to the armory.",
+  "shots": [
+    [
+      "docs/previews/psg1loup_on.png",
+      "Après le ramassage : appel de Campbell, puis le combat contre Sniper Wolf",
+      "After the pickup: Campbell's call, then the fight against Sniper Wolf"
+    ]
+  ],
+  "fl": [
+    "Le PSG1 est dans la grotte des chiens-loups, à l'endroit où Meryl attendait avec le chien.",
+    "En le ramassant, tu as 5 balles et l'appel de Campbell de l'armurerie ; de retour dans le passage, le combat contre Sniper Wolf commence.",
+    "Marche aussi en Extreme. Décochée par défaut : coche-la si tu veux t'épargner le détour."
+  ],
+  "el": [
+    "The PSG1 is in the wolf-dog cave, where Meryl was waiting with the dog.",
+    "Picking it up gives 5 rounds and Campbell's armory call; back in the passage, the fight against Sniper Wolf starts.",
+    "Also works on Extreme. Unticked by default: tick it if you want to skip the trip."
+  ]
+}

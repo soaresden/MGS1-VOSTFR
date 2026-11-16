@@ -1,0 +1,46 @@
+{
+  "id": "cartes",
+  "ordre": 80,
+  "rang": 80,
+  "type": "option",
+  "cli": "cartes",
+  "fichiers": [
+    "stage"
+  ],
+  "aide": "portes à carte ouvertes sans équiper la carte (elle s'équipe alors toute seule)",
+  "versions": [
+    "FR",
+    "UK"
+  ],
+  "fr": "Portes à carte sans équiper la carte",
+  "en": "Card doors without equipping the card",
+  "frS": "La carte dans l'inventaire suffit ; elle s'équipe toute seule quand la porte s'ouvre (son icône s'affiche).",
+  "enS": "Having the card in your inventory is enough; it equips itself when the door opens (its icon shows).",
+  "shots": [
+    [
+      "docs/previews/cartes_icone.png",
+      "La porte s'ouvre et la carte s'équipe : son icône s'affiche",
+      "The door opens and the card equips itself: its icon shows"
+    ],
+    [
+      "docs/previews/cartes_on.png",
+      "Avec l'option : la porte s'ouvre",
+      "With the option: the door opens"
+    ],
+    [
+      "docs/previews/cartes_off.png",
+      "Jeu d'origine : il faut équiper la carte",
+      "Original game: you have to equip the card"
+    ]
+  ],
+  "fl": [
+    "Une porte à carte s'ouvre dès que tu as la bonne carte (ou une meilleure) dans ton inventaire.",
+    "À l'ouverture, la carte s'équipe toute seule : son icône, avec le niveau, s'affiche dans la case des objets (elle remplace l'objet que tu avais en main).",
+    "Une carte trop faible donne tout de suite le voyant rouge, même sans l'équiper. 3 portes (s07b, s08a) s'ouvrent sans équiper la carte."
+  ],
+  "el": [
+    "A card door opens as soon as you have the right card (or a better one) in your inventory.",
+    "When it opens, the card equips itself: its icon, with the level, shows in the item box (it replaces the item you had in hand).",
+    "A card that is too weak gets the red light at once, even unequipped. 3 doors (s07b, s08a) open without equipping the card."
+  ]
+}
