@@ -31,7 +31,7 @@ This repository contains **no game data**: only the scripts that build the image
 | `--bandana` option: the bandana shows, with a very long tail flowing behind Snake (like in MGS2) | ✅ prototype, tested (Snowfield French and English, Blast Furnace: tail at rest, running, equip / unequip) |
 | `--titre` option: "METAL GEAR SOLID - SHADOW FIXES" title screen, by Soaresden, v1.0 | ✅ done, tested ("PRESS START BUTTON" screen and menu) |
 | Web page: build in the browser, options to tick, works offline | ✅ done, same images as Python byte for byte |
-| US version (Rev 1, NTSC) + mods: every option except the CD Combiner | ✅ done, tested in PCSX-Redux (title screen, menu, Codec skipped with Square, first-person view, L2/R2); M9, PSG1, cards, cave and bandana not yet tested in game |
+| US version (Rev 1, NTSC) + mods: every option except the CD Combiner | ✅ done, all tested in PCSX-Redux: title screen, Codec skipped with Square, first-person view, L2/R2, M9 (guard asleep), standing PSG1, bandana, life bar, cave card door, PSG1 in the cave then the Wolf fight |
 | French dub credits in the intro → English cast | 🔧 to do |
 | `--combine` option: both discs in **a single image** (emulators, lighter sound) | ✅ done, tested in PCSX-Redux (intro, Codec on both discs, switch to disc 2 from a save, no disc change); VOSTFR, VF and EN, all options |
 

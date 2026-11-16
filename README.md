@@ -31,7 +31,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--bandana` : le bandana se voit, avec un très long pan qui flotte derrière Snake (comme dans MGS2) | ✅ prototype, testé (Snowfield FR et anglais, Blast Furnace : pan au repos, en course, équiper / déséquiper) |
 | Option `--titre` : écran titre « METAL GEAR SOLID - SHADOW FIXES », by Soaresden, v1.0 | ✅ fait, testé (écran « PRESS START BUTTON » et menu) |
 | Page web : fabrication dans le navigateur, options à cocher, hors ligne possible | ✅ fait, mêmes images que Python octet pour octet |
-| Version USA (Rev 1, NTSC) + mods : toutes les options sauf le CD Combiner | ✅ fait, testé dans PCSX-Redux (écran titre, menu, Codec au Carré, vue subjective, L2/R2) ; M9, PSG1, cartes, grotte et bandana pas encore testés en jeu |
+| Version USA (Rev 1, NTSC) + mods : toutes les options sauf le CD Combiner | ✅ fait, tout testé dans PCSX-Redux : écran titre, Codec au Carré, vue subjective, L2/R2, M9 (garde endormi), PSG1 debout, bandana, barre de vie, porte à carte de la grotte, PSG1 dans la grotte puis combat contre Wolf |
 | Crédits du doublage FR dans l'intro → casting anglais | 🔧 à faire |
 | Option `--combine` : les 2 disques en **une seule image** (émulateurs, son allégé) | ✅ fait, testé dans PCSX-Redux (intro, Codec des deux disques, passage au disque 2 depuis une sauvegarde, sans changer de disque) ; VOSTFR, VF et EN, toutes options |
 

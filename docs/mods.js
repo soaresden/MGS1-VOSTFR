@@ -158,6 +158,16 @@ globalThis.MGS_MODS = {
    "enS": "English voices and text, NTSC (60 Hz), with your mods. US discs (Rev 1) only.",
    "shots": [
     [
+     "docs/previews/us_wolf.png",
+     "Combat contre Sniper Wolf (version USA) : PSG1 pris dans la grotte, « SNAKE » dans la barre de vie",
+     "Sniper Wolf fight (US version): PSG1 picked up in the cave, \"SNAKE\" in the life bar"
+    ],
+    [
+     "docs/previews/us_m9.png",
+     "Le M9 dans le menu des armes de la version USA",
+     "The M9 in the US weapon menu"
+    ],
+    [
      "docs/previews/us_titre.png",
      "Écran titre de la version USA, avec le mod « Shadow Fixes »",
      "US title screen, with the \"Shadow Fixes\" mod"

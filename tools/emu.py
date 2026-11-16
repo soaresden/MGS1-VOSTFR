@@ -11,7 +11,8 @@ pilote emu_drive.lua de ce dépôt).
 Commandes (exécutées à la suite, « wait N » attend N images) : press BOUTON [images], wait,
 shot nom, save nom, load chemin.sstate, dump chemin, vram nom (VRAM 1024x512 brute), quit.
 Boutons : START, SELECT, CIRCLE (valider dans MGS PAL), CROSS, UP, DOWN...
-Les captures sont écrites en PNG dans work/emu/. Chemin du harnais : variable REDUX_TESTS.
+Les captures sont écrites en PNG dans work/emu/ (EMU_OUT : autre dossier, chemin absolu ;
+EMU_MCD1 : fichier de carte mémoire 1). Chemin du harnais : variable REDUX_TESTS.
 """
 
 import glob, os, re, subprocess, sys, time
@@ -29,6 +30,8 @@ def launch(cue, gui=False):
                CMD_FILE=str(OUT / "cmd.txt"))
     args = [exe] + ([] if gui else ["-cli"]) + ["-stdout", "-run", "-iso", str(Path(cue).resolve()),
                                                  "-dofile", str(TESTS / "harness.lua")]
+    if os.environ.get("EMU_MCD1"):  # carte mémoire 1 à part (Redux ne garde pas ce réglage)
+        args += ["-memcard1", str(Path(os.environ["EMU_MCD1"]).resolve())]
     with open(OUT / "emu.log", "w") as log:
         subprocess.run(args, env=env, stdout=log, stderr=subprocess.STDOUT, cwd=TESTS)
 
