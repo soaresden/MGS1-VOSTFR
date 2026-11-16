@@ -223,28 +223,33 @@ class Package:
 
 CODEC_FR = {
     "id": "codec-fr",
-    "en": "French subtitles (Codec, in-game voices, cutscenes)",
-    "enS": "Codec calls, in-game voices and cutscenes subtitled in French (texts of the French version, English voices), accented letters added to the font.",
-    "frS": "Le Codec, les voix en jeu et les cinématiques sous-titrés en français (textes de la version française, voix anglaises), lettres accentuées ajoutées à la police.",
+    "en": "French texts (Codec, in-game voices, cutscenes, menus)",
+    "enS": "Codec calls, in-game voices and cutscenes subtitled in French (texts of the French version, English voices), item and weapon descriptions and memory card messages in French, accented letters added to the font.",
+    "frS": "Le Codec, les voix en jeu et les cinématiques sous-titrés en français (textes de la version française, voix anglaises), descriptions des objets et des armes et messages de la carte mémoire en français, lettres accentuées ajoutées à la police.",
 }
 
 
-def codec_fr(p, disc, fl, us_path, fr_path, st0, seen):
+def codec_fr(p, disc, fl, us_path, fr_path, exe0, st0, seen):
     """Codec, voix en jeu et cinématiques en FR (tools/codec_us.py, vox_us.py) : RADIO.DAT
     reconstruit, posé dans la zone vide DUMMY3M.DAT avec les banques trop grosses pour leur place
     (overlay), l'enregistrement de répertoire de RADIO.DAT pointé dessus (le recomp résout les
     fichiers par les enregistrements patchés, comme le jeu) ; codes radio / VOX / DEMO et police
-    de STAGE.DIR ; banques VOX et DEMO réécrites à leur place."""
+    de STAGE.DIR ; banques VOX et DEMO réécrites à leur place ; textes des menus de l'EXE (exe_us.py)."""
     import codec_us
     mid = CODEC_FR["id"]
     r = codec_us.build(str(us_path), str(fr_path), log=lambda *a, **k: None)
     st1, radio = r["stage"], r["radio"]
     p.feature(CODEC_FR)
-    for s, e in runs(st0, st1, 0):
-        for k in range(s, e):
-            o = seen.setdefault(("stage", k), mid)
-            if o != mid:
-                raise SystemExit(f"{mid} et {o} écrivent le même octet (stage 0x{k:X})")
+    exe1 = r["exe"]
+    if exe1[:0x800] != exe0[:0x800] or len(exe1) != len(exe0):
+        raise SystemExit("codec-fr : EXE US inattendu")
+    for kind, a, b in (("stage", st0, st1), ("exe", exe0, exe1)):
+        for s, e in runs(a, b, 0):
+            for k in range(s, e):
+                o = seen.setdefault((kind, k), mid)
+                if o != mid:
+                    raise SystemExit(f"{mid} et {o} écrivent le même octet ({kind} 0x{k:X})")
+    p.exe_patches(mid, exe0, exe1)
     p.stage_patches(mid, fl["MGS/STAGE.DIR"][0], st0, st1)
     dlba, dsize = fl["DUMMY3M.DAT"]
     area = codec_us.dummy_area(r)
@@ -259,7 +264,7 @@ def codec_fr(p, disc, fl, us_path, fr_path, st0, seen):
     rec = bytes(disc.sector(slba))[roff + 2:roff + 18]
     p.patch(mid, "disc_user", f"offset = {slba * 2048 + roff + 2}", rec, codec_us.record_extent(dlba, len(radio)), None)
     print(f"  codec-fr : RADIO.DAT {len(radio)} octets + {len(r['tail'])} de banques déplacées au LBA {dlba},"
-          f" {len(r['vox'])} banques VOX, {len(r['demo'])} cinématiques")
+          f" {len(r['vox'])} banques VOX, {len(r['demo'])} cinématiques, menus de l'EXE")
 
 
 def package(d, bin_path, out, fr_path=None):
@@ -307,7 +312,7 @@ def package(d, bin_path, out, fr_path=None):
             p.exe_patches(mid, exe0, exe1, when)
             p.stage_patches(mid, lba, st0, st1, when)
     if fr_path:
-        codec_fr(p, disc, fl, bin_path, fr_path, st0, seen)
+        codec_fr(p, disc, fl, bin_path, fr_path, exe0, st0, seen)
     path = out / f"MGS1-Mods-USA-Disc{d}.psxmod"
     p.write(path)
     print(f"  {path.name} : {p.count['main_exe']} patches EXE, {p.count['disc_user']} patches STAGE.DIR, "

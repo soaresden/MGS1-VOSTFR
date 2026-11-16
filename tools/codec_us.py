@@ -395,12 +395,16 @@ def build(us_bin, fr_bin, log=print, force=(), voices=True):
     """Renvoie {"radio": RADIO.DAT, "stage": STAGE.DIR, "vox": {offset dans VOX.DAT: banque},
     "demo": {offset dans DEMO.DAT: banque}, "tail": banques déplacées (après RADIO.DAT, au
     secteur suivant, dans la zone DUMMY3M.DAT)}.
-    voices : sous-titres FR des voix en jeu et des cinématiques aussi (vox_us.py)."""
+    voices : sous-titres FR des voix en jeu et des cinématiques aussi (vox_us.py), et textes des
+    menus de l'EXE (exe_us.py) : "exe" = EXE US patché (None sans voices)."""
     du, fus, st_us, r_us, codes_us, fu, sq_us = load(us_bin)
     df, ffs, _, _, _, ff, sq_fr = load(fr_bin)
     vu = bytes(du.read(*fus["MGS/VOX.DAT"]))
     vf = bytes(df.read(*ffs["MGS/VOX.DAT"]))
     m = pair_fragments(sq_us, sq_fr)
+    exe_name = us_exe_names(fus)[0]
+    exe_u = bytes(du.read(*fus[exe_name]))
+    exe_f = bytes(df.read(*ffs[next(k for k in ffs if re.fullmatch(r"MGS/MGS\d\.EXE", k))]))
     log(f"  fragments : {len(fu)} US, {len(ff)} FR, {len(m)} appariés"
         f" (US seuls : {', '.join(hex(o) for o in fu if o not in m) or 'aucun'})")
     old_top = defaultdict(set)
@@ -503,6 +507,7 @@ def build(us_bin, fr_bin, log=print, force=(), voices=True):
         rt.walk(F.script, lambda c, v: talks.append(c) if c.code == rt.TALK else None)
     vplan = {}
     if voices:
+        import exe_us
         import vox_us
         vmap = vox_us.pair(st_us, vu, df.read(*ffs["MGS/STAGE.DIR"]), vf)
         vplan, vstats = vox_us.plan(vu, vf, vmap, skip=banks)
@@ -514,7 +519,8 @@ def build(us_bin, fr_bin, log=print, force=(), voices=True):
     else:
         dplan = {}
     font, accents = usfont.extend(usfont.read_font(st_us), usfont.used(
-        [c.text for c in talks] + (vox_us.texts(vplan) + vox_us.texts(dplan) if voices else [])))
+        [c.text for c in talks] + (vox_us.texts(vplan) + vox_us.texts(dplan) + exe_us.texts(exe_u, exe_f)
+                                   if voices else [])))
     for c in talks:
         if b"\x1f" in c.text:
             c.set_text(usfont.convert(c.text, accents))
@@ -573,11 +579,22 @@ def build(us_bin, fr_bin, log=print, force=(), voices=True):
     log("  " + ", ".join(f"{k} {v}" for k, v in sorted(stats.items())))
     lines = Counter(len(SPLIT_LINES.split(c.text)) for c in talks)
     log(f"  lignes par TALK : {dict(sorted(lines.items()))}")
+    exe = None
     if voices:
         log(f"  voix en jeu : {len(vplan)} banques en FR ; cinématiques : {len(dplan)}")
-    return {"radio": bytes(out), "stage": bytes(st), "tail": bytes(tail),
+        exe, es = exe_us.patch(exe_u, exe_f, accents, font)
+        log(f"  menus de l'EXE : {es['entrées']} entrées, {es['textes']} textes FR, {es['grottes']} octets"
+            f" dans les fonctions mortes, {es['remises en lignes']} descriptions remises en lignes"
+            f"{' (retours à la ligne courts)' if es['retour court'] else ''}")
+    return {"radio": bytes(out), "stage": bytes(st), "tail": bytes(tail), "exe": exe,
             "vox": {code * 2048: b for code, b in sorted(banks.items())},
             "demo": {code * 2048: b for code, b in sorted(demo.items())}}
+
+
+def us_exe_names(files):
+    """Copies de l'EXE US sur le disque : à la racine (démarrée) puis dans MGS/."""
+    names = [k for k in files if re.fullmatch(r"(MGS/)?SLUS_\d{3}\.\d{2}", k)]
+    return sorted(names, key=len)
 
 
 def dummy_area(r):
@@ -597,6 +614,9 @@ def write_image(us_bin, out_bin, r, log=print):
         flba = f[f"MGS/{k}.DAT"][0]
         for off, data in r[k.lower()].items():
             write_file_inplace(out_bin, flba + off // 2048, data)
+    if r.get("exe"):
+        for name in us_exe_names(f):
+            write_file_inplace(out_bin, f[name][0], r["exe"])
     slba, off = radio_record(d)
     d.f.close()
     with open(out_bin, "r+b") as fh:
