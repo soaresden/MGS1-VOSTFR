@@ -507,6 +507,7 @@ def build(us_bin, fr_bin, log=print, force=(), voices=True):
         rt.walk(F.script, lambda c, v: talks.append(c) if c.code == rt.TALK else None)
     vplan = {}
     if voices:
+        import change_us
         import exe_us
         import vox_us
         vmap = vox_us.pair(st_us, vu, df.read(*ffs["MGS/STAGE.DIR"]), vf)
@@ -520,6 +521,7 @@ def build(us_bin, fr_bin, log=print, force=(), voices=True):
         dplan = {}
     font, accents = usfont.extend(usfont.read_font(st_us), usfont.used(
         [c.text for c in talks] + (vox_us.texts(vplan) + vox_us.texts(dplan) + exe_us.texts(exe_u, exe_f)
+                                   + change_us.texts()
                                    if voices else [])))
     for c in talks:
         if b"\x1f" in c.text:
@@ -571,6 +573,9 @@ def build(us_bin, fr_bin, log=print, force=(), voices=True):
             + f" ({len(tail)} octets, {nm} codes réécrits)")
     if (base - dlba) * 2048 + len(tail) > fus["DUMMY3M.DAT"][1]:
         raise ValueError("RADIO.DAT + banques déplacées : trop gros pour DUMMY3M.DAT")
+    if voices:
+        st, nl, nc = change_us.patch(st, accents)
+        log(f"  écrans de changement de disque : {nl} listes, {nc} textes FR")
     st, pack, room = usfont.patch_stage(st, font)
     log(f"  police : {len(accents)} lettres accentuées ajoutées (pack résident {pack}/{room} octets)")
     tops = [c >> 24 for c in new_code.values()]
