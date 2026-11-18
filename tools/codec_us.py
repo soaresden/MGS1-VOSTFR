@@ -507,10 +507,12 @@ def build(us_bin, fr_bin, log=print, force=(), voices=True):
         rt.walk(F.script, lambda c, v: talks.append(c) if c.code == rt.TALK else None)
     vplan = {}
     if voices:
+        import abst_us
         import change_us
         import exe_us
         import vox_us
-        vmap = vox_us.pair(st_us, vu, df.read(*ffs["MGS/STAGE.DIR"]), vf)
+        st_fr = bytes(df.read(*ffs["MGS/STAGE.DIR"]))
+        vmap = vox_us.pair(st_us, vu, st_fr, vf)
         vplan, vstats = vox_us.plan(vu, vf, vmap, skip=banks)
         log(f"  voix en jeu : {len(vmap)} banques appariées ; " + ", ".join(f"{k} {v}" for k, v in sorted(vstats.items())))
         dm_u = bytes(du.read(*fus["MGS/DEMO.DAT"]))
@@ -521,7 +523,7 @@ def build(us_bin, fr_bin, log=print, force=(), voices=True):
         dplan = {}
     font, accents = usfont.extend(usfont.read_font(st_us), usfont.used(
         [c.text for c in talks] + (vox_us.texts(vplan) + vox_us.texts(dplan) + exe_us.texts(exe_u, exe_f)
-                                   + change_us.texts()
+                                   + change_us.texts() + abst_us.strings(st_fr)
                                    if voices else [])))
     for c in talks:
         if b"\x1f" in c.text:
@@ -571,11 +573,21 @@ def build(us_bin, fr_bin, log=print, force=(), voices=True):
                 nm += 1
         log(f"  banques déplacées dans DUMMY3M : " + ", ".join(f"{k} {c:#x}" for k, c in moved)
             + f" ({len(tail)} octets, {nm} codes réécrits)")
-    if (base - dlba) * 2048 + len(tail) > fus["DUMMY3M.DAT"][1]:
-        raise ValueError("RADIO.DAT + banques déplacées : trop gros pour DUMMY3M.DAT")
     if voices:
         st, nl, nc = change_us.patch(st, accents)
         log(f"  écrans de changement de disque : {nl} listes, {nc} textes FR")
+        # résumés de mission : nouveau stage abst après les banques déplacées (secteur relatif à
+        # STAGE.DIR dans son entrée du répertoire)
+        ab, ast = abst_us.build(st_us, st_fr, accents, font)
+        tail += bytes(-len(tail) % 2048)
+        sec = base + len(tail) // 2048 - fus["MGS/STAGE.DIR"][0]
+        tail += ab
+        st = abst_us.repoint(st, sec)
+        log(f"  résumés de mission : {ast['résumés']} en {ast['pages']} pages, {ast['chaînes']} chaînes FR, {ast['valeurs US']} valeurs US gardées,"
+            f" {ast['glyphes retirés']} glyphes retirés ; stage abst dans DUMMY3M (secteur {sec} de STAGE.DIR,"
+            f" {ast['secteurs'][0]} -> {ast['secteurs'][1]} secteurs)")
+    if (base - dlba) * 2048 + len(tail) > fus["DUMMY3M.DAT"][1]:
+        raise ValueError("RADIO.DAT + banques déplacées : trop gros pour DUMMY3M.DAT")
     st, pack, room = usfont.patch_stage(st, font)
     log(f"  police : {len(accents)} lettres accentuées ajoutées (pack résident {pack}/{room} octets)")
     tops = [c >> 24 for c in new_code.values()]

@@ -82,7 +82,12 @@ def synth(us_font, xx):
             for x, v in enumerate(line if ch == "«" else line[::-1]):
                 rows[5 + r][x] = v
         return 0, rows
-    if ch in "œŒ":                         # o + e (O + E) collés, trait commun fusionné
+    if ch == "…":                          # trois points US, un pixel d'écart
+        yo, d = decode(us_font, ord(".") - 32)
+        ink = [i for i in range(len(d[0])) if any(r[i] for r in d)]
+        dot = [list(r[ink[0]:ink[-1] + 1]) + [0] for r in d]
+        return yo, [list(r[:ink[0]]) + dot[y] * 3 for y, r in enumerate(d)]
+    if ch in "œŒ":                      # o + e (O + E) collés, trait commun fusionné
         _, o = decode(us_font, ord(ch == "œ" and "o" or "O") - 32)
         _, e = decode(us_font, ord(ch == "œ" and "e" or "E") - 32)
         lo = max(i for i in range(len(o[0])) if any(r[i] for r in o)) + 1
