@@ -1,0 +1,212 @@
+--- a/psxrecomp/runtime/src/gpu.c
++++ b/psxrecomp/runtime/src/gpu.c
+@@ -3588,6 +3588,15 @@ static int ws_nw_hud_corners = 0;
+ static int ws_nw_hud_tag_rects = 0;   /* rects shift even when tagged (A/B) */
+ static uint32_t ws_nw_left_hud_packet_lo = 0;
+ static uint32_t ws_nw_left_hud_packet_hi = 0;
++/* A HUD widget with its own small draw area and a local draw offset (MGS's
++ * radar: area 235..303 x 16..67 of the frame, offset at its centre, the map
++ * drawn around 0,0). Its frame is drawn in frame coordinates and re-anchors
++ * like any HUD piece; the map would stay at its 4:3 place, clipped by the 4:3
++ * area. So the area and the offset move as one by the same thirds shift
++ * (ws_nw_subarea_dx), the pieces drawn inside are not shifted again, and the
++ * wide mirror is clipped to the moved area (wide_set_view mode 2). */
++static int32_t ws_nw_subarea_dx = 0;      /* 0: no moved HUD area */
++static int32_t ws_nw_subarea_base = -1;   /* frame buffer that holds it */
+ /* Explicit title-owned roles. Separate from sprite tags: world sprites and
+  * HUD can share the same builder, and either entry hook may run first. Clear
+  * tags for recycled non-HUD packets; frame expiry protects unused addresses. */
+@@ -3669,6 +3678,7 @@ static int32_t ws_nw_hud_shift(int32_t x, int32_t w) {
+     int32_t explicit_delta = 0;
+     if (ws_nw_explicit_hud_delta(&explicit_delta)) return explicit_delta;
+     if (!ws_nw_left_hud_packet() && !ws_nw_hud_corners) return 0;
++    if (ws_nw_subarea_dx) return 0;      /* moved with its draw area/offset */
+     /* Sprite-tag titles (anchor configured): HUD ≡ UNTAGGED rect-family prims
+      * — the same discriminator the squash path's hud_sprt_squash used. Tagged
+      * prims are character billboards positioned from their GTE anchor; they
+@@ -4123,10 +4133,59 @@ static void ws_nw_sync_target(void) {
+         return;
+     }
+     uint32_t base = draw_area_left;
+-    if (ws_is_fb_base(base)) gr_wide_set_target((int)base);
++    if (ws_nw_subarea_dx && ws_nw_subarea_base >= 0) gr_wide_set_target((int)ws_nw_subarea_base);
++    else if (ws_is_fb_base(base)) gr_wide_set_target((int)base);
+     else                     gr_wide_disable_target();
+ }
+ 
++/* A HUD packet's small draw area in an outer third of a frame buffer (see
++ * ws_nw_subarea_dx): returns the shift, and the buffer in *out_base. */
++static int32_t ws_nw_subarea_shift(int32_t *out_base) {
++    if (!ws_native_wide_active() || !ws_nw_left_hud_packet()) return 0;
++    const int32_t off = ws_nw_offset(), W = ws_disp_w(), H = ws_disp_h();
++    if (off <= 0 || W <= 0) return 0;
++    const int32_t l = (int32_t)draw_area_left, r = (int32_t)draw_area_right;
++    const int32_t t = (int32_t)draw_area_top, b = (int32_t)draw_area_bottom;
++    if (r <= l || b <= t || r - l + 1 > W / 2 || b - t + 1 > H / 2) return 0;
++    for (int i = 0; i < ws_fb_n; i++) {
++        const int32_t base = (int32_t)ws_fb_base[i];
++        if (l <= base || r >= base + W) continue;   /* a full buffer, or not in this one */
++        const int32_t cx = 2 * (l - base) + (r - l);
++        int32_t d = 0;
++        if (3 * cx < 2 * W) d = -off;
++        else if (3 * cx > 4 * W) d = off;
++        if (d) *out_base = base;
++        return d;
++    }
++    return 0;
++}
++
++/* Area TL starts every draw environment: the previous moved area ends here. */
++static void ws_nw_subarea_end(void) {
++    if (!ws_nw_subarea_dx) return;
++    ws_nw_subarea_dx = 0;
++    ws_nw_subarea_base = -1;
++    gr_wide_set_view(0, 0, 0, 0);
++}
++
++/* Area BR completes it: move a qualifying area (the 4:3 frame keeps the part
++ * that is still inside its buffer; the wide mirror gets all of it). */
++static void ws_nw_subarea_begin(void) {
++    int32_t base = -1;
++    const int32_t d = ws_nw_subarea_shift(&base);
++    if (!d) return;
++    const int32_t W = ws_disp_w(), off = ws_nw_offset(), wide_w = ws_nw_present_width();
++    const int32_t l = (int32_t)draw_area_left + d, r = (int32_t)draw_area_right + d;
++    ws_nw_subarea_dx = d;
++    ws_nw_subarea_base = base;
++    const int32_t cl = l < base ? base : l, cr = r > base + W - 1 ? base + W - 1 : r;
++    gr_set_draw_area((int)cl, (int)draw_area_top, (int)cr, (int)draw_area_bottom);
++    int32_t pad_l = l - base + off, pad_r = wide_w - (r - base + off + 1);
++    if (pad_l < 0) pad_l = 0;
++    if (pad_r < 0) pad_r = 0;
++    gr_wide_set_view(2, 0, (int)pad_l, (int)pad_r);   /* 2: X clip only */
++}
++
+ static void ws_clear_all_reveal_margins(void) {
+     for (int i = 0; i < ws_fb_n; i++)
+         gr_wide_clear_margins((int)ws_fb_base[i], 0, 512, 0, 3);
+@@ -5459,8 +5518,8 @@ static inline int32_t draw_area_wide_x_margin(void) {
+ 
+ static inline void draw_area_host_x_bounds(int32_t *left, int32_t *right) {
+     int32_t margin = draw_area_wide_x_margin();
+-    *left  = (int32_t)draw_area_left;
+-    *right = (int32_t)draw_area_right;
++    *left  = (int32_t)draw_area_left + ws_nw_subarea_dx;   /* a moved HUD area */
++    *right = (int32_t)draw_area_right + ws_nw_subarea_dx;
+     if (margin > 0) {
+         /* Use the union of the guest draw area and the widescreen mirror.
+          * Wider staging areas may share the framebuffer X origin; clamping them
+@@ -5623,6 +5682,35 @@ static int ws_local_viewport_divider(int x0, int y0, int x1, int y1,
+         x1 > x0 && y0 <= 0 && y1 >= (int)di.height;
+ }
+ 
++/* A scope or goggles mask made of opaque black quads that run from the
++ * opening's edge out to the side of the 4:3 frame (MGS's PSG1 and binoculars:
++ * ~40 trapezoids, each with two vertices on x = 0 or x = 320). Native-wide
++ * showed the world in the bands beside it. Continue each such quad across the
++ * band with a black rectangle as tall as its frame-side edge, in the quad's own
++ * place in the list (canonical VRAM clips it away). PSX_WS_EDGE_MASKS=1. */
++static void ws_nw_edge_mask_bands(const int32_t *vx, const int32_t *vy, uint16_t color) {
++    static int on = -1;
++    if (on < 0) { const char *e = getenv("PSX_WS_EDGE_MASKS"); on = e && *e == '1'; }
++    if (!on || (color & 0x7FFFu) || !ws_native_wide_active()) return;
++    const int32_t W = ws_disp_w(), m = draw_area_wide_x_margin();
++    if (m <= 0 || W <= 0) return;
++    for (int side = 0; side < 2; side++) {
++        const int32_t ex = side ? W : 0;
++        int n = 0;
++        int32_t y0 = INT32_MAX, y1 = INT32_MIN;
++        for (int i = 0; i < 4; i++) {
++            if (vx[i] != ex) continue;
++            n++;
++            if (vy[i] < y0) y0 = vy[i];
++            if (vy[i] > y1) y1 = vy[i];
++        }
++        if (n < 2 || y1 <= y0) continue;
++        gr_set_semi_transparency(0, (int)semi_transparency);
++        gr_draw_flat_rect((side ? W : -m) + draw_offset_x, y0 + draw_offset_y,
++                          (int)m, (int)(y1 - y0), color);
++    }
++}
++
+ static void gp0_exec_mono_quad(void) {
+     int semi_trans = (gp0_cmd_buf[0] >> 25) & 1;
+     uint16_t color = rgb888_to_rgb555(gp0_cmd_buf[0] & 0xFFFFFFu);
+@@ -5663,6 +5751,8 @@ static void gp0_exec_mono_quad(void) {
+         }
+     }
+ 
++    if (!screen_mask && !radial_mask && !semi_trans) ws_nw_edge_mask_bands(vx, vy, color);
++
+     ws_screen_transform_quad(vx);
+ 
+     /* Full-screen filters are commonly encoded as an axis-aligned quad. Drawing
+@@ -6747,6 +6837,7 @@ static void gp0_exec_draw_area_tl(void) {
+     uint32_t param = gp0_cmd_buf[0] & 0x00FFFFFFu;
+     draw_area_left = param & 0x3FF;
+     draw_area_top  = (param >> 10) & 0x3FF;
++    ws_nw_subarea_end();
+     split_trace_note_draw_area();
+     gr_set_draw_area((int)draw_area_left, (int)draw_area_top,
+                      (int)draw_area_right, (int)draw_area_bottom);
+@@ -6764,6 +6855,8 @@ static void gp0_exec_draw_area_br(void) {
+     split_trace_note_draw_area();
+     gr_set_draw_area((int)draw_area_left, (int)draw_area_top,
+                      (int)draw_area_right, (int)draw_area_bottom);
++    ws_nw_subarea_end();
++    ws_nw_subarea_begin();
+     ws_nw_sync_target();  /* back buffer (draw_area_left) → wide mirror surface */
+ }
+ 
+@@ -6774,6 +6867,7 @@ static void gp0_exec_draw_offset(void) {
+     uint32_t param = gp0_cmd_buf[0] & 0x00FFFFFFu;
+     draw_offset_x = sign_extend(param & 0x7FFu, 11);
+     draw_offset_y = sign_extend((param >> 11) & 0x7FFu, 11);
++    draw_offset_x += ws_nw_subarea_dx;   /* a moved HUD area: its origin moves too */
+     if (draw_offset_y < g_doff_min_this) g_doff_min_this = draw_offset_y;
+     if (draw_offset_y > g_doff_max_this) g_doff_max_this = draw_offset_y;
+     g_doff_cnt_this++;
+--- a/psxrecomp/runtime/src/gpu_gl_renderer.c
++++ b/psxrecomp/runtime/src/gpu_gl_renderer.c
+@@ -4060,6 +4060,9 @@ static void hiw_wide_set(HiCmd *c, int gate) {
+         if (sy + sh > VRAM_H) sh = VRAM_H - sy;
+         if (sh < 0) sh = 0;
+         c->wsx = 0; c->wsw = g_wide_w; c->wsy = sy; c->wsh = sh;
++        if (!view_enabled && (view_pad_left || view_pad_right)) {   /* X clip only */
++            c->wsx = view_pad_left; c->wsw = g_wide_w - view_pad_left - view_pad_right;
++        }
+     } else {       /* what wide_target_begin sets */
+         c->wsx = view_pad_left;
+         c->wsw = g_wide_w - view_pad_left - view_pad_right;
+@@ -7353,7 +7356,10 @@ static GLuint wide_fbo_for(int base_x) {
+  * disable (wide_w <= 0). Re-allocates if the width changed. Mirrors
+  * sw_wide_configure. */
+ static void glb_wide_set_view(int enabled, int shift, int pad_left, int pad_right) {
+-    if (!enabled) shift = pad_left = pad_right = 0;
++    /* 2: X clip only (a moved HUD draw area): the pads clip the mirror while
++     * the view itself stays off, so the centre stays the canonical frame. */
++    if (enabled == 2) { enabled = 0; shift = 0; }
++    else if (!enabled) shift = pad_left = pad_right = 0;
+     if (view_enabled == enabled && view_shift == shift &&
+         view_pad_left == pad_left && view_pad_right == pad_right) return;
+     flush_flat_batch(); flush_tex_batch();
+--- a/psxrecomp/runtime/src/gpu_sw_renderer.c
++++ b/psxrecomp/runtime/src/gpu_sw_renderer.c
+@@ -1821,6 +1821,7 @@ static uint16_t *wide_surf_for(int base_x) {
+ /* Enable native-wide with a wide width + centering offset (native px), or
+  * disable (wide_w <= 0). Re-allocates if the width changed. */
+ void sw_wide_set_view(int enabled, int shift, int pad_left, int pad_right) {
++    if (enabled == 2) enabled = 0;   /* X clip only (GL): not handled here */
+     if (!enabled) shift = pad_left = pad_right = 0;
+     if (view_enabled == enabled && view_shift == shift &&
+         view_pad_left == pad_left && view_pad_right == pad_right) return;
+--- a/psxrecomp/runtime/src/gpu_vk_renderer.c
++++ b/psxrecomp/runtime/src/gpu_vk_renderer.c
+@@ -3395,6 +3395,7 @@ static void vkb_copy_rect(int sx,int sy,int dx,int dy,int w,int h){
+  * every draw-area set via ws_nw_sync_target — Part-A lesson: the wide entry
+  * points sit inside guest emulation, keep the common path free). */
+ static void vkb_wide_set_view(int enabled, int shift, int pad_left, int pad_right) {
++    if (enabled == 2) enabled = 0;   /* X clip only (GL): not handled here */
+     if (!enabled) shift = pad_left = pad_right = 0;
+     if (view_enabled == enabled && view_shift == shift &&
+         view_pad_left == pad_left && view_pad_right == pad_right) return;

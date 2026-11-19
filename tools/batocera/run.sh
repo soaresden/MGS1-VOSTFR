@@ -61,7 +61,7 @@ fi
 # Mods: the package of the disc; each feature (mod) of mods/state.toml from the menu: French texts in the first
 # submenu, the other mods in METAL GEAR SOLID - MODS (mgs_mod_<id>: on / off; for the life bar, its text or off).
 # An option left on its default keeps what state.toml says: the game's own menu (Select + L3 > Mods) writes it
-# too (the port ships the French texts on and the test mod "armes" off).
+# too (the port ships the French texts on and the test mods "armes" and "objets" off).
 STATE="$GAMEDIR/mods/state.toml"
 if [ -f "$STATE" ]; then
     sed -i -E "s/soaresden\.mgs1-mods\.disc[12]/soaresden.mgs1-mods.disc$DISC/" "$STATE"
@@ -141,6 +141,9 @@ export APPIMAGE="$GAMEDIR/$EXE"
 # The underwater / heat-haze filters of the intro redraw the image over itself (tools/recomp-patches,
 # widescreen-underwater-filter.patch): carried into the 16:9 bands too.
 export PSX_WS_FEEDBACK_QUADS=1
+# Scope / binoculars masks (black quads up to the 4:3 sides) continued into the 16:9 bands
+# (widescreen-x-radar-scope.patch).
+export PSX_WS_EDGE_MASKS=1
 # Diagnostics: a debug.env next to run.sh is read if present (e.g. export PSX_RUNTIME_PERF_DIAG=1).
 [ -f "$GAMEDIR/debug.env" ] && . "$GAMEDIR/debug.env"
 RENDERER="$(conf_get mgs_renderer)"

@@ -19,6 +19,15 @@ apply.py - Nos changements au recomp PC de MGS (psxrecomp + recomp-ui, alexbeavs
      maintenant dans les bandes 16/9 (lues dans les bandes seulement ; en OpenGL, un instantané
      de la surface quand la source est celle qu'on dessine ; dessinées en bloc à la fin de la série).
      Activé par PSX_WS_FEEDBACK_QUADS=1 (run.sh, retrobat.cmd).
+   - widescreen-x-radar-scope.patch (après les autres : il touche les mêmes fichiers) :
+     * radar : une zone de dessin du HUD plus petite que la moitié de l'image, dans un tiers de côté
+       (le radar de MGS : zone 235..303 x 16..67, décalage au centre, carte dessinée autour de 0,0) se
+       déplace d'un bloc vers son coin, comme son cadre : zone + décalage + test de rejet ; ce qui est
+       dessiné dedans n'est plus décalé à part ; la surface large est découpée à la zone déplacée
+       (wide_set_view mode 2 : découpe X seule, le centre reste l'image 4:3 ; GL seulement).
+     * lunette / jumelles : un quadrilatère noir opaque avec deux sommets sur x = 0 ou x = 320 (le
+       masque de la lunette du PSG1 = ~40 trapèzes du cercle au bord) est prolongé dans la bande 16/9
+       par un rectangle noir de la hauteur de ce côté. Activé par PSX_WS_EDGE_MASKS=1 (run.sh, retrobat.cmd).
    - runtime-audio-drc-env.patch : PSX_AUDIO_MAX_CORRECTION, PSX_AUDIO_KP, PSX_AUDIO_SLEW règlent la
      correction de vitesse du son (essai : étirer le son au lieu de le hacher quand le jeu ralentit ;
      refusé par Denis, toute la hauteur change ; non utilisé par run.sh).

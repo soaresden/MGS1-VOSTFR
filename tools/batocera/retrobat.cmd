@@ -35,6 +35,8 @@ if exist "%G%\mods\state.toml" powershell -NoProfile -ExecutionPolicy Bypass -Co
 
 rem the underwater / heat-haze filters of the intro, carried into the 16:9 bands
 set "PSX_WS_FEEDBACK_QUADS=1"
+rem the scope and binoculars masks, continued into the 16:9 bands
+set "PSX_WS_EDGE_MASKS=1"
 echo [retrobat] disc %DISC%: %CUE% ; BIOS %BIOS%> "%LOG%"
 "%EXE%" --no-launcher --game "%G%\game.toml" --disc "%CUE%" --bios "%BIOS%" --memcard-dir "%G%\saves" >> "%LOG%" 2>&1
 exit /b %ERRORLEVEL%
