@@ -1,0 +1,133 @@
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -39,6 +39,7 @@ psxrecomp_add_game_runtime(psx-runtime
+     GEN_MARKER "generated/SLUS_005.94_dispatch.c"
+     GEN_FULL_GLOB "generated/SLUS_005.94_full_*.c"
+     CODEGEN_SETUP_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/codegen_setup.c"
++        "${CMAKE_CURRENT_SOURCE_DIR}/mgs_title_mods.c"
+ )
+ 
+ # Stage runtime configs next to the exe for direct build/ launches. Only copy
+--- a/psxrecomp/runtime/include/psx_menu_host.h
++++ b/psxrecomp/runtime/include/psx_menu_host.h
+@@ -58,6 +58,11 @@ enum { PSX_MENU_SESSION_RESTART_GAME = 5,
+        PSX_MENU_SESSION_DITHERING = 14 };         /* 0 off, 1 console, 2 fine */
+ #define PSX_MENU_SESSION_AT_RESTART 2
+ 
++/* set_open(ctx, PSX_MENU_OPEN_MODS): open on the Mods page, as asked by the
++ * game itself (MGS: the MODS entry of the title menu). Closing the menu then
++ * restarts the game when a mod changed, so the choice applies at once. */
++#define PSX_MENU_OPEN_MODS 2
++
+ /* request_exit */
+ enum {
+     PSX_MENU_EXIT_QUIT = 0,         /* leave the game (netplay: back to the lobby) */
+--- a/psxrecomp/runtime/src/main.cpp
++++ b/psxrecomp/runtime/src/main.cpp
+@@ -18915,10 +18915,17 @@ static void recomp_overlay_detach(void) {
+     psx_runtime_menu_set_fallback_enabled(1);
+ }
+ 
++/* Game code (emulation thread) asks for the in-game menu's Mods page; the
++ * main thread opens it at its next service (psx_menu_host.h PSX_MENU_OPEN_MODS). */
++static std::atomic<int> g_ovl_open_mods{0};
++extern "C" void psx_menu_request_mods_page(void) { g_ovl_open_mods = 1; }
++
+ static void host_pause_service(void) {
+-    if (!g_ovl_on) return;
++    if (!g_ovl_on) { g_ovl_open_mods = 0; return; }
+     mh_refresh_snapshot();
+     ovl_session_service();
++    if (g_ovl_open_mods.exchange(0) && g_ovl->set_open)
++        g_ovl->set_open(g_ovl->ctx, PSX_MENU_OPEN_MODS);
+     if (const int disc = g_ovl_disc_req.exchange(0)) {
+         const int rc = disc_cycle_now(disc);
+         if (rc != PSX_DISC_TRAY_OK) {
+--- a/recomp-ui/src/consoles/psx/psx_menu_provider.cpp
++++ b/recomp-ui/src/consoles/psx/psx_menu_provider.cpp
+@@ -30,6 +30,14 @@ PsxHostVideoSettings g_video{};    // the menu's working copy, from video_get
+ unsigned g_restart = 0;            // restart-only edits made while open
+ constexpr unsigned kSessionRestart = 1u << 16;  // a session row saved for the restart
+ bool g_restart_armed = false;      // Restart game: the first press asks again
++// Opened by the game on the Mods page (PSX_MENU_OPEN_MODS, MGS title menu):
++// back from that page closes the menu, and a changed mod restarts the game.
++bool g_from_game = false;
++bool g_from_game_changed = false;
++// The Mods page's first row; it says what leaving the page does.
++constexpr const char *kNoteNextStart = "Changes apply the next time the game starts";
++constexpr const char *kNoteRestart = "Changes restart the game when you leave this page";
++char g_note_label[64];
+ bool g_pause_in_menu = true;
+ bool g_paused = false;
+ int g_disc = 1;
+@@ -265,6 +273,7 @@ int cb_set(void *, const RecompRuntimeUiItem *item, int v) {
+         (void)g_host->mod_set(row->package.c_str(), row->feature.c_str(),
+                                          option ? row->option.c_str() : nullptr, value);
+         row->value = option ? v : (v ? 1 : 0);
++        if (g_from_game) g_from_game_changed = true;
+         return 1;  // the menu then says "Saved"; the page's note says when it applies
+     }
+ #if defined(PSX_MENU_HOST_HAS_SESSION)
+@@ -393,7 +402,17 @@ void cb_visibility(void *, int open) {
+     } else {
+         if (g_paused && g_host->set_paused) g_host->set_paused(0);
+         g_paused = false;
+-        if (g_restart) {
++        const bool mods_restart = g_from_game && g_from_game_changed;
++        g_from_game = g_from_game_changed = false;
++        std::snprintf(g_note_label, sizeof g_note_label, "%s", kNoteNextStart);
++        if (mods_restart) {
++            // the mods changed from the game's own Mods entry: a cold boot applies them
++            g_restart = 0;
++#if defined(PSX_MENU_HOST_HAS_SESSION)
++            if (has_session()) (void)g_host->session_set(PSX_MENU_SESSION_RESTART_GAME, 1);
++#endif
++            g_host->request_exit(PSX_MENU_EXIT_RELAUNCH);
++        } else if (g_restart) {
+             g_restart = 0;
+             g_host->request_exit(PSX_MENU_EXIT_RELAUNCH);
+         }
+@@ -447,7 +466,8 @@ int p_attach(void *, void *window, void *, const PsxMenuHost *host) {
+         RecompRuntimeUiItem note{};
+         note.key = "mods.note";
+         note.section = "Mods";
+-        note.label = "Changes apply the next time the game starts";
++        std::snprintf(g_note_label, sizeof g_note_label, "%s", kNoteNextStart);
++        note.label = g_note_label;  // kNoteRestart while the game opened the page
+         note.description = "Saved in mods/state.toml. Some options apply at once.";
+         // a one-choice row with an empty label: no value shown (an ACTION would say OPEN)
+         static const char *const kNoValue[] = {""};
+@@ -483,7 +503,17 @@ int p_attach(void *, void *window, void *, const PsxMenuHost *host) {
+     return 1;
+ }
+ 
+-int p_event(void *, const void *ev) { return sdl_event(ev); }
++int p_event(void *, const void *ev) {
++    const int used = sdl_event(ev);
++    std::lock_guard<std::mutex> lk(lock());
++    // Opened by the game on the Mods page: back from it closes the menu
++    // instead of showing the section list.
++    if (g_from_game && g_ui && recomp_runtime_ui_is_open(g_ui)) {
++        RecompRuntimeUiRowView row{};
++        if (recomp_runtime_ui_view_row(g_ui, 0, &row) && !row.item) recomp_runtime_ui_close(g_ui);
++    }
++    return used;
++}
+ int p_is_open(void *) {
+     std::lock_guard<std::mutex> lk(lock());
+     return g_ui && recomp_runtime_ui_is_open(g_ui);
+@@ -491,6 +521,14 @@ int p_is_open(void *) {
+ void p_set_open(void *, int open) {
+     std::lock_guard<std::mutex> lk(lock());
+     if (!g_ui) return;
++    if (open == PSX_MENU_OPEN_MODS) {
++        if (recomp_runtime_ui_is_open(g_ui)) return;
++        if (!recomp_runtime_ui_open_section(g_ui, "Mods")) return;  // no mods installed
++        g_from_game = true;   // after the opening (cb_visibility clears nothing of it)
++        g_from_game_changed = false;
++        std::snprintf(g_note_label, sizeof g_note_label, "%s", kNoteRestart);
++        return;
++    }
+     if (open) recomp_runtime_ui_open(g_ui);
+     else recomp_runtime_ui_close(g_ui);
+ }

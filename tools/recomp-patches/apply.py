@@ -33,6 +33,13 @@ apply.py - Nos changements au recomp PC de MGS (psxrecomp + recomp-ui, alexbeavs
      surtout les pages 0x8E000-0x8FFFF. Un compteur par page (chaque écriture gardée, bless, écriture
      brute de l'hôte) et un cache par fonction : comparé une fois, puis gardé tant que ses pages ne
      changent pas. Les pages « sales » (DMA, overlays) gardent la comparaison à chaque appel.
+   - title-mods-entry.patch + mgs_title_mods.c (copié dans le projet) : une entrée MODS dans le menu
+     titre du jeu, entre SPECIAL et VR TRAINING. Le jeu n'est pas modifié : deux fonctions de
+     l'overlay « title » sont enveloppées en C (func_override, gardées par leurs octets) : l'état 7
+     (curseur, valeur 6 = MODS) et la copie des polygones (MODS emprunte un des 6 polygones hors de
+     vue ; le mot est fait avec les lettres du jeu, envoyé dans un coin libre de la VRAM). Rond ou
+     START sur MODS ouvre la page Mods du menu en jeu (PSX_MENU_OPEN_MODS) ; en la quittant après un
+     changement, le jeu redémarre (à froid) pour l'appliquer.
 2. widescreen.toml -> game.toml : vrai 16/9 (native-wide : la 3D est calculée sur toute la largeur,
    pas étirée), détection du jeu par le GTE, et les 26 tests d'écran de MGS élargis (le jeu jette ce
    qui sort de x = -160..160 ; listés à la main, voir le fichier). À 4:3 ces tests restent ceux
@@ -43,7 +50,7 @@ Ensuite : compiler (cmake --build build-diagnostic ou build-release ; Batocera :
 puis tools/batocera/overlays.sh : le cache des overlays dépend de game.toml).
 """
 
-import pathlib, subprocess, sys
+import pathlib, subprocess, sys, tempfile
 
 HERE = pathlib.Path(__file__).resolve().parent
 REPO = HERE.parent.parent
@@ -58,11 +65,36 @@ def patch_files(patch):
     return [l[6:].strip() for l in patch.read_text(encoding="utf-8").splitlines() if l.startswith("+++ b/")]
 
 
+def already_applied(proj, patches):
+    """Patches déjà posés. Ils se superposent (title-mods-entry touche les lignes de ingame-mods-menu) :
+    on les retire du dernier au premier sur une copie des fichiers, chacun voit l'état d'avant lui."""
+    done = set()
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = pathlib.Path(tmp)
+        for patch in patches:
+            for f in patch_files(patch):
+                if (proj / f).exists() and not (tmp / f).exists():
+                    (tmp / f).parent.mkdir(parents=True, exist_ok=True)
+                    (tmp / f).write_bytes((proj / f).read_bytes())
+        for patch in reversed(patches):
+            if subprocess.run(["git", "apply", "--reverse", str(patch)], cwd=tmp,
+                              capture_output=True).returncode == 0:
+                done.add(patch)
+    return done
+
+
 def main():
     proj = pathlib.Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else REPO / "work" / "recomp" / "mgs"
 
-    for patch in sorted(HERE.glob("*.patch")):
-        if git_apply(proj, patch, "--check", "--reverse").returncode == 0:
+    # sources C du jeu à nous (title-mods-entry.patch les ajoute à CMakeLists.txt) : toujours recopiées
+    for src in ("mgs_title_mods.c",):
+        (proj / src).write_bytes((HERE / src).read_bytes())
+        print(f"{src} : copié")
+
+    patches = sorted(HERE.glob("*.patch"))
+    done = already_applied(proj, patches)
+    for patch in patches:
+        if patch in done:
             print(f"{patch.name} : déjà appliqué")
             continue
         files = patch_files(patch)
