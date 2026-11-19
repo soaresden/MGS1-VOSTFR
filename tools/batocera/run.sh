@@ -141,11 +141,6 @@ export APPIMAGE="$GAMEDIR/$EXE"
 # The underwater / heat-haze filters of the intro redraw the image over itself (tools/recomp-patches,
 # widescreen-underwater-filter.patch): carried into the 16:9 bands too.
 export PSX_WS_FEEDBACK_QUADS=1
-# A handheld cannot hold full speed in every scene: the sound stretches a little (up to 10 %, lower pitch)
-# instead of breaking up (runtime-audio-drc-env.patch; the recomp's own default is 0.5 %).
-export PSX_AUDIO_MAX_CORRECTION="${PSX_AUDIO_MAX_CORRECTION:-0.10}"
-export PSX_AUDIO_KP="${PSX_AUDIO_KP:-0.20}"
-export PSX_AUDIO_SLEW="${PSX_AUDIO_SLEW:-20}"
 # Diagnostics: a debug.env next to run.sh is read if present (e.g. export PSX_RUNTIME_PERF_DIAG=1).
 [ -f "$GAMEDIR/debug.env" ] && . "$GAMEDIR/debug.env"
 RENDERER="$(conf_get mgs_renderer)"

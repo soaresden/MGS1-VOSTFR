@@ -20,8 +20,8 @@ apply.py - Nos changements au recomp PC de MGS (psxrecomp + recomp-ui, alexbeavs
      de la surface quand la source est celle qu'on dessine ; dessinées en bloc à la fin de la série).
      Activé par PSX_WS_FEEDBACK_QUADS=1 (run.sh, retrobat.cmd).
    - runtime-audio-drc-env.patch : PSX_AUDIO_MAX_CORRECTION, PSX_AUDIO_KP, PSX_AUDIO_SLEW règlent la
-     correction de vitesse du son : sur la Retroid, qui ne tient pas 60 Hz partout, le son s'étire un
-     peu (jusqu'à 10 %) au lieu de hacher (run.sh).
+     correction de vitesse du son (essai : étirer le son au lieu de le hacher quand le jeu ralentit ;
+     refusé par Denis, toute la hauteur change ; non utilisé par run.sh).
 2. widescreen.toml -> game.toml : vrai 16/9 (native-wide : la 3D est calculée sur toute la largeur,
    pas étirée), détection du jeu par le GTE, et les 26 tests d'écran de MGS élargis (le jeu jette ce
    qui sort de x = -160..160 ; listés à la main, voir le fichier). À 4:3 ces tests restent ceux

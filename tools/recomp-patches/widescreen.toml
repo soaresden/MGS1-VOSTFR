@@ -2,6 +2,13 @@
 native_wide = true
 gte_game_mode = true
 
+# HUD in the 16:9 corners: life bar, radar, item and weapon boxes are built by the game's menu system in its
+# own fixed buffers (0x800B4000..0x800C0000), never in the heap where the world, the subtitles and the intro
+# filters are (0x8015xxxx and up). A primitive from that range moves by the reveal when it sits in the left or
+# right third of the screen (left: to the left edge, right: to the right edge); the middle third stays.
+nw_left_hud_packet_lo = "0x000B4000"
+nw_left_hud_packet_hi = "0x000C0000"
+
 # MGS (USA) culls in centred screen coordinates (x in [-160, 160], y in [-112, 112]):
 # bounding boxes of objects (0x80018fd0, 0x800193xx), point classifier (0x80019a40),
 # per-vertex outcodes of partly visible objects (0x8001ebd0..), bounding spheres (0x800728f8)
