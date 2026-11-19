@@ -1,0 +1,347 @@
+diff --git a/psxrecomp/runtime/src/gpu.c b/psxrecomp/runtime/src/gpu.c
+index ec7e97e..24cb491 100644
+--- a/psxrecomp/runtime/src/gpu.c
++++ b/psxrecomp/runtime/src/gpu.c
+@@ -4551,7 +4551,9 @@ void gpu_vblank_release_present_flush_guard(void) {
+     s_flushing_present = 0;
+ }
+ 
++static void ws_feedback_flush(void);
+ void gpu_vblank_flush_present(void) {
++    ws_feedback_flush();
+     if (s_flushing_present || s_present_pending <= 0)
+         return;
+     /* Belt-and-suspenders with interrupts.c: never finish_frame inside the
+@@ -4609,6 +4611,7 @@ void gpu_vblank_flush_present(void) {
+ }
+ 
+ void gpu_vblank_tick(void) {
++    ws_feedback_flush();
+     lcf ^= 1;
+     gpu_timeline_note(GTL_VBLANK, lcf, 0);
+     /* GPUSTAT.13 (interlace FIELD): on real hardware this alternates per
+@@ -5926,6 +5929,10 @@ static void gp0_exec_textured_tri(void) {
+ }
+ 
+ /* Execute textured quad (GP0 0x2C-0x2F) */
++static void ws_feedback_quad_reveal(const int32_t vx[4], const int32_t vy[4],
++                                    const int u[4], const int v[4],
++                                    uint32_t color24, int semi_trans, int raw_texture);
++
+ static void gp0_exec_textured_quad(void) {
+     if (native_wide_projective_draw()) return;
+     uint32_t color24 = gp0_cmd_buf[0] & 0xFFFFFFu;
+@@ -5970,6 +5977,7 @@ static void gp0_exec_textured_quad(void) {
+     if (draw_area_out_bbox(vx, vy, 4)) return;
+ 
+     setup_textured_draw(color24, semi_trans, raw_texture);
++    ws_feedback_quad_reveal(vx, vy, u, v, color24, semi_trans, raw_texture);
+ 
+     int as_rect = vy[0] == vy[1] && vy[2] == vy[3] &&
+                   vx[0] == vx[2] && vx[1] == vx[3] &&
+@@ -6285,22 +6293,102 @@ static int ws_fb_base_holding(int32_t vram_x, int width) {
+     return -1;
+ }
+ 
+-/* A tagged 15-bit sprite copying another framebuffer continues into the
+- * bands from that buffer's wide surface (it has no band columns in VRAM). */
++/* Framebuffer-feedback filters (an underwater / heat-haze effect that redraws
++ * a framebuffer over itself or over the next frame, warped and tinted) leave
++ * the bands unfiltered: the copy has no band columns in VRAM. Tagged sprites
++ * always continue into the bands; with PSX_WS_FEEDBACK_QUADS=1 (opt-in, for a
++ * title such as Metal Gear Solid whose intro is drawn that way) so do untagged
++ * 15-bit sprites and near-axis-aligned quads that reach a band. */
++static int ws_feedback_quads_enabled(void) {
++    static int on = -1;
++    if (on < 0) {
++        const char *e = getenv("PSX_WS_FEEDBACK_QUADS");
++        on = (e && e[0] == '1') ? 1 : 0;
++    }
++    return on;
++}
++
++/* The band copies of a run of feedback sprites (hundreds of 2-row sprites a
++ * frame for a row-by-row warp) are drawn together once the run ends, rather
++ * than each between two canonical sprites: they write only band columns and
++ * the sprites only centre columns, so the order between them does not
++ * matter, and the renderer does not switch surfaces for every sprite. */
++typedef struct { int32_t base, sx, sy, dx, dy, w, h; uint32_t color24; int raw, semi; } WsFeedbackCopy;
++#define WS_FEEDBACK_QUEUE 1024
++static WsFeedbackCopy ws_fbq[WS_FEEDBACK_QUEUE];
++static int ws_fbq_n;
++
++static void ws_feedback_flush(void) {
++    for (int i = 0; i < ws_fbq_n; ++i) {
++        const WsFeedbackCopy *c = &ws_fbq[i];
++        gr_wide_feedback_rect(c->base, c->sx, c->sy, c->dx, c->dy, c->w, c->h,
++                              (int)(c->color24 & 0xFF), (int)((c->color24 >> 8) & 0xFF),
++                              (int)((c->color24 >> 16) & 0xFF), c->raw, c->semi);
++    }
++    ws_fbq_n = 0;
++}
++
++static void ws_feedback_queue(int32_t base, int32_t sx, int32_t sy, int32_t dx, int32_t dy,
++                              int32_t w, int32_t h, uint32_t color24, int raw, int semi) {
++    if (ws_fbq_n == WS_FEEDBACK_QUEUE) ws_feedback_flush();
++    ws_fbq[ws_fbq_n++] = (WsFeedbackCopy){ base, sx, sy, dx, dy, w, h, color24, raw, semi };
++}
++
++/* Draws the band spans of a feedback copy. A band is only read from the
++ * source's bands: the centre of a wide surface is the unfiltered mirror until
++ * the next present (the filtered centre lives in VRAM), so a warp that reaches
++ * across the edge would feed the unfiltered image into the band every frame.
++ * The columns the warp would take from the centre are read unshifted from the
++ * band instead. */
++static void ws_feedback_emit(int src_base, const WsFeedbackSpan *spans, int count,
++                             int32_t src_y, int32_t y, int32_t h, int width,
++                             uint32_t color24, int semi_trans, int raw_texture) {
++    const int32_t left = (int32_t)draw_area_left;
++    const int semi = semi_trans ? (int)semi_transparency : -1;
++    for (int i = 0; i < count; ++i) {
++        int32_t dst = spans[i].dst_x, w = spans[i].w;
++        int32_t rel = spans[i].src_x - src_base;   /* source column, buffer-relative */
++        int32_t pieces[2][3];                        /* dst, source column, width */
++        int n = 0;
++        if (dst < left) {                           /* left band: source stays < 0 */
++            int32_t shifted = rel + w <= 0 ? w : (rel < 0 ? -rel : 0);
++            if (shifted > 0) { pieces[n][0] = dst; pieces[n][1] = rel; pieces[n][2] = shifted; n++; }
++            if (w - shifted > 0) {
++                pieces[n][0] = dst + shifted; pieces[n][1] = dst + shifted - left;
++                pieces[n][2] = w - shifted; n++;
++            }
++        } else {                                    /* right band: source stays >= width */
++            int32_t plain = rel >= width ? 0 : (width - rel < w ? width - rel : w);
++            if (plain > 0) { pieces[n][0] = dst; pieces[n][1] = dst - left; pieces[n][2] = plain; n++; }
++            if (w - plain > 0) {
++                pieces[n][0] = dst + plain; pieces[n][1] = rel + plain;
++                pieces[n][2] = w - plain; n++;
++            }
++        }
++        for (int k = 0; k < n; ++k)
++            ws_feedback_queue(src_base, src_base + pieces[k][1], src_y, pieces[k][0], y,
++                              pieces[k][2], h, color24, raw_texture, semi);
++    }
++}
++
++/* A 15-bit sprite copying a framebuffer (another one, or the one it draws
++ * into) continues into the bands from that buffer's wide surface. */
+ static void ws_feedback_rect_reveal(int x, int y, int w, int h, int u, int v,
+                                     uint32_t color24, int semi_trans,
+                                     int raw_texture) {
+     int margin = draw_area_wide_x_margin();
+     int width = (int)ws_disp_w();
+-    if (margin <= 0 || gp0_cmd_source_addr == UINT32_MAX ||
+-        draw_area_right < draw_area_left ||
++    if (margin <= 0 || draw_area_right < draw_area_left ||
+         draw_area_right - draw_area_left + 1u != (uint32_t)width)
+         return;
+-    uint32_t address = gp0_cmd_source_addr & 0x1FFFFFFFu;
+-    if (address >= psx_ram_live_bytes() || (address & 3u)) return;
+-    if (!ws_repeat_rect_tag_lookup(ws_feedback_rect_tags, address, gp0_cmd_buf,
+-                                   (uint32_t)gp0_words_needed, (uint32_t)s_frame_count))
+-        return;
++    if (!ws_feedback_quads_enabled()) {
++        if (gp0_cmd_source_addr == UINT32_MAX) return;
++        uint32_t address = gp0_cmd_source_addr & 0x1FFFFFFFu;
++        if (address >= psx_ram_live_bytes() || (address & 3u)) return;
++        if (!ws_repeat_rect_tag_lookup(ws_feedback_rect_tags, address, gp0_cmd_buf,
++                                       (uint32_t)gp0_words_needed, (uint32_t)s_frame_count))
++            return;
++    }
+     uint16_t tp = current_texpage();
+     if (((tp >> 7) & 3) != 2) return;
+     int32_t src_x0 = (int32_t)(tp & 0xF) * 64 + u;
+@@ -6310,11 +6398,52 @@ static void ws_feedback_rect_reveal(int x, int y, int w, int h, int u, int v,
+     WsFeedbackSpan spans[2];
+     int count = ws_feedback_rect_spans(x, w, src_x0, (int32_t)draw_area_left,
+                                        width, margin, spans);
+-    for (int i = 0; i < count; ++i)
+-        gr_wide_feedback_rect(src_base, spans[i].src_x, src_y, spans[i].dst_x, y,
+-                              spans[i].w, h, (int)(color24 & 0xFF),
+-                              (int)((color24 >> 8) & 0xFF), (int)((color24 >> 16) & 0xFF),
+-                              raw_texture, semi_trans ? (int)semi_transparency : -1);
++    ws_feedback_emit(src_base, spans, count, src_y, y, h, width,
++                     color24, semi_trans, raw_texture);
++}
++
++/* The same for a textured quad drawn over the whole frame from another
++ * framebuffer (four near-axis-aligned 15-bit quads that redraw the previous
++ * frame semi-transparent over the new one, with a slight UV warp). Only a quad
++ * that reaches the left or right edge of a full-width draw area continues into
++ * that band; its bounding box is copied, with the warp's shift. */
++static void ws_feedback_quad_reveal(const int32_t vx[4], const int32_t vy[4],
++                                    const int u[4], const int v[4],
++                                    uint32_t color24, int semi_trans, int raw_texture) {
++    if (!ws_feedback_quads_enabled()) return;
++    int margin = draw_area_wide_x_margin();
++    int width = (int)ws_disp_w();
++    if (margin <= 0 || draw_area_right < draw_area_left ||
++        draw_area_right - draw_area_left + 1u != (uint32_t)width)
++        return;
++    int32_t x0 = vx[0], x1 = vx[0], y0 = vy[0], y1 = vy[0];
++    int u0 = u[0], v0 = v[0];
++    for (int i = 1; i < 4; i++) {
++        if (vx[i] < x0) x0 = vx[i];
++        if (vx[i] > x1) x1 = vx[i];
++        if (vy[i] < y0) y0 = vy[i];
++        if (vy[i] > y1) y1 = vy[i];
++        if (u[i] < u0) u0 = u[i];
++        if (v[i] < v0) v0 = v[i];
++    }
++    if (x1 - x0 < 16 || y1 - y0 < 16) return;
++    /* near-axis-aligned: every corner within 4 px of the bounding box's */
++    for (int i = 0; i < 4; i++) {
++        int32_t dx = vx[i] - x0 < x1 - vx[i] ? vx[i] - x0 : x1 - vx[i];
++        int32_t dy = vy[i] - y0 < y1 - vy[i] ? vy[i] - y0 : y1 - vy[i];
++        if (dx > 4 || dy > 4) return;
++    }
++    uint16_t tp = current_texpage();
++    if (((tp >> 7) & 3) != 2) return;
++    int32_t src_x0 = (int32_t)(tp & 0xF) * 64 + u0;
++    int src_base = ws_fb_base_holding(src_x0, width);
++    if (src_base < 0) return;
++    int32_t src_y = (int32_t)((tp >> 4) & 1) * 256 + v0;
++    WsFeedbackSpan spans[2];
++    int count = ws_feedback_rect_spans(x0, x1 - x0, src_x0, (int32_t)draw_area_left,
++                                       width, margin, spans);
++    ws_feedback_emit(src_base, spans, count, src_y, y0, y1 - y0, width,
++                     color24, semi_trans, raw_texture);
+ }
+ 
+ /* Execute textured rectangle (GP0 0x64-0x67) */
+@@ -7754,6 +7883,9 @@ static void gp0_dispatch_command(uint8_t opcode);
+ 
+ static void gp0_execute_command(void) {
+     uint8_t opcode = (gp0_cmd_buf[0] >> 24) & 0xFF;
++    /* A run of feedback sprites keeps its band copies queued (see
++     * ws_feedback_queue); anything else draws after them. */
++    if (opcode < 0x64 || opcode > 0x67) ws_feedback_flush();
+     gp0_opcode_count[opcode]++;
+     gp0_ring_record(gp0_cmd_buf, gp0_words_needed);
+     extern void ws_bg_phase_note(uint32_t op);
+@@ -8380,6 +8512,7 @@ static void gp1_get_info(uint32_t val) {
+ }
+ 
+ void gpu_write_gp1(uint32_t val) {
++    ws_feedback_flush();
+     source_gpu_runtime_gp1(val);
+     interrupts_raster_gp1(val);
+     if(source_gpu_queue_enabled && ((val>>24)&0x3f)<=1)gpu_queue_reset();
+diff --git a/psxrecomp/runtime/src/gpu_gl_renderer.c b/psxrecomp/runtime/src/gpu_gl_renderer.c
+index 3c8c0ae..b13d935 100644
+--- a/psxrecomp/runtime/src/gpu_gl_renderer.c
++++ b/psxrecomp/runtime/src/gpu_gl_renderer.c
+@@ -1049,7 +1049,14 @@ static int wide_index(GLuint fbo) {
+         if (s_wide_fbo[i] == fbo) return i;
+     return -1;
+ }
++/* Counts draws into the wide surfaces: a framebuffer-feedback copy that reads
++ * the surface it draws into reuses its snapshot until something else draws. */
++static unsigned s_wide_draw_serial = 1;
+ static void wst_add(int i, int x0, int y0, int x1, int y1) {
++    /* The feedback copies read the bands only: a draw inside the centre
++     * columns (the tracked rect is padded by up to 3 px) leaves their
++     * snapshot valid. */
++    if (x0 < g_wide_off - 3 || x1 > g_wide_w - g_wide_off + 3) s_wide_draw_serial++;
+     if (i < 0 || i >= WIDE_MAX_SURF) return;
+     if (x0 < 0) x0 = 0;
+     if (y0 < 0) y0 = 0;
+@@ -5099,6 +5106,7 @@ static void gpu_textured_triangle(const int *xs, const int *ys,
+  * hr_begin/hr_end. */
+ static void wide_flat_rect_direct(int wx, int y, int ww, int h, uint16_t c, int semi) {
+     if (ww <= 0 || h <= 0) return;
++    s_wide_draw_serial++;
+     float r = ((c & 0x1F) << 3) / 255.0f;
+     float g = (((c >> 5) & 0x1F) << 3) / 255.0f;
+     float b = (((c >> 10) & 0x1F) << 3) / 255.0f;
+@@ -7386,6 +7394,7 @@ static void glb_wide_disable_target(void) { flush_flat_batch(); flush_tex_batch(
+  * surface for base_x, so the revealed margins are clean. Mirrors sw_wide_clear:
+  * a scissored glClear with the 1555 color converted to RGBA8 (alpha = bit15). */
+ static void glb_wide_clear(int base_x, int y, int h, uint16_t color) {
++    s_wide_draw_serial++;
+     if (!s_raster_ok || s_ws_ablate == 1) return;
+     double t0 = cw_ms(); s_cw_wide_clears++;
+     flush_tex_batch();
+@@ -7418,6 +7427,7 @@ static void glb_wide_clear(int base_x, int y, int h, uint16_t color) {
+ /* Clear only the two synthetic reveal strips, preserving the centred canonical
+  * framebuffer. This is an opt-in transition cleanup driven by gpu.c. */
+ static void glb_wide_clear_margins(int base_x, int y, int h, uint16_t color, int sides) {
++    s_wide_draw_serial++;
+     if (!s_raster_ok || s_ws_ablate == 1 || g_wide_off <= 0) return;
+     double t0 = cw_ms(); s_cw_wide_clears++;
+     flush_flat_batch();
+@@ -7537,6 +7547,43 @@ static int wide_index_existing(int base_x) {
+     return -1;
+ }
+ 
++/* A copy of the surface being drawn, for a feedback copy that reads the
++ * framebuffer it draws into (a title's row-by-row underwater warp): GL cannot
++ * sample the texture it renders to. Taken once for a run of such copies and
++ * kept while nothing else draws into the wide surfaces. */
++static GLuint s_fbsnap_tex = 0, s_fbsnap_rb = 0, s_fbsnap_fbo = 0;
++static int s_fbsnap_as = 0, s_fbsnap_w = 0;
++static unsigned s_fbsnap_serial = 0;
++static GLuint s_fbsnap_of = 0;
++
++static GLuint fb_self_snapshot(int si) {
++    const int S = s_wide_as[si] > 0 ? s_wide_as[si] : s_out_scale;
++    if (s_fbsnap_fbo && (s_fbsnap_as != S || s_fbsnap_w != g_wide_w)) {
++        p_glDeleteFramebuffers(1, &s_fbsnap_fbo);
++        glDeleteTextures(1, &s_fbsnap_tex);
++        p_glDeleteRenderbuffers(1, &s_fbsnap_rb);
++        s_fbsnap_fbo = s_fbsnap_tex = s_fbsnap_rb = 0;
++    }
++    if (!s_fbsnap_fbo) {
++        if (!wide_alloc_surface(S, &s_fbsnap_tex, &s_fbsnap_rb, &s_fbsnap_fbo)) return 0;
++        s_fbsnap_as = S;
++        s_fbsnap_w = g_wide_w;
++        s_fbsnap_serial = 0;
++    }
++    if (s_fbsnap_serial != s_wide_draw_serial || s_fbsnap_of != s_wide_fbo[si]) {
++        p_glBindFramebuffer(PSXGL_READ_FRAMEBUFFER, s_wide_fbo[si]);
++        p_glBindFramebuffer(PSXGL_DRAW_FRAMEBUFFER, s_fbsnap_fbo);
++        glDisable(GL_SCISSOR_TEST);
++        p_glBlitFramebuffer(0, 0, g_wide_w * S, VRAM_H * S, 0, 0, g_wide_w * S, VRAM_H * S,
++                            GL_COLOR_BUFFER_BIT, GL_NEAREST);
++        p_glBindFramebuffer(PSXGL_READ_FRAMEBUFFER, 0);
++        p_glBindFramebuffer(PSXGL_DRAW_FRAMEBUFFER, 0);
++        s_fbsnap_serial = s_wide_draw_serial;
++        s_fbsnap_of = s_wide_fbo[si];
++    }
++    return s_fbsnap_tex;
++}
++
+ static void glb_wide_feedback_rect(int src_base, int src_x, int src_y, int dst_x, int dst_y,
+                                    int w, int h, int r, int g, int b, int raw, int semi) {
+     if (!s_raster_ok || !g_wide_cur || w <= 0 || h <= 0 || g_wide_w <= 0) return;
+@@ -7544,14 +7591,17 @@ static void glb_wide_feedback_rect(int src_base, int src_x, int src_y, int dst_x
+     flush_tex_batch();
+     hiw_flush_queue();   /* queued mirrors land in both surfaces first */
+     const int si = wide_index_existing(src_base);
+-    if (si < 0 || s_wide_fbo[si] == g_wide_cur || !fb_prog_ready()) return;
++    if (si < 0 || !fb_prog_ready()) return;
++    const int self = s_wide_fbo[si] == g_wide_cur;
++    const GLuint src_tex = self ? fb_self_snapshot(si) : s_wide_tex[si];
++    if (!src_tex) return;
+     const int dl = dst_x + wide_dx();
+     const int sl = src_x - src_base + g_wide_off + view_shift;
+     p_glBindFramebuffer(PSXGL_FRAMEBUFFER, g_wide_cur);
+     glViewport(0, 0, g_wide_w * s_out_scale, VRAM_H * s_out_scale);
+     wide_band_scissor_x(view_pad_left, g_wide_w - view_pad_left - view_pad_right);
+     glDisable(GL_STENCIL_TEST);
+-    fb_bind(s_wide_tex[si], dl, dst_y, w, h, sl, src_y, r, g, b, raw);
++    fb_bind(src_tex, dl, dst_y, w, h, sl, src_y, r, g, b, raw);
+     if (semi >= 0) apply_psx_blend(semi);
+     else glDisable(GL_BLEND);
+     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+@@ -7562,7 +7612,10 @@ static void glb_wide_feedback_rect(int src_base, int src_x, int src_y, int dst_x
+     p_glBindVertexArray(0);
+     p_glUseProgram(0);
+     p_glBindFramebuffer(PSXGL_FRAMEBUFFER, 0);
++    const unsigned serial = s_wide_draw_serial;
+     wst_add(wide_index(g_wide_cur), dl, dst_y, dl + w, dst_y + h);
++    /* A self copy keeps the snapshot: the run reads rows it has not drawn. */
++    if (self) s_wide_draw_serial = serial;
+ }
+ 
+ /* Present source: read the wide FBO for the displayed buffer (base_x) into the

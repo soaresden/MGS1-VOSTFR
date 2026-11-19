@@ -69,6 +69,7 @@ for A in $ARCHS; do
             "$TC/bin/cmake" -S "$W/src" -B "$B" -G Ninja -DCMAKE_MAKE_PROGRAM="$TC/bin/ninja" \
                 -DCMAKE_TOOLCHAIN_FILE="$TC/share/buildroot/toolchainfile.cmake" \
                 -DCMAKE_BUILD_TYPE=Release -DGLSLC_EXE="$GLSLC" \
+                "-DCMAKE_C_FLAGS_RELEASE=-O3 -DNDEBUG" "-DCMAKE_CXX_FLAGS_RELEASE=-O3 -DNDEBUG" \
                 -DCCACHE_PROGRAM=CCACHE_PROGRAM-NOTFOUND -DCMAKE_C_COMPILER_LAUNCHER= -DCMAKE_CXX_COMPILER_LAUNCHER= \
                 > "$W/configure-$A.log" 2>&1 || { tail -40 "$W/configure-$A.log"; exit 1; }
             ;;

@@ -33,6 +33,8 @@ if exist "%G%\mods\state.toml" powershell -NoProfile -ExecutionPolicy Bypass -Co
   "$f='%G%\mods\state.toml'; $t=[IO.File]::ReadAllText($f); [IO.File]::WriteAllText($f, ($t -replace 'soaresden\.mgs1-mods\.disc[12]','soaresden.mgs1-mods.disc%DISC%'))"
 > "%G%\disc.txt" echo %DISC%
 
+rem the underwater / heat-haze filters of the intro, carried into the 16:9 bands
+set "PSX_WS_FEEDBACK_QUADS=1"
 echo [retrobat] disc %DISC%: %CUE% ; BIOS %BIOS%> "%LOG%"
 "%EXE%" --no-launcher --game "%G%\game.toml" --disc "%CUE%" --bios "%BIOS%" --memcard-dir "%G%\saves" >> "%LOG%" 2>&1
 exit /b %ERRORLEVEL%

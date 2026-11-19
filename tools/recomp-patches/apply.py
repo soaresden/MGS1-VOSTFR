@@ -13,6 +13,15 @@ apply.py - Nos changements au recomp PC de MGS (psxrecomp + recomp-ui, alexbeavs
    - widescreen-fullscreen-fades.patch : les fondus et filtres plein écran de MGS sont dessinés en
      coordonnées centrées (-160,-112 320x224) ; le runtime ne les élargissait en 16/9 que s'ils
      partaient de 0, ils gardaient donc des bandes 4:3.
+   - widescreen-underwater-filter.patch : les filtres de l'intro (sous l'eau, crédits « David Hayter »)
+     recopient l'image comme texture : ~450 sprites de 2 lignes qui la redessinent sur elle-même,
+     ondulée et teintée, plus 4 quads qui mélangent l'image précédente. Ces recopies continuent
+     maintenant dans les bandes 16/9 (lues dans les bandes seulement ; en OpenGL, un instantané
+     de la surface quand la source est celle qu'on dessine ; dessinées en bloc à la fin de la série).
+     Activé par PSX_WS_FEEDBACK_QUADS=1 (run.sh, retrobat.cmd).
+   - runtime-audio-drc-env.patch : PSX_AUDIO_MAX_CORRECTION, PSX_AUDIO_KP, PSX_AUDIO_SLEW règlent la
+     correction de vitesse du son : sur la Retroid, qui ne tient pas 60 Hz partout, le son s'étire un
+     peu (jusqu'à 10 %) au lieu de hacher (run.sh).
 2. widescreen.toml -> game.toml : vrai 16/9 (native-wide : la 3D est calculée sur toute la largeur,
    pas étirée), détection du jeu par le GTE, et les 26 tests d'écran de MGS élargis (le jeu jette ce
    qui sort de x = -160..160 ; listés à la main, voir le fichier). À 4:3 ces tests restent ceux
@@ -21,8 +30,6 @@ apply.py - Nos changements au recomp PC de MGS (psxrecomp + recomp-ui, alexbeavs
 
 Ensuite : compiler (cmake --build build-diagnostic ou build-release ; Batocera : tools/batocera/build.sh,
 puis tools/batocera/overlays.sh : le cache des overlays dépend de game.toml).
-Limite connue : les effets qui recopient l'image du jeu comme texture (filtre vert sous l'eau de
-l'intro...) restent en 4:3 au centre.
 """
 
 import pathlib, subprocess, sys

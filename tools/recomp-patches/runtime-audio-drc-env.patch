@@ -1,0 +1,30 @@
+diff --git a/psxrecomp/runtime/src/main.cpp b/psxrecomp/runtime/src/main.cpp
+index ac48087..9d01a58 100644
+--- a/psxrecomp/runtime/src/main.cpp
++++ b/psxrecomp/runtime/src/main.cpp
+@@ -22946,6 +22946,25 @@ session_reboot:
+                 cfg.source_rate = 44100.0;            /* SPU render rate */
+                 cfg.host_rate   = (double)have.freq;  /* actual device rate */
+                 cfg.target_ms   = (double)resolved_audio_buffer_ms;
++                /* A host that cannot hold full speed everywhere (a handheld
++                 * ARM board) runs the guest a few percent slow; the default
++                 * +/-0.5% correction then drains the ring and the sound
++                 * breaks up. PSX_AUDIO_MAX_CORRECTION (ratio, up to 0.25)
++                 * and PSX_AUDIO_SLEW (percent-points per second) let such a
++                 * port stretch the sound slightly instead; PSX_AUDIO_KP (the
++                 * proportional gain, up to 1) lets it reach that range. */
++                if (const char *e = std::getenv("PSX_AUDIO_MAX_CORRECTION")) {
++                    const double v = std::atof(e);
++                    if (v > 0.0 && v <= 0.25) cfg.max_correction = v;
++                }
++                if (const char *e = std::getenv("PSX_AUDIO_KP")) {
++                    const double v = std::atof(e);
++                    if (v > 0.0 && v <= 1.0) cfg.kp = v;
++                }
++                if (const char *e = std::getenv("PSX_AUDIO_SLEW")) {
++                    const double v = std::atof(e);
++                    if (v > 0.0 && v <= 100.0) cfg.slew_pp_per_s = v;
++                }
+                 if (rab_init(&s_drc, &cfg) == 0) s_drc_ready = true;
+             }
+             g_audio_host_rate = have.freq;
