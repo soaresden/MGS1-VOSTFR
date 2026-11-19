@@ -662,6 +662,33 @@ globalThis.MGS_MODS = {
     "Ammo stays full: unlimited.",
     "When the game takes the weapons away (capture), it keeps them: the mod leaves them alone."
    ]
+  },
+  {
+   "id": "objets",
+   "rang": 121,
+   "type": "option",
+   "versions": [
+    "FR",
+    "UK",
+    "US"
+   ],
+   "fr": "Tous les objets (pour tester)",
+   "en": "All items (for testing)",
+   "frS": "Tous les objets dès le début (carte de niveau 7, cartons, lunettes, masque, tenue furtive…), rations et médicaments toujours pleins.",
+   "enS": "Every item from the start (level 7 card, boxes, goggles, gas mask, stealth suit…), rations and medicine always full.",
+   "shots": [],
+   "fl": [
+    "Dès que Snake est en jeu, les objets sont dans le menu <b>L2</b> : la carte au niveau 7 ouvre toutes les portes.",
+    "Rations, médicament contre le rhume et diazépam restent au maximum : illimités.",
+    "Jamais donnés : la bombe à retardement (elle exploserait sur Snake) et l'appareil photo.",
+    "Quand le jeu confisque les objets (capture), il les garde : le mod n'y touche pas. Va avec « Toutes les armes »."
+   ],
+   "el": [
+    "As soon as Snake is in the game, the items are in the <b>L2</b> menu: the level 7 card opens every door.",
+    "Rations, cold medicine and diazepam stay at maximum: unlimited.",
+    "Never given: the time bomb (it would blow up on Snake) and the camera.",
+    "When the game takes the items away (capture), it keeps them: the mod leaves them alone. Works with \"All weapons\"."
+   ]
   }
  ],
  "ids": {

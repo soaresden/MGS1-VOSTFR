@@ -36,7 +36,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DISC = "Metal Gear Solid (USA) (Disc %d) (Rev 1)"
 EXE = "Metal_Gear_Solid_Recompiled"
 STATE_VALUES = {"life": {"life_text": "snake"}}  # valeurs par défaut des options (comme le lanceur du PC)
-OFF_BY_DEFAULT = {"armes"}                        # mods livrés désactivés (mod de test)
+OFF_BY_DEFAULT = {"armes", "objets"}              # mods livrés désactivés (mods de test)
 LIFE_CHOICES = ["SNAKE", "SOLID SNAKE", "FOXHOUND", "VIE"]  # comme psxmod.py
 
 
