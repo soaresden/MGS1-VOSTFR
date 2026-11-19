@@ -1,0 +1,158 @@
+diff --git a/psxrecomp/runtime/src/memory.c b/psxrecomp/runtime/src/memory.c
+index 5b54d72..799c625 100644
+--- a/psxrecomp/runtime/src/memory.c
++++ b/psxrecomp/runtime/src/memory.c
+@@ -577,7 +577,9 @@ static void kbless_note_write(uint32_t phys) {
+  *
+  * Because every such writer comes here after its write, this is also where
+  * the older-build copy of RAM 0..15 follows them (low_ram_old_follow). */
++static void dirty_ram_text_note_raw_write(uint32_t phys, uint32_t len);
+ void psx_kernel_bless_note_range(uint32_t phys, uint32_t len) {
++    dirty_ram_text_note_raw_write(phys, len);
+     low_ram_old_follow(phys, len);
+     if (kbless_enabled <= 0) return;   /* also pre-init: nothing verified yet */
+     if (len == 0) return;
+@@ -732,6 +734,29 @@ static uint8_t *text_ref_image = NULL;
+ static uint32_t text_ref_lo = 0, text_ref_hi = 0;
+ static uint32_t text_modified_bitmap[DIRTY_RAM_BITMAP_WORDS];
+ static uint32_t text_diverged_bitmap[DIRTY_RAM_BITMAP_WORDS];
++/* Validation cache for dirty_ram_text_native_ok_ranges_from (MGS1-VOSTFR):
++ * a page that ever took a guarded write differing from the reference (data
++ * sharing a page with code, a mod's patch) used to memcmp every dispatched
++ * function's whole range on EVERY dispatch — millions of compares a second
++ * for a hot helper. Every guarded store bumps its page's generation; a
++ * restore, a reset, a new image or a bless bumps the epoch / page. A range set
++ * validated once stays valid until one of its pages' generation moves.
++ * Dirty pages (DMA, overlay loads) never use the cache. */
++static uint32_t text_page_gen[DIRTY_RAM_PAGE_COUNT];
++static uint32_t g_text_gen_epoch = 1;
++#define TEXT_VCACHE_SIZE 8192u
++typedef struct { const uint32_t *key; uint64_t sum; uint32_t epoch; } TextVCacheEntry;
++static TextVCacheEntry text_vcache[TEXT_VCACHE_SIZE];
++/* Raw host writes into RAM (psx_kernel_bless_note_range callers: text
++ * translation, shadow runs, state loads) move the generations too. */
++static void dirty_ram_text_note_raw_write(uint32_t phys, uint32_t len) {
++    if (len == 0) return;
++    if (len > 0x10000u || phys >= RAM_LIVE) { g_text_gen_epoch++; return; }
++    uint32_t end = phys + len - 1u;
++    if (end >= RAM_LIVE) end = RAM_LIVE - 1u;
++    for (uint32_t p = phys >> DIRTY_RAM_PAGE_SHIFT; p <= (end >> DIRTY_RAM_PAGE_SHIFT); p++)
++        text_page_gen[p]++;
++}
+ static uint64_t g_text_native_blocked = 0;
+ static uint32_t g_text_diverged_pages = 0;
+ static uint64_t g_text_exact_mismatches = 0;
+@@ -763,6 +788,7 @@ void dirty_ram_register_text_image(uint32_t phys_lo, const uint8_t *bytes,
+     memset(text_modified_bitmap, 0, sizeof(text_modified_bitmap));
+     memset(text_diverged_bitmap, 0, sizeof(text_diverged_bitmap));
+     memset(text_foreign_bitmap, 0, sizeof(text_foreign_bitmap));
++    g_text_gen_epoch++;
+     g_text_foreign_pages = 0;
+     g_text_native_blocked = 0;
+     g_text_diverged_pages = 0;
+@@ -798,6 +824,7 @@ static inline int text_page_foreign(uint32_t page) {
+ static inline void text_guard_note_write(uint32_t phys, uint32_t val, int size) {
+     if (!text_ref_image) return;
+     if (phys < text_ref_lo || phys + (uint32_t)size > text_ref_hi) return;
++    text_page_gen[phys >> DIRTY_RAM_PAGE_SHIFT]++;
+     const uint8_t *ref = text_ref_image + (phys - text_ref_lo);
+     uint8_t buf[4] = { (uint8_t)val, (uint8_t)(val >> 8),
+                        (uint8_t)(val >> 16), (uint8_t)(val >> 24) };
+@@ -871,7 +898,8 @@ int dirty_ram_text_native_ok_ranges_from(const uint32_t *lo_len_pairs,
+     if (!text_ref_image || !lo_len_pairs || count == 0) return 0;
+     if (dirty_ram_force_interp()) return 0;
+     (void)exec_pc;
+-    int any = 0;
++    int any = 0, need_cmp = 0, cacheable = 1;
++    uint64_t gen_sum = 0, unclean_mask = 0;
+     for (uint32_t i = 0; i < count; i++) {
+         uint32_t phys = lo_len_pairs[i * 2u] & 0x1FFFFFFFu;
+         uint32_t len = lo_len_pairs[i * 2u + 1u];
+@@ -900,21 +928,43 @@ int dirty_ram_text_native_ok_ranges_from(const uint32_t *lo_len_pairs,
+          * guard-modified nor runtime-dirty, so its bytes still equal the
+          * reference image — skip the memcmp. This keeps the emitted
+          * stale-static guards on inter-piece host transfers near-free on
+-         * the (overwhelmingly common) pristine pages. */
++         * the (overwhelmingly common) pristine pages. The generations of the
++         * pages are summed for the validation cache below. */
+         {
+             uint32_t p0 = phys >> DIRTY_RAM_PAGE_SHIFT;
+             uint32_t p1 = (phys + len - 1u) >> DIRTY_RAM_PAGE_SHIFT;
+             uint32_t p;
+             int clean = 1;
+             for (p = p0; p <= p1; p++) {
+-                if ((text_modified_bitmap[p >> 5] & (1u << (p & 31u))) ||
+-                    dirty_ram_is_dirty(p << DIRTY_RAM_PAGE_SHIFT)) {
++                gen_sum += text_page_gen[p];
++                if (dirty_ram_is_dirty(p << DIRTY_RAM_PAGE_SHIFT)) {
++                    clean = 0;
++                    cacheable = 0;
++                } else if (text_modified_bitmap[p >> 5] & (1u << (p & 31u))) {
+                     clean = 0;
+-                    break;
+                 }
+             }
+             if (clean) continue;
++            need_cmp = 1;
++            if (i < 64u) unclean_mask |= 1ull << i;
+         }
++    }
++    if (!any) {
++        g_text_native_blocked++;
++        return 0;
++    }
++    if (!need_cmp) return 1;
++    /* Validation cache: these exact ranges matched the reference when every
++     * page they touch had the same generations as now (no guarded store, no
++     * bless, no restore since), and none of them is runtime-dirty. */
++    uint32_t slot = (uint32_t)(((uintptr_t)lo_len_pairs >> 2) * 2654435761u) & (TEXT_VCACHE_SIZE - 1u);
++    TextVCacheEntry *ce = &text_vcache[slot];
++    if (cacheable && ce->key == lo_len_pairs && ce->sum == gen_sum && ce->epoch == g_text_gen_epoch)
++        return 1;
++    for (uint32_t i = 0; i < count; i++) {
++        if (i < 64u && !(unclean_mask & (1ull << i))) continue;
++        uint32_t phys = lo_len_pairs[i * 2u] & 0x1FFFFFFFu;
++        uint32_t len = lo_len_pairs[i * 2u + 1u];
+         if (memcmp(ram + phys, text_ref_image + (phys - text_ref_lo), len) != 0) {
+             uint32_t off = 0;
+             const uint8_t *live = ram + phys;
+@@ -932,10 +982,7 @@ int dirty_ram_text_native_ok_ranges_from(const uint32_t *lo_len_pairs,
+             return 0;
+         }
+     }
+-    if (!any) {
+-        g_text_native_blocked++;
+-        return 0;
+-    }
++    if (cacheable) { ce->key = lo_len_pairs; ce->sum = gen_sum; ce->epoch = g_text_gen_epoch; }
+     return 1;
+ }
+ 
+@@ -981,8 +1028,10 @@ void dirty_ram_text_bless(uint32_t phys, const uint8_t *bytes, uint32_t len) {
+      * dispatch re-runs the compare against the now-updated reference. */
+     uint32_t first_page = lo >> DIRTY_RAM_PAGE_SHIFT;
+     uint32_t last_page  = (hi - 1u) >> DIRTY_RAM_PAGE_SHIFT;
+-    for (uint32_t page = first_page; page <= last_page; page++)
++    for (uint32_t page = first_page; page <= last_page; page++) {
+         text_diverged_bitmap[page >> 5] &= ~(1u << (page & 31u));
++        text_page_gen[page]++;
++    }
+ }
+ 
+ uint64_t dirty_ram_text_native_blocked(void) { return g_text_native_blocked; }
+@@ -1103,6 +1152,7 @@ static uint32_t overlay_watch_bitmap[DIRTY_RAM_BITMAP_WORDS];
+ static uint32_t overlay_page_gen[DIRTY_RAM_PAGE_COUNT];
+ 
+ void dirty_ram_reset_for_boot(void) {
++    g_text_gen_epoch++;
+     memset(dirty_ram_bitmap, 0, sizeof(dirty_ram_bitmap));
+     memset(text_modified_bitmap, 0, sizeof(text_modified_bitmap));
+     memset(text_diverged_bitmap, 0, sizeof(text_diverged_bitmap));
+@@ -1154,6 +1204,7 @@ uint32_t overlay_watch_pagegen_sum(uint32_t phys, uint32_t len) {
+  * fast path and run native code against restored bytes they were not validated
+  * for — hang / freeze after the restored frame presents. */
+ void dirty_ram_text_guard_resync_after_restore(void) {
++    g_text_gen_epoch++;
+     /* text_diverged_bitmap is sticky: once a page's entry bytes fail the
+      * reference compare, native stays blocked forever. That is correct for
+      * forward sim, but after a savestate/RB rewind the restored RAM may

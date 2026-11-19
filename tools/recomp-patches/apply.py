@@ -22,6 +22,12 @@ apply.py - Nos changements au recomp PC de MGS (psxrecomp + recomp-ui, alexbeavs
    - runtime-audio-drc-env.patch : PSX_AUDIO_MAX_CORRECTION, PSX_AUDIO_KP, PSX_AUDIO_SLEW règlent la
      correction de vitesse du son (essai : étirer le son au lieu de le hacher quand le jeu ralentit ;
      refusé par Denis, toute la hauteur change ; non utilisé par run.sh).
+   - runtime-text-guard-cache.patch : le garde du code (dirty_ram_text_native_ok_ranges_from) recomparait
+     à l'image d'origine tout le code d'une fonction à chaque appel dès que sa page avait reçu une
+     écriture différente (données voisines du code) : ~6 millions de memcmp par seconde dans MGS,
+     surtout les pages 0x8E000-0x8FFFF. Un compteur par page (chaque écriture gardée, bless, écriture
+     brute de l'hôte) et un cache par fonction : comparé une fois, puis gardé tant que ses pages ne
+     changent pas. Les pages « sales » (DMA, overlays) gardent la comparaison à chaque appel.
 2. widescreen.toml -> game.toml : vrai 16/9 (native-wide : la 3D est calculée sur toute la largeur,
    pas étirée), détection du jeu par le GTE, et les 26 tests d'écran de MGS élargis (le jeu jette ce
    qui sort de x = -160..160 ; listés à la main, voir le fichier). À 4:3 ces tests restent ceux
