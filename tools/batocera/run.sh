@@ -58,7 +58,9 @@ if [ -z "$CUE" ]; then
     exit 1
 fi
 
-# Mods: the package of the disc, the features as left in mods/state.toml; French texts from the menu.
+# Mods: the package of the disc; each feature (mod) of mods/state.toml from the menu: French texts in the first
+# submenu, the other mods in METAL GEAR SOLID - MODS (mgs_mod_<id>: on / off; for the life bar, its text or off).
+# An option left on its default keeps what state.toml says (the port ships the test mod "armes" off).
 STATE="$GAMEDIR/mods/state.toml"
 if [ -f "$STATE" ]; then
     sed -i -E "s/soaresden\.mgs1-mods\.disc[12]/soaresden.mgs1-mods.disc$DISC/" "$STATE"
@@ -66,12 +68,26 @@ if [ -f "$STATE" ]; then
         off) FR=false ;;
         *) FR=true ;;
     esac
-    # enabled line of the codec-fr feature
-    awk -v v="$FR" '
-        /^\[\[feature\]\]/ { f = 0 }
-        /^id = "codec-fr"/ { f = 1 }
-        f && /^enabled = / { $0 = "enabled = " v }
+    SET="codec-fr=$FR"
+    LIFE_TEXT=""
+    for id in $(sed -n -E 's/^id = "([a-z0-9-]+)"$/\1/p' "$STATE"); do
+        [ "$id" = codec-fr ] && continue
+        v="$(conf_get "mgs_mod_${id//-/_}")"
+        case "$v" in
+            on) SET="$SET $id=true" ;;
+            off) SET="$SET $id=false" ;;
+            "") ;;
+            *) [ "$id" = life ] && { SET="$SET life=true"; LIFE_TEXT="$v"; } ;;
+        esac
+    done
+    awk -v set="$SET" -v life="$LIFE_TEXT" '
+        BEGIN { n = split(set, a, " "); for (i = 1; i <= n; i++) { split(a[i], kv, "="); want[kv[1]] = kv[2] } }
+        /^\[\[feature\]\]/ { id = "" }
+        /^id = "/ { id = $0; sub(/^id = "/, "", id); sub(/"$/, "", id) }
+        /^enabled = / && (id in want) { $0 = "enabled = " want[id] }
+        /^life_text = / && life != "" { $0 = "life_text = \"" life "\"" }
         { print }' "$STATE" > "$STATE.tmp" && mv -f "$STATE.tmp" "$STATE"
+    MODS_ON="$(awk '/^id = "/ { id = $3 } /^enabled = true/ { gsub(/"/, "", id); printf "%s ", id }' "$STATE")"
 fi
 
 # Player settings (settings.toml next to the "exe", i.e. this folder; the in-game menu writes it too): the keys
@@ -98,6 +114,10 @@ case "$(conf_get mgs_bios_logo)" in                # LOGO PLAYSTATION: skipped b
     on) toml_set video fast_boot false ;;
     *) toml_set video fast_boot true ;;
 esac
+case "$(conf_get mgs_render_thread)" in          # RENDU EN PARALLELE: the GL drawing on another core (OpenGL)
+    off) toml_set video render_thread false ;;
+    *) toml_set video render_thread true ;;
+esac
 # Player 1 = the first controller (the recomp's own default is the keyboard: its launcher, off here, picks the pad).
 grep -Eq '^p1_device = "(none|keyboard)?"$' "$SETTINGS" && sed -i -E '/^p1_device = /d' "$SETTINGS"
 grep -q '^p1_device = ' "$SETTINGS" || toml_set controller p1_device '"auto"'
@@ -121,6 +141,7 @@ ARGS=(--no-launcher --game "$GAMEDIR/game.toml" --disc "$CUE" --bios "$BIOS" --m
 {
     echo "[batocera] $(date '+%F %T') $(cat /usr/share/batocera/batocera.version 2>/dev/null) $(uname -r) bin/$MACHINE"
     echo "[batocera] disc $DISC: $CUE ; BIOS $BIOS ; french texts ${FR:-?} ; renderer ${RENDERER:-auto} ; image $RATIO"
+    echo "[batocera] mods: ${MODS_ON:-?}"
     echo "[batocera] settings.toml:"; sed 's/^/    /' "$SETTINGS"
     echo "[batocera] WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-} DISPLAY=${DISPLAY:-} XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-}"
 } >> "$LOG"

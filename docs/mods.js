@@ -637,6 +637,31 @@ globalThis.MGS_MODS = {
     "Empty or \"LIFE\": the bar does not change.",
     "The preview is drawn as in the game."
    ]
+  },
+  {
+   "id": "armes",
+   "rang": 120,
+   "type": "option",
+   "versions": [
+    "FR",
+    "UK",
+    "US"
+   ],
+   "fr": "Toutes les armes (pour tester)",
+   "en": "All weapons (for testing)",
+   "frS": "Toutes les armes dès le début, munitions toujours au maximum : pour essayer les armes et les mods qui les touchent.",
+   "enS": "Every weapon from the start, ammo always full: to try the weapons and the mods that change them.",
+   "shots": [],
+   "fl": [
+    "Dès que Snake est en jeu, les 10 armes sont dans le menu <b>R2</b>, munitions au maximum.",
+    "Les munitions restent pleines : illimitées.",
+    "Quand le jeu confisque les armes (capture), il les garde : le mod n'y touche pas."
+   ],
+   "el": [
+    "As soon as Snake is in the game, all 10 weapons are in the <b>R2</b> menu, ammo at maximum.",
+    "Ammo stays full: unlimited.",
+    "When the game takes the weapons away (capture), it keeps them: the mod leaves them alone."
+   ]
   }
  ],
  "ids": {

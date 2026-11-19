@@ -21,10 +21,13 @@ Les deux paquets de mods sont installés (mods/installed/<id>/<version>/, comme 
 seul est actif à la fois (mods/state.toml) : le lanceur met celui du disque lancé.
 """
 import argparse
+import glob
+import json
 import os
 import re
 import shutil
 import sys
+import unicodedata
 import zipfile
 
 REPO = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -33,6 +36,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 DISC = "Metal Gear Solid (USA) (Disc %d) (Rev 1)"
 EXE = "Metal_Gear_Solid_Recompiled"
 STATE_VALUES = {"life": {"life_text": "snake"}}  # valeurs par défaut des options (comme le lanceur du PC)
+OFF_BY_DEFAULT = {"armes"}                        # mods livrés désactivés (mod de test)
+LIFE_CHOICES = ["SNAKE", "SOLID SNAKE", "FOXHOUND", "VIE"]  # comme psxmod.py
 
 
 def copy(src, dst):
@@ -57,10 +62,50 @@ def copy(src, dst):
     shutil.copy2(src, dst)
 
 
-def text(name, dst, eol):
-    t = open(os.path.join(HERE, name), encoding="utf-8").read()
+def text(name, dst, eol, t=None):
+    t = t if t is not None else open(os.path.join(HERE, name), encoding="utf-8").read()
     with open(dst, "w", encoding="utf-8", newline=eol) as o:
         o.write(t)
+
+
+def ascii_text(s):
+    """EmulationStation : les autres textes du menu sont sans accents (comme le port NFS)."""
+    s = re.sub(r"<[^>]+>", "", s).replace("«", "").replace("»", "").replace("’", "'").replace("…", "...")
+    s = unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode()
+    s = s.replace("&", "et").replace('"', "'").replace("<", "").replace(">", "")
+    return re.sub(r"\s+", " ", s).replace(" ,", ",").strip()
+
+
+def es_features(feats):
+    """es_features_mgs.cfg : le menu METAL GEAR SOLID + un sous-menu MODS, une ligne par mod du paquet."""
+    t = open(os.path.join(HERE, "es_features_mgs.cfg"), encoding="utf-8").read()
+    info = {}
+    for p in sorted(glob.glob(os.path.join(REPO, "mods", "*", "mod.json"))):
+        m = json.load(open(p, encoding="utf-8"))
+        info[m["id"]] = m
+    lines, order = [], 1
+    for f in sorted(feats, key=lambda f: (info.get(f, {}).get("rang", 999), f)):
+        if f == "codec-fr" or f not in info:
+            continue  # les textes FR : option TEXTES EN FRANCAIS du premier menu
+        m = info[f]
+        key = "mgs_mod_" + f.replace("-", "_")
+        lines.append('      <feature name="%s" value="%s" submenu="METAL GEAR SOLID - MODS" order="%d"'
+                     % (ascii_text(m["fr"]).upper(), key, order))
+        desc = m.get("frS") or m.get("aide", "")
+        if f == "life":
+            desc = "Le texte a la place de LIFE dans la barre de vie. Desactive : LIFE, comme a l'origine."
+        lines.append('               description="%s">' % ascii_text(desc))
+        if f == "life":
+            for c in LIFE_CHOICES:
+                lines.append('        <choice name="%s" value="%s"/>' % (c, c.lower().replace(" ", "-")))
+            lines.append('        <choice name="Desactive (LIFE)" value="off"/>')
+        else:
+            on = '        <choice name="Active" value="on"/>'
+            off = '        <choice name="Desactive" value="off"/>'
+            lines += [off, on] if f in OFF_BY_DEFAULT else [on, off]
+        lines.append("      </feature>")
+        order += 1
+    return t.replace("      <!-- MODS -->\n", "\n".join(lines) + "\n")
 
 
 def manifest(z):
@@ -88,7 +133,8 @@ def install(pkg, mods):
 def state(pid, ver, feats):
     out = ["format_version = 2", "", "[[package]]", 'id = "%s"' % pid, 'version = "%s"' % ver]
     for f in sorted(feats):
-        out += ["", "[[feature]]", 'package_id = "%s"' % pid, 'id = "%s"' % f, "enabled = true"]
+        out += ["", "[[feature]]", 'package_id = "%s"' % pid, 'id = "%s"' % f,
+                "enabled = %s" % ("false" if f in OFF_BY_DEFAULT else "true")]
         if f in STATE_VALUES:
             out.append("[feature.values]")
             out += ['%s = "%s"' % kv for kv in STATE_VALUES[f].items()]
@@ -122,9 +168,18 @@ def game(root, common, discs):
         r = install(pkg, mods)
         first = first or r
     st = os.path.join(mods, "state.toml")
-    if not os.path.isfile(st):
-        open(st, "w", newline="\n").write(state(*first))
+    new = state(*first)
+    if os.path.isfile(st):  # garder les choix déjà faits (cases cochées, texte de la barre de vie)
+        old = open(st, encoding="utf-8").read()
+        for fid, en in re.findall(r'^id = "([^"]+)"\nenabled = (true|false)', old, re.M):
+            new = re.sub(r'(^id = "%s"\nenabled = )(true|false)' % re.escape(fid), r"\g<1>" + en, new, flags=re.M)
+        life = re.search(r'^life_text = "([^"]*)"', old, re.M)
+        if life:
+            new = re.sub(r'^life_text = "[^"]*"', 'life_text = "%s"' % life.group(1), new, flags=re.M)
+    if not os.path.isfile(st) or open(st, encoding="utf-8").read() != new:
+        open(st, "w", newline="\n").write(new)
     os.makedirs(os.path.join(root, "saves"), exist_ok=True)
+    return first[2]
 
 
 def batocera(out, discs):
@@ -133,14 +188,15 @@ def batocera(out, discs):
     archs = [x for x in ("aarch64", "x86_64") if os.path.isfile(os.path.join(bins, x, EXE))]
     if not archs:
         sys.exit("aucun exécutable dans %s : lancer d'abord tools/batocera/build.sh (WSL)" % bins)
-    game(root, os.path.join(W, "batocera", "common"), discs)
+    feats = game(root, os.path.join(W, "batocera", "common"), discs)
     for x in archs:
         copy(os.path.join(bins, x), os.path.join(root, "bin", x))
     cache = os.path.join(W, "batocera", "cache")  # overlays pre-compiled for ARM (tools/batocera/overlays.sh)
     if os.path.isdir(cache):
         copy(cache, os.path.join(root, "cache"))
-    for f in ("run.sh", "padto.keys", "es_features_mgs.cfg"):
+    for f in ("run.sh", "padto.keys"):
         text(f, os.path.join(root, f), "\n")  # fins de ligne Unix : lu par bash / EmulationStation
+    text(None, os.path.join(root, "es_features_mgs.cfg"), "\n", es_features(feats))
     print("batocera :", root, "(" + ", ".join("bin/" + x for x in archs) + ")")
 
 
