@@ -15,6 +15,7 @@ Entrées :
   work/recomp/mgs/disc/   disque 1 USA Rev 1 (cue + bin), SLUS_005.94, SYSTEM.CNF (prepare_disc du recomp)
   work/US2.bin            disque 2 USA Rev 1
   work/psxmod/MGS1-Mods-USA-Disc1.psxmod, ...Disc2.psxmod  (tools/psxmod.py)
+  work/batocera/cache/    overlays pre-compiled for ARM (tools/batocera/overlays.sh, optional: else interpreted)
 
 Les deux paquets de mods sont installés (mods/installed/<id>/<version>/, comme le fait le lanceur du recomp) ; un
 seul est actif à la fois (mods/state.toml) : le lanceur met celui du disque lancé.
@@ -135,6 +136,9 @@ def batocera(out, discs):
     game(root, os.path.join(W, "batocera", "common"), discs)
     for x in archs:
         copy(os.path.join(bins, x), os.path.join(root, "bin", x))
+    cache = os.path.join(W, "batocera", "cache")  # overlays pre-compiled for ARM (tools/batocera/overlays.sh)
+    if os.path.isdir(cache):
+        copy(cache, os.path.join(root, "cache"))
     for f in ("run.sh", "padto.keys", "es_features_mgs.cfg"):
         text(f, os.path.join(root, f), "\n")  # fins de ligne Unix : lu par bash / EmulationStation
     print("batocera :", root, "(" + ", ".join("bin/" + x for x in archs) + ")")

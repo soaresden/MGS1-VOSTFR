@@ -74,6 +74,34 @@ if [ -f "$STATE" ]; then
         { print }' "$STATE" > "$STATE.tmp" && mv -f "$STATE.tmp" "$STATE"
 fi
 
+# Player settings (settings.toml next to the "exe", i.e. this folder; the in-game menu writes it too): the keys
+# below are set at each start from the menu, the others are left as the player set them in game.
+SETTINGS="$GAMEDIR/settings.toml"
+toml_set() {  # toml_set <section> <key> <value as TOML>: replace or add the key in [section]
+    [ -f "$SETTINGS" ] || printf 'settings_format = 2\n' > "$SETTINGS"
+    awk -v s="[$1]" -v k="$2" -v v="$3" '
+        function put() { if (!done) { print k " = " v; done = 1 } }
+        /^\[/ { if (in_s) put(); in_s = ($0 == s); seen = seen || in_s }
+        in_s && $0 ~ "^" k "[ \t]*=" { put(); next }
+        { print }
+        END { if (in_s) put(); else if (!seen) { print ""; print s; print k " = " v } }' \
+        "$SETTINGS" > "$SETTINGS.tmp" && mv -f "$SETTINGS.tmp" "$SETTINGS"
+}
+grep -q '^settings_format' "$SETTINGS" 2>/dev/null || { [ -f "$SETTINGS" ] && sed -i '1i settings_format = 2' "$SETTINGS"; }
+toml_set video fullscreen 1                        # borderless, the size of the screen
+case "$(conf_get mgs_ratio)" in                    # IMAGE: 16/9 (default: the screen of the Retroid) or 4/3
+    4/3|4:3) RATIO="4:3" ;;
+    *) RATIO="16:9" ;;
+esac
+toml_set video aspect_ratio "\"$RATIO\""
+case "$(conf_get mgs_bios_logo)" in                # LOGO PLAYSTATION: skipped by default
+    on) toml_set video fast_boot false ;;
+    *) toml_set video fast_boot true ;;
+esac
+# Player 1 = the first controller (the recomp's own default is the keyboard: its launcher, off here, picks the pad).
+grep -Eq '^p1_device = "(none|keyboard)?"$' "$SETTINGS" && sed -i -E '/^p1_device = /d' "$SETTINGS"
+grep -q '^p1_device = ' "$SETTINGS" || toml_set controller p1_device '"auto"'
+
 # BIOS: the build accepts SCPH-5501 (US); Batocera keeps the BIOS in /userdata/bios.
 BIOS=""
 for f in "$GAMEDIR/bios/scph5501.bin" /userdata/bios/scph5501.bin /userdata/bios/SCPH5501.BIN; do
@@ -92,7 +120,8 @@ ARGS=(--no-launcher --game "$GAMEDIR/game.toml" --disc "$CUE" --bios "$BIOS" --m
 [ -n "$RENDERER" ] && [ "$RENDERER" != auto ] && ARGS+=(--renderer "$RENDERER")
 {
     echo "[batocera] $(date '+%F %T') $(cat /usr/share/batocera/batocera.version 2>/dev/null) $(uname -r) bin/$MACHINE"
-    echo "[batocera] disc $DISC: $CUE ; BIOS $BIOS ; french texts ${FR:-?} ; renderer ${RENDERER:-auto}"
+    echo "[batocera] disc $DISC: $CUE ; BIOS $BIOS ; french texts ${FR:-?} ; renderer ${RENDERER:-auto} ; image $RATIO"
+    echo "[batocera] settings.toml:"; sed 's/^/    /' "$SETTINGS"
     echo "[batocera] WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-} DISPLAY=${DISPLAY:-} XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-}"
 } >> "$LOG"
 exec "$EXEDIR/$EXE" "${ARGS[@]}" >> "$LOG" 2>&1
