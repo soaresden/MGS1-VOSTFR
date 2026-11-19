@@ -22,6 +22,11 @@ apply.py - Nos changements au recomp PC de MGS (psxrecomp + recomp-ui, alexbeavs
    - runtime-audio-drc-env.patch : PSX_AUDIO_MAX_CORRECTION, PSX_AUDIO_KP, PSX_AUDIO_SLEW règlent la
      correction de vitesse du son (essai : étirer le son au lieu de le hacher quand le jeu ralentit ;
      refusé par Denis, toute la hauteur change ; non utilisé par run.sh).
+   - runtime-render-thread-gp1.patch : MGS (libgpu, PutDispEnv) écrit GP1(08h) à chaque image avec la
+     même valeur ; gr_display_mode_changed est un point de synchronisation du fil de rendu (GL : le fil
+     du jeu prend le contexte jusqu'à la fin de l'image), donc tout le dessin se faisait sur le fil du
+     jeu (Retroid : 20-30 images/s dans l'intro, attentes futex dans pack_flush à chaque sprite qui
+     relit l'image). Signalé seulement quand la valeur change (oubliée au reset et après restauration).
    - runtime-text-guard-cache.patch : le garde du code (dirty_ram_text_native_ok_ranges_from) recomparait
      à l'image d'origine tout le code d'une fonction à chaque appel dès que sa page avait reçu une
      écriture différente (données voisines du code) : ~6 millions de memcmp par seconde dans MGS,

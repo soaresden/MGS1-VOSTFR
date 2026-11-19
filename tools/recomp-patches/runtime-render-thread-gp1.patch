@@ -1,0 +1,52 @@
+diff --git a/psxrecomp/runtime/src/gpu.c b/psxrecomp/runtime/src/gpu.c
+index 24cb491..01a700a 100644
+--- a/psxrecomp/runtime/src/gpu.c
++++ b/psxrecomp/runtime/src/gpu.c
+@@ -4231,6 +4231,11 @@ uint64_t g_pollhack_vblank_count = 0;  /* instrumentation: poll-fallback VBlank
+ 
+ /* ---- Initialization ---- */
+ 
++/* Last GP1(08h) value (MGS1-VOSTFR): libgpu's PutDispEnv writes the same
++ * display mode every frame. gr_display_mode_changed is a render-thread sync
++ * point (GL: the emulation thread takes the context for the rest of the
++ * frame), so an unchanged mode must not reach it. */
++static uint32_t s_gp1_display_mode_last = 0xFFFFFFFFu;
+ static void gpu_reset_state(int clear_vram) {
+     ws_reset_scene_history();
+     if (clear_vram) {
+@@ -4330,6 +4335,7 @@ static void gpu_reset_state(int clear_vram) {
+     s_d24_present_hold = 0;
+     s_d24_present_skip = 0;
+     s_d24_prev_disp_h = 0;
++    s_gp1_display_mode_last = 0xFFFFFFFFu;
+     gr_display_mode_changed();
+     depth24_reset_rows();
+ }
+@@ -4723,6 +4729,7 @@ int gpu_depth24_present_hold_tick(void) {
+ void gpu_depth24_on_savestate_loaded(void) {
+     /* Hold skips Swap — after restore we want the restored VRAM visible now.
+      * Upload span / prev_h were restored from the GPU snap. */
++    s_gp1_display_mode_last = 0xFFFFFFFFu;   /* the next GP1(08h) re-syncs the backend */
+     s_d24_present_hold = 0;
+     s_d24_present_skip = 0;
+     depth24_reset_rows();
+@@ -8468,7 +8475,10 @@ static void gp1_display_mode(uint32_t val) {
+         interlace_field = 0;
+     hres2 = (val >> 6) & 1;
+     reverse_flag = (val >> 7) & 1;
+-    gr_display_mode_changed();
++    if (val != s_gp1_display_mode_last) {
++        s_gp1_display_mode_last = val;
++        gr_display_mode_changed();
++    }
+ }
+ 
+ static void gp1_get_info(uint32_t val) {
+@@ -8961,6 +8971,7 @@ void gpu_pass_checkpoint_restore(void) {
+     g_doff_max_this = s_pass_doff_max;
+     g_doff_cnt_this = s_pass_doff_cnt;
+     split_trace_this = s_pass_split_this;
++    s_gp1_display_mode_last = 0xFFFFFFFFu;
+     gpu_pass_provenance_transfer(1);
+     gpu_pass_scene_transfer(1);
+     gr_set_texture_window(texture_window_value);
