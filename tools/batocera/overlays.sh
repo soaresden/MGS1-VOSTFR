@@ -8,7 +8,7 @@
 # The recomp's own overlay toolchain (Python + TinyCC) only exists for Windows. So the overlays are compiled here,
 # with the gcc of the Batocera toolchain, from overlay_captures.json: the runtime records in that file each overlay it
 # meets ([runtime] overlay_cache = true), on any machine (the bytes come from the disc, they are the same everywhere).
-#   default inputs: work/recomp/mgs/build-diagnostic/overlay_captures.json (PC) and work/batocera/captures/*.json
+#   default inputs: work/recomp/mgs/build-diagnostic/overlay_captures.json (PC, + its .d/ folder) and work/batocera/captures/*.json
 #                   (copies of "Metal Gear Solid.sh/overlay_captures.json" from the consoles)
 #   output        : work/batocera/cache/SLUS-00594/gcc/linux-arm64/<tag>/  -> make_port.py puts it in the port
 # compile_overlays.py loads each shard to check it, with a Python of the target's architecture: the Python of the
@@ -41,9 +41,29 @@ if [ ${#CAPS[@]} -eq 0 ]; then
 fi
 [ ${#CAPS[@]} -gt 0 ] || { echo "aucune capture d'overlays"; exit 1; }
 PY=("$TC/bin/qemu-aarch64" -L "$TARGET" "$TARGET/usr/bin/python3")
+# the cache is redone from scratch: its name changes with game.toml, an old one is never read again
+rm -rf "$W/ovl/cache" "$OUT"; mkdir -p "$W/ovl/cache"
 for c in "${CAPS[@]}"; do
     echo "== $c"
-    cp "$c" "$W/ovl/captures.json"
+    # the runtime keeps every capture in <file>.d/ (one file each) and rewrites <file> with the last session's
+    # only: take them all, without duplicates
+    python3 - "$c" "$W/ovl/captures.json" <<'EOF2'
+import glob, json, os, sys
+src, dst = sys.argv[1], sys.argv[2]
+seen, out = set(), []
+for f in [src] + sorted(glob.glob(src + ".d/*.json")):
+    try:
+        caps = json.load(open(f))
+    except (OSError, ValueError):
+        continue
+    for c in caps if isinstance(caps, list) else [caps]:
+        k = (c.get("load_addr"), c.get("bytes_b64"))
+        if k not in seen:
+            seen.add(k)
+            out.append(c)
+json.dump(out, open(dst, "w"))
+print("  captures :", len(out))
+EOF2
     "${PY[@]}" "$SRC/tools/compile_overlays.py" --captures "$W/ovl/captures.json" --game-toml "$G/game.toml" \
         --recompiler "$W/recompiler-host/psxrecomp-game" --runtime-include "$SRC/runtime/include" \
         --out-dir "$W/ovl/cache" --gcc "$TC/bin/aarch64-buildroot-linux-gnu-gcc" \

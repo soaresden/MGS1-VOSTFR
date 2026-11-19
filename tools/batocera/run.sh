@@ -60,15 +60,18 @@ fi
 
 # Mods: the package of the disc; each feature (mod) of mods/state.toml from the menu: French texts in the first
 # submenu, the other mods in METAL GEAR SOLID - MODS (mgs_mod_<id>: on / off; for the life bar, its text or off).
-# An option left on its default keeps what state.toml says (the port ships the test mod "armes" off).
+# An option left on its default keeps what state.toml says: the game's own menu (Select + L3 > Mods) writes it
+# too (the port ships the French texts on and the test mod "armes" off).
 STATE="$GAMEDIR/mods/state.toml"
 if [ -f "$STATE" ]; then
     sed -i -E "s/soaresden\.mgs1-mods\.disc[12]/soaresden.mgs1-mods.disc$DISC/" "$STATE"
     case "$(conf_get mgs_french)" in
         off) FR=false ;;
-        *) FR=true ;;
+        on) FR=true ;;
+        *) FR="" ;;
     esac
-    SET="codec-fr=$FR"
+    SET=""
+    [ -n "$FR" ] && SET="codec-fr=$FR"
     LIFE_TEXT=""
     for id in $(sed -n -E 's/^id = "([a-z0-9-]+)"$/\1/p' "$STATE"); do
         [ "$id" = codec-fr ] && continue
@@ -140,7 +143,7 @@ ARGS=(--no-launcher --game "$GAMEDIR/game.toml" --disc "$CUE" --bios "$BIOS" --m
 [ -n "$RENDERER" ] && [ "$RENDERER" != auto ] && ARGS+=(--renderer "$RENDERER")
 {
     echo "[batocera] $(date '+%F %T') $(cat /usr/share/batocera/batocera.version 2>/dev/null) $(uname -r) bin/$MACHINE"
-    echo "[batocera] disc $DISC: $CUE ; BIOS $BIOS ; french texts ${FR:-?} ; renderer ${RENDERER:-auto} ; image $RATIO"
+    echo "[batocera] disc $DISC: $CUE ; BIOS $BIOS ; french texts ${FR:-(state.toml)} ; renderer ${RENDERER:-auto} ; image $RATIO"
     echo "[batocera] mods: ${MODS_ON:-?}"
     echo "[batocera] settings.toml:"; sed 's/^/    /' "$SETTINGS"
     echo "[batocera] WAYLAND_DISPLAY=${WAYLAND_DISPLAY:-} DISPLAY=${DISPLAY:-} XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-}"

@@ -214,6 +214,25 @@ The French Codec, in-game voices and cutscenes also exist as a USA PS1 image (em
 python tools/codec_us.py --us work/US1.bin --fr work/FR1.bin --out work/us_codec/US1.bin   # + US1.cue
 ```
 
+### The Batocera / RetroBat port (recomp, true 16:9)
+
+The recomp becomes a game in Batocera's **Ports** list (Retroid Pocket 5 and PC) or a RetroBat **Windows** game, with our mods and the USA Rev 1 discs:
+
+```bash
+python tools/recomp-patches/apply.py                          # our changes to the recomp: true 16:9 + Mods page of the in-game menu
+bash tools/batocera/build.sh aarch64                              # in WSL: the ARM executable (Batocera sm8250 toolchain)
+python tools/batocera/make_port.py --cible tous                   # work/batocera/Metal Gear Solid.sh + work/retrobat/roms/windows
+bash tools/batocera/overlays.sh                                   # precompiled overlays for ARM (otherwise interpreted, slower)
+python tools/batocera/make_port.py --cible tous                   # once more: it puts those overlays in the port
+```
+
+- **Batocera**: copy `Metal Gear Solid.sh` to `roms/ports`. The settings are in the game's **advanced options**: disc, French texts, renderer, **picture (16:9 or 4:3)**, PlayStation logo, parallel rendering, and a **MODS** submenu to turn each mod on or off (including "All weapons", a test mod, off by default).
+- **In-game menu** (Select + L3, or F1): a **Mods** page to turn each mod on or off without the recomp's launcher (absent on Batocera and RetroBat); it is saved in `mods/state.toml` and used at the next start. On Batocera, an option of the MODS submenu left on its default keeps that choice.
+- **RetroBat**: copy the content of `work/retrobat/roms/windows` to `RetroBat\roms\windows` (two launchers, Disc 1 and Disc 2). Fullscreen and 16:9 by default; the in-game menu (Select + L3) changes the rest.
+- **True 16:9**: the picture is not stretched, the 3D is computed and drawn across the whole width (the scenery hidden on the sides in 4:3 shows up). `python tools/recomp-patches/apply.py` prepares the recomp project before building: psxrecomp's "native-wide" mode, MGS's 26 screen tests widened (the game dropped everything outside x = -160..160) and a fix for its full-screen fades. In 4:3 these tests stay the original ones. The Codec, menus and 2D screens stay 4:3 in the middle, as does the green underwater filter of the intro (it copies the game's own picture).
+
+![The intro in true 16:9 in the recomp](docs/previews/recomp_16-9_intro.png) ![The dock in true 16:9: all the scenery on the sides](docs/previews/recomp_16-9_quai.png) ![The title screen in 16:9](docs/previews/recomp_16-9_titre.png)
+
 ## How it works
 
 ### Cutscenes

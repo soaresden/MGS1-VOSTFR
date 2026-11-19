@@ -1,0 +1,22 @@
+[widescreen]
+native_wide = true
+gte_game_mode = true
+
+# MGS (USA) culls in centred screen coordinates (x in [-160, 160], y in [-112, 112]):
+# bounding boxes of objects (0x80018fd0, 0x800193xx), point classifier (0x80019a40),
+# per-vertex outcodes of partly visible objects (0x8001ebd0..), bounding spheres (0x800728f8)
+# and a few screen points (0x80073134, 0x8006ad68). auto_screen_x also caught a clamp
+# into a byte at 0x800630f8 (not a cull), so the sites are listed by hand.
+[widescreen.cull]
+auto_screen_x = false
+slti_sites = [
+  "0x80019050", "0x80019078", "0x80019464", "0x80019484", "0x80019a5c",
+  "0x8001ebe4", "0x8001ec3c", "0x8001ec98", "0x8001ed34", "0x8001ed90", "0x8001edec",
+  "0x80072904",
+]
+slti_lower_sites = [
+  "0x80019058", "0x80019080", "0x8001946c", "0x8001948c", "0x80019a48",
+  "0x8001ebd0", "0x8001ec28", "0x8001ec84", "0x8001ed20", "0x8001ed7c", "0x8001edd8",
+  "0x800728f8",
+]
+screen_x_sites = ["0x80073134", "0x8006ad68"]

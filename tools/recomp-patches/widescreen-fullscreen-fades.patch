@@ -1,0 +1,47 @@
+--- a/psxrecomp/runtime/src/gpu.c
++++ b/psxrecomp/runtime/src/gpu.c
+@@ -3311,10 +3311,12 @@
+ /* Full-screen fades and environmental filters are authored as 320x240 TILEs.
+  * In native-wide mode, grow only primitives that cover the complete native
+  * display; ordinary world-space rectangles remain untouched. */
++static int ws_rect_covers_draw_area(int32_t x, int32_t y, int w, int h);
+ static void ws_expand_fullscreen_rect(int32_t *x, int32_t y, int *w, int h) {
+     if (!ws_native_wide_active()) return;
+     int X = (int)ws_disp_x(), W = (int)ws_disp_w(), H = (int)ws_disp_h();
+-    if (*x <= X && *x + *w >= X + W && y <= 0 && y + h >= H) {
++    if ((*x <= X && *x + *w >= X + W && y <= 0 && y + h >= H) ||
++        ws_rect_covers_draw_area(*x, y, *w, h)) {
+         int off = ws_nw_offset();
+         *x -= off;
+         *w += 2 * off;
+@@ -3936,6 +3938,18 @@
+ 
+ /* Draw offset (set by GP0(E5h)) */
+ static int32_t draw_offset_x, draw_offset_y;
++/* A rectangle (drawing coordinates, before the draw offset) that covers the
++ * whole current draw area, itself as wide as the display: a full-screen fade or
++ * colour filter of a title that centres its drawing offset (Metal Gear Solid
++ * draws its filters at (-160,-112) 320x224 with the offset at the centre), which
++ * the display-origin test of ws_expand_fullscreen_rect cannot see. */
++static int ws_rect_covers_draw_area(int32_t x, int32_t y, int w, int h) {
++    if (draw_area_right <= draw_area_left || draw_area_bottom <= draw_area_top) return 0;
++    if ((int32_t)(draw_area_right - draw_area_left + 1) < ws_disp_w()) return 0;
++    int32_t l = x + draw_offset_x, t = y + draw_offset_y;
++    return l <= (int32_t)draw_area_left && l + w > (int32_t)draw_area_right &&
++           t <= (int32_t)draw_area_top && t + h > (int32_t)draw_area_bottom;
++}
+ /* Instrumentation: per-vblank range/count of GP0(E5) draw-offset-Y sets. If a
+  * single frame sets offsets in BOTH the top (y<128) and bottom (y>=128) buffer
+  * bands, the game is drawing different parts of the scene into different display
+@@ -5649,8 +5663,9 @@
+     if (vx[0] == vx[2] && vx[1] == vx[3] &&
+         vy[0] == vy[1] && vy[2] == vy[3] &&
+         vx[1] > vx[0] && vy[2] > vy[0] &&
+-        vx[0] <= 0 && vx[1] >= ws_disp_w() &&
+-        vy[0] <= 0 && vy[2] >= ws_disp_h()) {
++        ((vx[0] <= 0 && vx[1] >= ws_disp_w() &&
++          vy[0] <= 0 && vy[2] >= ws_disp_h()) ||
++         ws_rect_covers_draw_area(vx[0], vy[0], (int)(vx[1] - vx[0]), (int)(vy[2] - vy[0])))) {
+         int32_t x = vx[0];
+         int32_t y = vy[0];
+         int w = (int)(vx[1] - vx[0]);

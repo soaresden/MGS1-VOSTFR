@@ -1,0 +1,246 @@
+--- a/psxrecomp/runtime/include/psx_menu_host.h
++++ b/psxrecomp/runtime/include/psx_menu_host.h
+@@ -30,6 +30,8 @@
+ 
+ /* PsxMenuHost.session_* are present (appended, ABI-compatible). */
+ #define PSX_MENU_HOST_HAS_SESSION 1
++/* PsxMenuHost.mod_catalog is present (appended, ABI-compatible). */
++#define PSX_MENU_HOST_HAS_MOD_CATALOG 1
+ /* session_* settings. */
+ enum {
+     PSX_MENU_SESSION_WINDOW_SCALE = 1,    /* 1..4, x 320 pixels wide; windowed only */
+@@ -120,6 +122,12 @@
+     int  (*session_get)(int setting, int *value_out);
+     int  (*session_set)(int setting, int value);
+     int  (*session_enabled)(int setting);
++    /* The installed mods (the launcher's mod provider, recomp_launcher.h), so
++     * an in-game menu can list them and switch them with mod_set. MAIN THREAD
++     * ONLY: read it from attach (a snapshot), never from the draw thread --
++     * changes still go through mod_set. NULL in builds without the launcher
++     * ABI or without mods. */
++    const struct RecompLauncherCModProvider *(*mod_catalog)(void);
+ } PsxMenuHost;
+ 
+ typedef struct PsxMenuProvider {
+--- a/psxrecomp/runtime/src/main.cpp
++++ b/psxrecomp/runtime/src/main.cpp
+@@ -18785,6 +18785,15 @@
+     psx_relaunch_self_with(g_main_argc, g_main_argv, extra, disc.empty() ? 1 : 3);
+ }
+ 
++/* The installed mods for an in-game menu (attach, main thread only). */
++const struct RecompLauncherCModProvider* mh_mod_catalog(void) {
++#if defined(RECOMP_LAUNCHER)
++    return PSXRecompV4::mod_runtime_launcher_provider();
++#else
++    return nullptr;
++#endif
++}
++
+ PsxMenuHost g_menu_host = {
+     PSX_MENU_ABI_VERSION, mh_set_paused, mh_netplay_active, mh_video_get, mh_video_apply,
+     mh_mod_set, mh_reload_bindings, mh_request_exit,
+@@ -18799,6 +18808,7 @@
+     nullptr,
+     0,
+     mh_session_get, mh_session_set, mh_session_enabled,
++    mh_mod_catalog,
+ };
+ 
+ int ovl_sink(const void* event, void*) {
+--- a/recomp-ui/src/consoles/psx/psx_menu_provider.cpp
++++ b/recomp-ui/src/consoles/psx/psx_menu_provider.cpp
+@@ -18,6 +18,8 @@
+ 
+ #include <cstdio>
+ #include <cstring>
++#include <string>
++#include <vector>
+ 
+ namespace rui_psx {
+ namespace {
+@@ -92,6 +94,99 @@
+ constexpr size_t kBaseExtras = 3;
+ constexpr size_t kSessionExtras = 5;
+ 
++// Mods page: one switch per installed mod feature and one row per choice
++// option, from a snapshot of the runtime's mod catalogue taken at attach (main
++// thread; the catalogue is never read from the draw thread). A change is saved
++// through mod_set to mods/state.toml and takes effect at the next start, or
++// live for the options a plugin applies at once. The menu is the only writer
++// during a session, so the snapshot stays true while it runs.
++struct ModRow {
++    std::string key, package, feature, option, label, description;
++    std::vector<std::string> values, labels;
++    std::vector<const char *> choice_ptrs;
++    int value = 0;  // feature: 0/1; option: index into values
++};
++std::vector<ModRow> g_mod_rows;
++std::vector<RecompRuntimeUiItem> g_items;  // g_extra rows in use + the mod rows
++
++#if defined(PSX_MENU_HOST_HAS_MOD_CATALOG)
++// Built-in runtime preferences have their own rows (Graphics, Display): the
++// same packages the launcher shows under Settings instead of Mods.
++bool settings_package(const char *id) {
++    static const char *const kSettings[] = {
++        "psx.enhancement.crt-filter", "psx.enhancement.image-filtering",
++        "psx.enhancement.internal-resolution", "psx.enhancement.pgxp",
++        "psx.enhancement.enhanced-audio", "psx.feature.rewind", "psx.runtime.settings"};
++    for (const char *s : kSettings)
++        if (!std::strcmp(id, s)) return true;
++    return false;
++}
++
++void snapshot_mods() {
++    g_mod_rows.clear();
++    const RecompLauncherCModProvider *mods =
++        g_host && g_host->mod_catalog ? g_host->mod_catalog() : nullptr;
++    if (!mods || !mods->feature_count || !mods->feature_get || !g_host->mod_set) return;
++    // Only the packages that are switched on run: a title may ship one package
++    // per disc with the same features (only the mounted disc's is enabled).
++    std::vector<std::string> on;
++    const bool by_package = mods->package_count && mods->package_get;
++    if (by_package) {
++        for (int i = 0, n = mods->package_count(mods->ctx); i < n; ++i) {
++            RecompLauncherCModPackage pkg{};
++            if (mods->package_get(mods->ctx, i, &pkg) && pkg.enabled) on.push_back(pkg.id);
++        }
++    }
++    for (int i = 0, n = mods->feature_count(mods->ctx); i < n; ++i) {
++        RecompLauncherCModFeature f{};
++        if (!mods->feature_get(mods->ctx, i, &f) || settings_package(f.package_id)) continue;
++        if (f.hidden && (!f.enabled || mods->hide_hidden_features)) continue;
++        if (f.channel == RECOMP_MOD_CHANNEL_DEVELOPER) continue;
++        bool pkg_on = !by_package;
++        for (const auto &id : on) pkg_on = pkg_on || id == f.package_id;
++        if (!pkg_on) continue;
++        ModRow row;
++        row.key = "mods.feature." + std::to_string(g_mod_rows.size());
++        row.package = f.package_id;
++        row.feature = f.id;
++        row.label = f.name[0] ? f.name : f.id;
++        row.description = f.description;
++        row.value = f.enabled ? 1 : 0;
++        g_mod_rows.push_back(row);
++        if (!mods->feature_option_get || !mods->feature_choice_get) continue;
++        for (int o = 0; o < f.option_count; ++o) {
++            RecompLauncherCModOption opt{};
++            if (!mods->feature_option_get(mods->ctx, f.package_id, f.id, o, &opt) ||
++                opt.type != RECOMP_MOD_OPTION_CHOICE || opt.choice_count < 1) continue;
++            ModRow orow;
++            orow.key = "mods.option." + std::to_string(g_mod_rows.size());
++            orow.package = f.package_id;
++            orow.feature = f.id;
++            orow.option = opt.id;
++            orow.label = row.label + ": " + (opt.label[0] ? opt.label : opt.id);
++            orow.description = opt.description;
++            for (int c = 0; c < opt.choice_count; ++c) {
++                RecompLauncherCModChoice ch{};
++                if (!mods->feature_choice_get(mods->ctx, f.package_id, f.id, opt.id, c, &ch)) continue;
++                if (!std::strcmp(ch.value, opt.value)) orow.value = (int)orow.values.size();
++                orow.values.push_back(ch.value);
++                orow.labels.push_back(ch.label[0] ? ch.label : ch.value);
++            }
++            if (!orow.values.empty()) g_mod_rows.push_back(orow);
++        }
++    }
++}
++#else
++void snapshot_mods() { g_mod_rows.clear(); }
++#endif
++
++ModRow *mod_row(const RecompRuntimeUiItem *item) {
++    if (!item || !item->key || std::strncmp(item->key, "mods.", 5)) return nullptr;
++    for (auto &row : g_mod_rows)
++        if (row.key == item->key) return &row;
++    return nullptr;
++}
++
+ #if defined(PSX_MENU_HOST_HAS_SESSION)
+ bool has_session() { return g_host && g_host->session_get && g_host->session_set && g_host->session_enabled; }
+ int session_of(const RecompRuntimeUiItem *item) {
+@@ -145,6 +240,8 @@
+ }
+ 
+ int cb_get(void *, const RecompRuntimeUiItem *item, int *out) {
++    if (const ModRow *row = mod_row(item)) { *out = row->value; return 1; }
++    if (is(item, "mods.note")) { *out = 0; return 1; }
+ #if defined(PSX_MENU_HOST_HAS_SESSION)
+     if (const int s = session_of(item)) return has_session() ? g_host->session_get(s, out) : 0;
+ #endif
+@@ -157,6 +254,19 @@
+ }
+ 
+ int cb_set(void *, const RecompRuntimeUiItem *item, int v) {
++    if (ModRow *row = mod_row(item)) {
++        if (netplay() || !g_host || !g_host->mod_set) {
++            status("Mods cannot change during an online match");
++            return 0;
++        }
++        const bool option = !row->option.empty();
++        if (option && (v < 0 || v >= (int)row->values.size())) return 0;
++        const char *value = option ? row->values[v].c_str() : (v ? "true" : "false");
++        (void)g_host->mod_set(row->package.c_str(), row->feature.c_str(),
++                                         option ? row->option.c_str() : nullptr, value);
++        row->value = option ? v : (v ? 1 : 0);
++        return 1;  // the menu then says "Saved"; the page's note says when it applies
++    }
+ #if defined(PSX_MENU_HOST_HAS_SESSION)
+     if (const int s = session_of(item)) {
+         const int rc = has_session() ? g_host->session_set(s, v) : 0;
+@@ -251,6 +361,8 @@
+ }
+ 
+ int cb_enabled(void *, const RecompRuntimeUiItem *item) {
++    if (is(item, "mods.note")) return 0;
++    if (mod_row(item)) return !netplay() && g_host && g_host->mod_set;
+ #if defined(PSX_MENU_HOST_HAS_SESSION)
+     if (const int s = session_of(item)) return has_session() && g_host->session_enabled(s);
+ #endif
+@@ -326,6 +438,46 @@
+     const size_t session_count = kSessionExtras;
+ #endif
+     cfg.extra_item_count = session ? session_count : kBaseExtras;
++    // The Mods page after the others (the rows' strings live in g_mod_rows,
++    // which stays unchanged until the next attach rebuilds both).
++    snapshot_mods();
++    g_items.assign(g_extra, g_extra + cfg.extra_item_count);
++    if (!g_mod_rows.empty()) {
++        // The menu reports "Saved" after any change; say once when it counts.
++        RecompRuntimeUiItem note{};
++        note.key = "mods.note";
++        note.section = "Mods";
++        note.label = "Changes apply the next time the game starts";
++        note.description = "Saved in mods/state.toml. Some options apply at once.";
++        // a one-choice row with an empty label: no value shown (an ACTION would say OPEN)
++        static const char *const kNoValue[] = {""};
++        note.type = RECOMP_RUNTIME_UI_CHOICE;
++        note.choices = kNoValue;
++        note.choice_count = 1;
++        g_items.push_back(note);
++    }
++    for (auto &row : g_mod_rows) {
++        RecompRuntimeUiItem item{};
++        item.key = row.key.c_str();
++        item.section = "Mods";
++        item.label = row.label.c_str();
++        item.description = row.description.c_str();
++        item.step = 1;
++        if (row.option.empty()) {
++            item.type = RECOMP_RUNTIME_UI_BOOL;
++            item.maximum = 1;
++        } else {
++            row.choice_ptrs.clear();
++            for (const auto &l : row.labels) row.choice_ptrs.push_back(l.c_str());
++            item.type = RECOMP_RUNTIME_UI_CHOICE;
++            item.maximum = (int)row.values.size() - 1;
++            item.choices = row.choice_ptrs.data();
++            item.choice_count = row.choice_ptrs.size();
++        }
++        g_items.push_back(item);
++    }
++    cfg.extra_items = g_items.data();
++    cfg.extra_item_count = g_items.size();
+     g_ui = recomp_runtime_ui_create_standard(&cfg);
+     if (!g_ui) { g_host = nullptr; return 0; }
+     return 1;

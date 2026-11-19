@@ -211,6 +211,12 @@ def retrobat(out, discs):
     if os.path.isdir(os.path.join(rel, "overlay_toolchain")):  # compile les overlays (sinon : interprétés)
         copy(os.path.join(rel, "overlay_toolchain"), os.path.join(root, "overlay_toolchain"))
     text("retrobat.cmd", os.path.join(root, "retrobat.cmd"), "\r\n")
+    # réglages de départ (le menu du jeu, Select + L3, les change ensuite) : plein écran, vrai 16/9,
+    # pas de logo PlayStation, joueur 1 = la première manette ; un settings.toml existant est gardé
+    st = os.path.join(root, "settings.toml")
+    if not os.path.exists(st):
+        text(None, st, "\r\n", 'settings_format = 2\n\n[video]\nfullscreen = 1\naspect_ratio = "16:9"\n'
+             'fast_boot = true\n\n[controller]\np1_device = "auto"\n')
     for n in (1, 2):
         with open(os.path.join(win, "Metal Gear Solid - Disque %d.bat" % n), "w", newline="\r\n") as o:
             o.write('@echo off\ncall "%%~dp0Metal Gear Solid\\retrobat.cmd" %d\n' % n)

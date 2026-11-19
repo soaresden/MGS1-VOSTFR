@@ -214,6 +214,25 @@ Le Codec, les voix en jeu et les cinématiques en français existent aussi en im
 python tools/codec_us.py --us work/US1.bin --fr work/FR1.bin --out work/us_codec/US1.bin   # + US1.cue
 ```
 
+### Le portage Batocera / RetroBat (recomp, vrai 16/9)
+
+Le recomp devient un jeu de la liste **Ports** de Batocera (Retroid Pocket 5 et PC) ou un jeu **Windows** de RetroBat, avec nos mods et les disques USA Rev 1 :
+
+```bash
+python tools/recomp-patches/apply.py                          # nos changements au recomp : vrai 16/9 + page Mods du menu du jeu
+bash tools/batocera/build.sh aarch64                              # dans WSL : l'exécutable ARM (chaîne Batocera sm8250)
+python tools/batocera/make_port.py --cible tous                   # work/batocera/Metal Gear Solid.sh + work/retrobat/roms/windows
+bash tools/batocera/overlays.sh                                   # les overlays précompilés pour ARM (sinon interprétés, plus lents)
+python tools/batocera/make_port.py --cible tous                   # encore une fois : il range ces overlays dans le port
+```
+
+- **Batocera** : copier `Metal Gear Solid.sh` dans `roms/ports`. Les réglages sont dans les **options avancées du jeu** : disque, textes en français, rendu, **image (16/9 ou 4/3)**, logo PlayStation, rendu en parallèle, et un sous-menu **MODS** pour activer ou couper chaque mod (dont « Toutes les armes », un mod pour tester, coupé par défaut).
+- **Menu du jeu** (Select + L3, ou F1) : une page **Mods** pour activer ou couper chaque mod sans le lanceur du recomp (absent sur Batocera et RetroBat) ; c'est enregistré dans `mods/state.toml` et pris en compte au lancement suivant. Sur Batocera, une option du sous-menu MODS laissée sur son réglage par défaut garde ce choix.
+- **RetroBat** : copier le contenu de `work/retrobat/roms/windows` dans `RetroBat\roms\windows` (deux lanceurs, Disque 1 et Disque 2). Plein écran et 16/9 d'office ; le menu du jeu (Select + L3) change le reste.
+- **Vrai 16/9** : l'image n'est pas étirée, la 3D est calculée et dessinée sur toute la largeur (le décor caché sur les côtés en 4:3 apparaît). `python tools/recomp-patches/apply.py` prépare le projet recomp avant la compilation : le mode « native-wide » de psxrecomp, les 26 tests d'écran de MGS élargis (le jeu jetait tout ce qui sortait de x = -160..160) et une correction pour ses fondus plein écran. En 4:3, ces tests restent ceux d'origine. Le Codec, les menus et les écrans 2D restent en 4:3 au centre, comme le filtre vert sous l'eau de l'intro (il recopie l'image du jeu).
+
+![L'intro en vrai 16/9 dans le recomp](docs/previews/recomp_16-9_intro.png) ![Le quai en vrai 16/9 : tout le décor sur les côtés](docs/previews/recomp_16-9_quai.png) ![L'écran titre en 16/9](docs/previews/recomp_16-9_titre.png)
+
 ## Comment ça marche
 
 ### Cinématiques
