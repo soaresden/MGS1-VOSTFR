@@ -7,7 +7,7 @@
   "fichiers": [
     "exe"
   ],
-  "aide": "mod de test : tous les objets, rations et médicaments toujours pleins",
+  "aide": "mod de test : tous les objets une fois (silencieux compris), carte de niveau 7",
   "versions": [
     "FR",
     "UK",
@@ -15,19 +15,21 @@
   ],
   "fr": "Tous les objets (pour tester)",
   "en": "All items (for testing)",
-  "frS": "Tous les objets dès le début (carte de niveau 7, cartons, lunettes, masque, tenue furtive…), rations et médicaments toujours pleins.",
-  "enS": "Every item from the start (level 7 card, boxes, goggles, gas mask, stealth suit…), rations and medicine always full.",
+  "frS": "Tous les objets dès le début, une fois (carte de niveau 7, cartons, lunettes, masque, tenue furtive, silencieux…).",
+  "enS": "Every item from the start, once (level 7 card, boxes, goggles, gas mask, stealth suit, suppressor…).",
   "shots": [],
   "fl": [
     "Dès que Snake est en jeu, les objets sont dans le menu <b>L2</b> : la carte au niveau 7 ouvre toutes les portes.",
-    "Rations, médicament contre le rhume et diazépam restent au maximum : illimités.",
-    "Jamais donnés : la bombe à retardement (elle exploserait sur Snake), l'appareil photo et le silencieux (il empêcherait de tirer : on le ramasse comme d'habitude).",
+    "Donnés une seule fois : 5 rations, 3 médicaments contre le rhume, 3 diazépam, puis le jeu compte normalement (pas illimités).",
+    "Le silencieux est donné déjà fixé au SOCOM (et au M9) : on tire normalement.",
+    "Jamais donnés : la bombe à retardement (elle exploserait sur Snake) et l'appareil photo.",
     "Quand le jeu confisque les objets (capture), il les garde : le mod n'y touche pas. Va avec « Toutes les armes »."
   ],
   "el": [
     "As soon as Snake is in the game, the items are in the <b>L2</b> menu: the level 7 card opens every door.",
-    "Rations, cold medicine and diazepam stay at maximum: unlimited.",
-    "Never given: the time bomb (it would blow up on Snake), the camera and the suppressor (it would stop you from shooting: pick it up as usual).",
+    "Given once only: 5 rations, 3 cold medicines, 3 diazepam, then the game counts as usual (not unlimited).",
+    "The suppressor comes already fitted to the SOCOM (and the M9): you shoot as usual.",
+    "Never given: the time bomb (it would blow up on Snake) and the camera.",
     "When the game takes the items away (capture), it keeps them: the mod leaves them alone. Works with \"All weapons\"."
   ]
 }

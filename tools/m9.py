@@ -58,7 +58,7 @@ SYM = dict(
     STR_SOCOM2=0x800ACE28,   # "socom2"
     GET_RPK_NEXT=0x8003EF50, GET_RPK_SOCOM=0x8003EF38, ITEMS_SOCOM2=0x800BEE74,
     INIT_SPRT=0x8003E0F0, PRINT_DESC=0x800409A4, GET_RPK=0x8003EF30, NAVIGATE=0x8003E714,
-    SOCOM_RES_DONE=0x80066AE0, POWER_NEXT=0x8002E420,
+    SOCOM_RES_DONE=0x80066AE0, SOCOM_RES_SUPP=0x80066A94, POWER_NEXT=0x8002E420,
     GM_PowerTarget=0x8002E264, NewJirai=0x8006C4F8, NewClaymore=0x80074EB0,
     GM_SeSet=0x800335FC, AN_Puff=0x8005EE40, GV_RandU=0x8001721C, PAL_FLASH=0x8007A680,
     CLAY_BOOM=0x80074F7C, CLAY_LOOP=0x80075008,
@@ -208,20 +208,20 @@ cave_nav_go:
     nop
 
 # ---- SOCOM : modèle (GetResources), s1 = &GM_SilencerFlag, s2 = work ------
-cave_res:                       # v0 = GM_SilencerFlag (chargé dans le délai)
+cave_res:                       # v0 = GM_Items[23], le silencieux (chargé dans le délai)
     lui t0, %hi(MODES)
     lhu t0, %lo(MODES)(t0)
-    nop
+    lui a0, %hi(STR_SOCOM2)     # (a0 est rechargé par le code d'origine)
     andi t0, t0, 1
     bnez t0, cave_res_m9
-    nop
+    addiu a0, a0, %lo(STR_SOCOM2)
     jr ra
     nop
-cave_res_m9:                    # M9 : modèle silencieux, sans toucher au silencieux du SOCOM
-    la a0, STR_SOCOM2
-    jal GV_StrCode
+cave_res_m9:                    # M9 avec le silencieux (ramassé : 1, fixé : 0) : chemin d'origine du
+    bgez v0, RES_SUPP_RELAY     # SOCOM silencieux, qui le fixe (0 ; sinon l'Act refuse de tirer)
+    addiu s0, s2, 0x20          # (le délai du bgez d'origine)
+    jal GV_StrCode              # M9 sans silencieux : modèle silencieux, sans le donner
     nop
-    addiu s0, s2, 0x20
     move a0, s0
     move a1, v0
     li a2, 0x6D
@@ -790,6 +790,11 @@ CAVE2_SHA1 = "a06643c50b4c07555558449ffa9db003a71d83b5"
 CAVE2_SRC = r"""
 # remplace « lh v1, 0x3e(s2) ; li v0, 4 » : s1 = travail, s0 = n° du chien, s2 = sa cible,
 # t9 = (adresse du crochet - OVB) / 4
+cave_res_supp:                  # RES_SUPP_RELAY, au début de la zone : relais (trop loin pour un
+                                # branchement depuis la 1re zone)
+    j SOCOM_RES_SUPP
+    nop
+
 cave_dogdart:
     lh v1, 0x3E(s2)
     lui t0, %hi(dart_tgt)
@@ -894,11 +899,12 @@ def build_cave(stage, sites, v="FR"):
         cave_src = cave_src.replace(key, "    .byte " + ", ".join(str(b) for b in encode_desc(name, lines)))
     src = "\n".join([cave_src + "    .byte " + ", ".join(str(b) for b in script), ".align 2"] + stubs) + "\n"
     sym = pal.syms(v, SYM)
-    sym.update(OVB=pal.ovb(v), US_FR_CAVE=US_FR_CAVE, **dog_offsets(stage, v))
+    sym.update(OVB=pal.ovb(v), US_FR_CAVE=US_FR_CAVE, RES_SUPP_RELAY=pal.addr(v, CAVE2), **dog_offsets(stage, v))
     code, sym = mips.assemble(src, pal.addr(v, CAVE), sym)
     if CAVE + len(code) > CAVE_END:
         raise SystemExit(f"code M9 trop gros ({len(code)} octets)")
     code2, sym = mips.assemble(CAVE2_SRC, pal.addr(v, CAVE2), sym)
+    assert sym["cave_res_supp"] == sym["RES_SUPP_RELAY"]
     if CAVE2 + len(code2) > CAVE2_END:
         raise SystemExit(f"code M9 (2e zone) trop gros ({len(code2)} octets)")
     return code, code2, sym

@@ -1,0 +1,195 @@
+--- a/psxrecomp/runtime/src/gpu.c	2026-11-20 13:51:15.753716300 +0100
++++ b/psxrecomp/runtime/src/gpu.c	2026-11-20 13:51:16.033354400 +0100
+@@ -3666,6 +3666,175 @@
+     int matched = a >= ws_nw_left_hud_packet_lo && a < ws_nw_left_hud_packet_hi;
+     return matched;
+ }
++/* Native-wide HUD groups (MGS1-VOSTFR). The thirds rule below classifies each
++ * HUD primitive alone, so a widget that crosses a third comes apart: MGS's L2 /
++ * R2 menus (a row of five boxes along the whole bottom edge) and the name of a
++ * picked-up item (menu text drawn at the item's screen position). Before the
++ * list streams through GP0, the HUD-arena primitives are joined into spatial
++ * groups (boxes within WS_NW_GROUP_GAP pixels). A group whose pieces disagree
++ * moves as one: to the edge its outermost piece is anchored to (within a sixth
++ * of the width), else by its centre's third. Groups taller than half the
++ * screen (full 2D screens) and pieces that agree keep the per-primitive rule.
++ * PSX_WS_HUD_GROUPS=0 turns it off. */
++#define WS_NW_GROUP_MAX  768
++#define WS_NW_GROUP_HASH 2048            /* power of two, > 2 * WS_NW_GROUP_MAX */
++#define WS_NW_GROUP_GAP  8
++typedef struct { uint32_t key; int32_t x0, x1, y0, y1; uint16_t parent; } WsNwGroupItem;
++static WsNwGroupItem ws_nw_group_items[WS_NW_GROUP_MAX];
++static uint32_t ws_nw_group_key[WS_NW_GROUP_HASH];
++static uint32_t ws_nw_group_gen[WS_NW_GROUP_HASH];
++static int8_t   ws_nw_group_side[WS_NW_GROUP_HASH];
++static uint32_t ws_nw_group_cur = 1;
++static int ws_nw_hud_groups_on = -1;
++static void parse_vertex(uint32_t word, int32_t* x, int32_t* y);
++
++static uint32_t ws_nw_group_find(uint32_t i) {
++    while (ws_nw_group_items[i].parent != i) {
++        ws_nw_group_items[i].parent =
++            ws_nw_group_items[ws_nw_group_items[i].parent].parent;
++        i = ws_nw_group_items[i].parent;
++    }
++    return i;
++}
++static uint32_t ws_nw_group_slot(uint32_t key) {
++    return (key * 2654435761u >> 11) & (WS_NW_GROUP_HASH - 1);
++}
++/* Side (-1, 0, +1) of the group holding the packet now drawn; 2 = no override. */
++static int ws_nw_group_lookup(void) {
++    if (gp0_cmd_source_addr == 0xFFFFFFFFu) return 2;
++    uint32_t key = gp0_cmd_source_addr & 0x1FFFFFFFu;
++    for (uint32_t s = ws_nw_group_slot(key), n = 0; n < WS_NW_GROUP_HASH;
++         s = (s + 1) & (WS_NW_GROUP_HASH - 1), n++) {
++        if (ws_nw_group_gen[s] != ws_nw_group_cur) return 2;
++        if (ws_nw_group_key[s] == key) return ws_nw_group_side[s];
++    }
++    return 2;
++}
++static int ws_nw_third(int32_t x0, int32_t x1, int32_t W) {
++    int32_t cx = x0 + x1;                /* 2*centre, display-relative */
++    if (3 * cx < 2 * W) return -1;
++    if (3 * cx > 4 * W) return 1;
++    return 0;
++}
++static void ws_nw_hud_groups_build(uint32_t start_addr) {
++    if (++ws_nw_group_cur == 0) {
++        memset(ws_nw_group_gen, 0, sizeof ws_nw_group_gen);
++        ws_nw_group_cur = 1;
++    }
++    if (ws_nw_hud_groups_on < 0) {
++        const char *e = getenv("PSX_WS_HUD_GROUPS");
++        ws_nw_hud_groups_on = !(e && e[0] == '0');
++    }
++    if (!ws_nw_hud_groups_on || !ws_native_wide_active() ||
++        ws_nw_left_hud_packet_hi <= ws_nw_left_hud_packet_lo) return;
++    const int32_t X = ws_disp_x(), W = ws_disp_w(), H = ws_disp_h();
++    if (W <= 0 || H <= 0) return;
++    uint32_t n = 0, safety = 0;
++    uint32_t addr = psx_mod_gpu_dma_resolve_address(start_addr);
++    /* Headers only, payloads only inside the HUD arena: a cyclic or very long
++     * list (loading screens) costs at most 0x8000 header reads, then no group. */
++    for (;; safety++) {
++        if (safety >= 0x8000u) return;
++        uint32_t header = psx_read_word(addr);
++        uint32_t num_words = (header >> 24) & 0xFFu;
++        uint32_t word_addr = psx_mod_gpu_dma_resolve_address(addr + 4u);
++        uint32_t wa = word_addr & 0x1FFFFFFFu;
++        if (wa + num_words * 4u <= ws_nw_left_hud_packet_lo || wa >= ws_nw_left_hud_packet_hi)
++            num_words = 0;
++        for (uint32_t offset = 0; offset < num_words;) {
++            uint32_t cmd_addr = psx_mod_gpu_dma_resolve_address(word_addr + offset * 4u);
++            uint8_t op = (uint8_t)(psx_read_word(cmd_addr) >> 24);
++            int count = gp0_command_word_count(op);
++            if (count <= 0 || offset + (uint32_t)count > num_words) break;
++            if (op >= 0xA0u && op <= 0xBFu) break;
++            offset += (uint32_t)count;
++            uint32_t key = cmd_addr & 0x1FFFFFFFu;
++            if (key < ws_nw_left_hud_packet_lo || key >= ws_nw_left_hud_packet_hi) continue;
++            if (!((op >= 0x20u && op <= 0x3Fu) || (op >= 0x60u && op <= 0x7Fu))) continue;
++            if (n >= WS_NW_GROUP_MAX) continue;
++            uint32_t w[12] = {0};
++            for (int i = 0; i < count && i < 12; i++)
++                w[i] = psx_read_word(psx_mod_gpu_dma_resolve_address(cmd_addr + (uint32_t)i * 4u));
++            int32_t x0 = 0, x1 = 0, y0 = 0, y1 = 0;
++            if (op < 0x40u) {
++                const int stride = 1 + ((op & 4u) ? 1 : 0) + ((op & 0x10u) ? 1 : 0);
++                const int nv = (op & 8u) ? 4 : 3;
++                for (int i = 0; i < nv; i++) {
++                    int32_t vx, vy;
++                    parse_vertex(w[1 + i * stride], &vx, &vy);
++                    if (!i) { x0 = x1 = vx; y0 = y1 = vy; continue; }
++                    if (vx < x0) x0 = vx;
++                    if (vx > x1) x1 = vx;
++                    if (vy < y0) y0 = vy;
++                    if (vy > y1) y1 = vy;
++                }
++            } else {
++                const unsigned sz = (op >> 3) & 3u;
++                int32_t ww, hh;
++                parse_vertex(w[1], &x0, &y0);
++                if (sz == 0u) {
++                    uint32_t s = (op & 4u) ? w[3] : w[2];
++                    ww = (int32_t)(s & 0x3FFu);
++                    hh = (int32_t)((s >> 16) & 0x1FFu);
++                } else {
++                    ww = hh = sz == 1u ? 1 : sz == 2u ? 8 : 16;
++                }
++                if (ww <= 0 || hh <= 0) continue;
++                x1 = x0 + ww;
++                y1 = y0 + hh;
++            }
++            /* Full-width overlays (the dim behind the L2 menu) are no widget. */
++            if (x1 - x0 >= W - W / 16 || (x1 - x0 > W / 2 && y1 - y0 > H / 4)) continue;
++            WsNwGroupItem *it = &ws_nw_group_items[n];
++            it->key = key;
++            it->x0 = x0 - X; it->x1 = x1 - X; it->y0 = y0; it->y1 = y1;
++            it->parent = (uint16_t)n;
++            n++;
++        }
++        uint32_t next = header & 0xFFFFFFu;
++        if (next == 0xFFFFFFu) break;
++        addr = psx_mod_gpu_dma_resolve_address(next);
++    }
++    for (uint32_t i = 0; i < n; i++)
++        for (uint32_t j = i + 1; j < n; j++) {
++            const WsNwGroupItem *a = &ws_nw_group_items[i], *b = &ws_nw_group_items[j];
++            int32_t gx = (a->x0 > b->x0 ? a->x0 : b->x0) - (a->x1 < b->x1 ? a->x1 : b->x1);
++            int32_t gy = (a->y0 > b->y0 ? a->y0 : b->y0) - (a->y1 < b->y1 ? a->y1 : b->y1);
++            if (gx > WS_NW_GROUP_GAP || gy > WS_NW_GROUP_GAP) continue;
++            uint32_t ra = ws_nw_group_find(i), rb = ws_nw_group_find(j);
++            if (ra != rb) ws_nw_group_items[rb].parent = (uint16_t)ra;
++        }
++    for (uint32_t r = 0; r < n; r++) {
++        if (ws_nw_group_find(r) != r) continue;
++        int32_t x0 = 0, x1 = 0, y0 = 0, y1 = 0;
++        int sides = 0, first = 1;           /* bit 0: left, 1: middle, 2: right */
++        for (uint32_t i = 0; i < n; i++) {
++            const WsNwGroupItem *it = &ws_nw_group_items[i];
++            if (ws_nw_group_find(i) != r) continue;
++            if (first) { x0 = it->x0; x1 = it->x1; y0 = it->y0; y1 = it->y1; first = 0; }
++            if (it->x0 < x0) x0 = it->x0;
++            if (it->x1 > x1) x1 = it->x1;
++            if (it->y0 < y0) y0 = it->y0;
++            if (it->y1 > y1) y1 = it->y1;
++            sides |= 1 << (ws_nw_third(it->x0, it->x1, W) + 1);
++        }
++        if (!(sides & (sides - 1)) || y1 - y0 > H / 2) continue;   /* agree / 2D screen */
++        const int32_t lm = x0, rm = W - x1, edge = W / 6;
++        int side;
++        if (lm <= edge || rm <= edge) side = lm <= rm ? -1 : 1;
++        else side = ws_nw_third(x0, x1, W);
++        for (uint32_t i = 0; i < n; i++) {
++            if (ws_nw_group_find(i) != r) continue;
++            uint32_t key = ws_nw_group_items[i].key, s = ws_nw_group_slot(key);
++            while (ws_nw_group_gen[s] == ws_nw_group_cur && ws_nw_group_key[s] != key)
++                s = (s + 1) & (WS_NW_GROUP_HASH - 1);
++            ws_nw_group_gen[s] = ws_nw_group_cur;
++            ws_nw_group_key[s] = key;
++            ws_nw_group_side[s] = (int8_t)side;
++        }
++    }
++}
++
+ static int32_t ws_nw_hud_shift(int32_t x, int32_t w) {
+     if (!ws_native_wide_active()) return 0;
+     if (g_bg2d_host_size && ws_tagged_world_primitive()) return 0;
+@@ -3688,6 +3857,8 @@
+      * for live A/B: some HUD composites (Tomba's AP counter) render through
+      * the tagged sprite funnel and stay inset without it. */
+     if (ws_anchor_addr && !ws_nw_hud_tag_rects && psx_ws_prim_is_tagged()) return 0;
++    int group = ws_nw_group_lookup();  /* a widget across thirds: one side */
++    if (group != 2) return group * off;
+     int32_t X  = ws_disp_x();
+     int32_t W  = ws_disp_w();
+     int32_t cx = 2 * (x - X) + w;      /* 2*centre, avoids losing the half */
+@@ -7326,6 +7497,7 @@
+ }
+ 
+ void gpu_ws_prepass_linked_list(uint32_t start_addr) {
++    ws_nw_hud_groups_build(start_addr);
+     ws_ui_prepass_count = 0;
+     ws_ui_prepass_nodes_reset();
+     ws_ui_prepass_rank = 0xFFFFu;

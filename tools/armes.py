@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 """
-armes.py - Mod de test : toutes les armes, munitions au maximum, tout le temps.
+armes.py - Mod de test : toutes les armes dès le début, munitions au maximum (une fois).
 
 Pour essayer les armes (et les mods qui les touchent : M9, PSG1-T, claymores zzz, vue subjective) sans
 jouer jusqu'à elles. À chaque image où Snake existe, son Act d'origine (0x8005bba0, adresses de la
 version française, traduites par pal.py) passe d'abord par un petit code qui, pour les 10 armes
-(GM_Weapons 0x800b63a2, munitions ; -1 = pas encore trouvée ; bit 0x8000 = confisquée), donne l'arme et
-met ses munitions au maximum (GM_WeaponsMax, 20 octets plus loin ; s'il vaut 0, une valeur par défaut,
-qui devient aussi le maximum). Une arme confisquée par le jeu (capture, bit 0x8000) n'est pas touchée.
-Munitions toujours pleines = illimitées : c'est voulu, c'est un mod pour tester.
+(GM_Weapons 0x800b63a2, munitions ; -1 = pas encore trouvée ; bit 0x8000 = confisquée), donne une fois
+l'arme pas encore trouvée, munitions au maximum (GM_WeaponsMax, 20 octets plus loin ; s'il vaut 0, une
+valeur par défaut, qui devient aussi le maximum). Ensuite le jeu compte normalement : munitions pas
+illimitées (demande de Denis, 2026-11-20). Une arme confisquée (capture, bit 0x8000) n'est pas touchée.
 
 Code ajouté dans une fonction de débogage jamais appelée (0x800852d0, écrit « SG » + 6 chiffres
 hexadécimaux ; ni appel, ni pointeur dans l'EXE, ni dans STAGE.DIR des deux disques US) ; on n'en prend
@@ -41,11 +41,8 @@ allw:
 allw_loop:
     lh t2, 0(t0)              # munitions (-1 : pas trouvée)
     lh t5, 0x14(t0)           # maximum
-    beq t2, t4, allw_give
+    bne t2, t4, allw_next     # déjà là (ou confisquée) : on n'y touche plus
     nop
-    bltz t2, allw_next        # confisquée (bit 0x8000) : on n'y touche pas
-    nop
-allw_give:
     lh t6, 0(t3)              # valeur par défaut
     bgtz t5, allw_set
     move t2, t5

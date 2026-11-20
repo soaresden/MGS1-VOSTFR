@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
-objets.py - Mod de test : tous les objets (menu L2), rations et médicaments toujours pleins.
+objets.py - Mod de test : tous les objets dès le début (une fois), carte de niveau 7.
 
 Le pendant de armes.py. À chaque image où Snake existe, son Act passe par un petit code qui, pour les
 24 objets (GM_Items 0x800b63ca, version française, traduite par pal.py ; -1 = pas encore trouvé),
-donne l'objet s'il n'est pas encore trouvé :
-  - 1 pour un objet simple (cartons, lunettes, masque, gilet, tenue furtive, bandana, clé PAL...) ;
-  - la carte au niveau 7 (toutes les portes), 5 rations, 3 médicaments contre le rhume, 3 diazépam :
-    remis à ces valeurs à chaque image (une carte ramassée ne la fait pas redescendre ; illimités).
-Pas de table des maximums des objets après GM_Items (contrairement aux armes : GM_WeaponsMax).
-Jamais donnés : la bombe à retardement (elle exploserait sur Snake), l'appareil photo (pas dans
-cette version) et le silencieux : tant que GM_Items[silencieux] > 0, l'Act du SOCOM (et du M9) ne
-fait que lever GM_SilencerFlag et sort (US 0x80067844) : le jeu le remet à zéro en le fixant ;
-redonné à chaque image, il empêchait de tirer. On le ramasse normalement (le M9 est silencieux). Un objet repris par le jeu (capture : valeur négative autre que -1) n'est pas touché.
+donne une fois l'objet pas encore trouvé : 1 pour un objet simple (cartons, lunettes, masque, gilet,
+tenue furtive, bandana, clé PAL...), 5 rations, 3 médicaments contre le rhume, 3 diazépam.
+Ensuite le jeu compte normalement (pas illimités : demande de Denis, 2026-11-20). Seule la carte est
+gardée au niveau 7 (bit 0x80 : remise à chaque image) : le jeu la remet au niveau de la carte ramassée.
+Jamais donnés : la bombe à retardement (elle exploserait sur Snake) et l'appareil photo (pas dans cette
+version). Un objet repris par le jeu (capture : valeur négative autre que -1) n'est pas touché.
+Silencieux : donné déjà fixé au SOCOM (0). Ramassé, il vaut 1 et l'Act du SOCOM (US 0x80067844) ne tire
+pas tant qu'il est > 0 ; c'est la création du SOCOM (son modèle silencieux, US 0x80067d70) qui le fixe
+en le remettant à 0. Le redonner à 1 à chaque image bloquait donc tout tir.
 
 Code : juste après celui de armes.py, dans la même fonction de débogage jamais appelée
 (0x800852d0 + 0xB0, 0xB0 octets). Crochet : les instructions 3 et 4 de l'Act de Snake (Act + 8,
@@ -34,11 +34,12 @@ CAVE_SHA1 = {"FR": "ee7d67bd53bf808917b1a09b1fc19f332d0b53bd",
              "US": "1c38409ab0268d3e350f8ad8aa2470761ba03fe6"}
 SNA_ACT = 0x8005BBA0      # Act de Snake (version française)
 SYM = dict(ITEMS=0x800B63CA, ACT16=SNA_ACT + 16)
-# Valeur donnée (7 bits bas) ; 0x80 = remise à cette valeur à chaque image ; 0 = jamais donné.
+# Valeur donnée ; None = jamais donné ; KEEP + n = remise à n à chaque image.
 # Cigarettes, jumelles, carton A, B, C, lunettes infrarouges, thermiques, masque à gaz, gilet,
 # ketchup, tenue furtive, bandana, appareil photo, rations, médicament, diazépam, clé PAL, carte,
-# bombe à retardement, détecteur de mines, disque, corde, mouchoir, silencieux
-DEFAULTS = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0x85, 0x83, 0x83, 1, 0x87, 0, 1, 1, 1, 1, 0]
+# bombe à retardement, détecteur de mines, disque, corde, mouchoir, silencieux (0 : déjà fixé au SOCOM)
+KEEP = 0x80
+DEFAULTS = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, None, 5, 3, 3, 1, KEEP + 7, None, 1, 1, 1, 1, 0]
 assert len(DEFAULTS) == 24
 
 CAVE_SRC = r"""
@@ -52,6 +53,7 @@ objs_loop:
     lh t2, 0(t0)              # l'objet (-1 : pas trouvé)
     beqz t6, objs_next
     andi t7, t6, 0x7f
+    addiu t7, t7, -1          # octet = valeur + 1 (0 : jamais donné)
     beq t2, t4, objs_set      # pas trouvé : on le donne
     andi t8, t6, 0x80         # à garder plein ?
     bltz t2, objs_next        # repris par le jeu : on n'y touche pas
@@ -69,7 +71,7 @@ objs_next:
     j ACT16
     lui a1, 4
 objs_def:
-""" + "".join(f"    .byte {n}\n" for n in DEFAULTS)
+""" + "".join(f"    .byte {0 if n is None else n + 1}\n" for n in DEFAULTS)
 
 HOOK = (SNA_ACT + 8, "218880000400053c", "j objs\nnop")
 

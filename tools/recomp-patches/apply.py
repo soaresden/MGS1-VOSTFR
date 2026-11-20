@@ -28,6 +28,13 @@ apply.py - Nos changements au recomp PC de MGS (psxrecomp + recomp-ui, alexbeavs
      * lunette / jumelles : un quadrilatère noir opaque avec deux sommets sur x = 0 ou x = 320 (le
        masque de la lunette du PSG1 = ~40 trapèzes du cercle au bord) est prolongé dans la bande 16/9
        par un rectangle noir de la hauteur de ce côté. Activé par PSX_WS_EDGE_MASKS=1 (run.sh, retrobat.cmd).
+   - widescreen-y-hud-groups.patch (après x-radar-scope, même fonction) : le HUD 16/9 se range par tiers,
+     primitive par primitive ; un ensemble à cheval sur deux tiers se coupait (menus L2 / R2 : une rangée de
+     5 cases sur tout le bas ; nom d'un objet ramassé, écrit à la position de l'objet). Avant d'envoyer la
+     liste, les primitives de la zone du HUD sont regroupées (8 px d'écart au plus) ; un groupe dont les
+     morceaux ne sont pas d'accord bouge d'un bloc : vers le bord où il est ancré (à 1/6 de la largeur), sinon
+     selon le tiers de son centre. Les groupes plus hauts que la moitié de l'image (écrans 2D) gardent
+     l'ancienne règle. Parcours borné (en-têtes seulement, 0x8000 nœuds). PSX_WS_HUD_GROUPS=0 le coupe.
    - runtime-audio-drc-env.patch : PSX_AUDIO_MAX_CORRECTION, PSX_AUDIO_KP, PSX_AUDIO_SLEW règlent la
      correction de vitesse du son (essai : étirer le son au lieu de le hacher quand le jeu ralentit ;
      refusé par Denis, toute la hauteur change ; non utilisé par run.sh).
