@@ -4,7 +4,8 @@
 
 Sorties (dans work/, rien du jeu n'est versionné) :
   batocera : work/batocera/Metal Gear Solid.sh/   -> /userdata/roms/ports/ (\\\\BATOCERA\\share\\roms\\ports)
-             bin/aarch64 (Retroid Pocket 5 & co) et bin/x86_64 (PC), le reste commun ; run.sh, padto.keys,
+             bin/aarch64 (Retroid Pocket 5 & co) et bin/x86_64 (PC), avec config.ini (raccourcis clavier du
+             recomp coupés), le reste commun ; run.sh, padto.keys,
              es_features_mgs.cfg (menu ADVANCED GAME OPTIONS > METAL GEAR SOLID : disque, textes FR, rendu).
   retrobat : work/retrobat/roms/windows/          -> RetroBat\\roms\\windows\\
              « Metal Gear Solid - Disque 1.bat », « ... Disque 2.bat » et le dossier « Metal Gear Solid » (l'exe
@@ -202,7 +203,9 @@ def batocera(out, discs):
     feats = game(root, os.path.join(W, "batocera", "common"), discs)
     for x in archs:
         copy(os.path.join(bins, x), os.path.join(root, "bin", x))
-    cache = os.path.join(W, "batocera", "cache")  # overlays pre-compiled for ARM (tools/batocera/overlays.sh)
+        # raccourcis clavier du recomp coupés (F11 fenêtre, F12 enregistrement « REC »...) : lu à côté de l'exe
+        text("config.ini", os.path.join(root, "bin", x, "config.ini"), "\n")
+    cache =os.path.join(W, "batocera", "cache")  # overlays pre-compiled for ARM (tools/batocera/overlays.sh)
     if os.path.isdir(cache):
         copy(cache, os.path.join(root, "cache"))
     for f in ("run.sh", "padto.keys"):
