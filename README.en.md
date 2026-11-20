@@ -27,6 +27,7 @@ This repository contains **no game data**: only the scripts that build the image
 | `--fps` option: aim and shoot the SOCOM / M9 in first-person view (like in MGS2) | ✅ done, tested (dock: guard put to sleep with the M9, hurt with the SOCOM, laser) |
 | `--life TEXT` option: your own text instead of "LIFE" in the life bar (e.g. "SNAKE") | ✅ done, tested (dock, French and English versions) |
 | `--cartes` option: key card doors open with the card in your inventory (no need to equip it), and the card then equips itself (its icon shows) | ✅ done, tested (Blast Furnace LV.6 door; cave LV.5 door: LV.7 CARD icon) |
+| `--contact` option: bumping into a guard no longer raises the alarm, he has to see Snake | ✅ done, tested on PC (dock: contact on a guard, he keeps patrolling; without the option he switches to "attacked") |
 | `--psg1loup` option: the PSG1 in the cave, where Meryl was waiting (no trip back to the armory) | ✅ done, tested in game (pickup, Campbell's call, fight without Meryl on the way back) |
 | `--bandana` option: the bandana shows, with a very long tail flowing behind Snake (like in MGS2) | ✅ prototype, tested (Snowfield French and English, Blast Furnace: tail at rest, running, equip / unequip) |
 | `--titre` option: "METAL GEAR SOLID - SHADOW FIXES" title screen, by Soaresden, v1.0 | ✅ done, tested ("PRESS START BUTTON" screen and menu) |
@@ -142,6 +143,8 @@ python life.py "SNAKE" "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Soli
 
 ![With --cartes: nothing in hand at the door, then the LV.7 card equipped once the door opens](docs/previews/cartes_icone.png)
 
+`--contact` option: in the original game, brushing against a soldier, even from behind, even crouched, is enough to be discovered: he spins round at once (as if he had been punched) and, right next to him, sees Snake: alert. With the option, contact no longer counts: the soldier is just pushed (he may turn a little, as in the original). If he ends up facing Snake, his sight raises the alert, as usual. Punches, holds, noise and sight are unchanged. Every stage, VR Missions included (each stage's soldiers have their own copy of the code: 36 in the USA version, 34 in the French and English ones).
+
 `--psg1loup` option (off by default): after Sniper Wolf shoots Meryl in the underground passage, no need to go all the way back to the armory for the PSG1. After Campbell's call sending Snake for the PSG1, just step back out into the wolf-dog cave: the PSG1 waits **where Meryl was waiting with the dog**. Picking it up triggers Campbell's armory call (use it on Sniper Wolf), and back in the passage Meryl is gone: the fight starts, as in the original game. One visible detail: the PSG1 is already in the inventory (empty) when you enter the cave, and the box brings the bullets. The game has no "weapon on the floor" model in that room, only the ammo box one, and it refuses ammo without the weapon. The box also shows up in Extreme mode; the armory route still works.
 
 ![With --psg1loup: Campbell's call on pickup in the cave, then the fight without Meryl](docs/previews/psg1loup_on.png)
@@ -149,6 +152,7 @@ python life.py "SNAKE" "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Soli
 ```bash
 python cartes.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 python psg1loup.py "Metal Gear Solid (VOSTFR) (Disc 1).bin"
+python contact.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
 `--bandana` option (prototype): in the original game, equipping the BANDANA (infinite ammo, earned by finishing the game) barely shows: the headband Snake already wears just gets a bit darker. With this option, the bandana gets a **1.30 m long tail** tied behind the head, like in MGS2: it hangs down his back when Snake stands still, lifts up behind him when he runs, and waves. It is the small tail model Konami left on the disc and never displayed, made longer and animated. Simple animation: the tail follows the head and ignores the scenery (with Snake lying down, it can go through the floor).
@@ -314,6 +318,7 @@ The game versions are in `versions/` (one file per version: disc numbers, short 
 | `tools/fps.py` | Code of the `fps` mod: shoot the SOCOM / M9 in first-person view |
 | `tools/life.py` | Code of the `life` mod: your text instead of "LIFE" in the life bar (+ preview) |
 | `tools/cartes.py` | Code of the `cartes` mod: key card doors open without equipping the card, which then equips itself |
+| `tools/contact.py` | Code of the `contact` mod: bumping into a guard no longer raises the alarm, he has to see Snake |
 | `tools/psg1loup.py` | Code of the `psg1loup` mod: the PSG1 in the cave, where Meryl was waiting, before Sniper Wolf |
 | `tools/bandana.py` | Code of the `bandana` mod: visible bandana, very long animated tail (like MGS2) |
 | `tools/titre.py` | Code of the `titre` mod: "Shadow Fixes" title screen, by Soaresden, v1.0 |

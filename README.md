@@ -27,6 +27,7 @@ Le dépôt ne contient **aucune donnée du jeu** : seulement les scripts qui fab
 | Option `--fps` : viser et tirer au SOCOM / M9 en vue subjective (comme dans MGS2) | ✅ fait, testé (quai : garde endormi au M9, blessé au SOCOM, laser) |
 | Option `--life TEXTE` : ton texte à la place de « LIFE » dans la barre de vie (ex. « SNAKE ») | ✅ fait, testé (quai, version française et anglaise) |
 | Option `--cartes` : les portes à carte s'ouvrent avec la carte dans l'inventaire (plus besoin de l'équiper), et la carte s'équipe alors toute seule (son icône s'affiche) | ✅ fait, testé (porte LV.6 de Blast Furnace ; porte LV.5 de la grotte : icône LV.7 CARD) |
+| Option `--contact` : toucher un garde ne donne plus l'alerte, il faut qu'il voie Snake | ✅ fait, testé sur PC (quai : contact sur un garde, il reste en patrouille ; sans l'option il passe en mode « attaqué ») |
 | Option `--psg1loup` : le PSG1 dans la grotte, là où Meryl attendait (plus de détour par l'armurerie) | ✅ fait, testé en jeu (ramassage, appel de Campbell, combat sans Meryl au retour) |
 | Option `--bandana` : le bandana se voit, avec un très long pan qui flotte derrière Snake (comme dans MGS2) | ✅ prototype, testé (Snowfield FR et anglais, Blast Furnace : pan au repos, en course, équiper / déséquiper) |
 | Option `--titre` : écran titre « METAL GEAR SOLID - SHADOW FIXES », by Soaresden, v1.0 | ✅ fait, testé (écran « PRESS START BUTTON » et menu) |
@@ -142,6 +143,8 @@ Option `--cartes` : les portes à carte s'ouvrent dès que la carte est dans l'i
 
 ![Avec --cartes : rien en main devant la porte, puis la carte LV.7 équipée une fois la porte ouverte](docs/previews/cartes_icone.png)
 
+Option `--contact` : dans le jeu d'origine, il suffit de frôler un soldat, même de dos, même accroupi, pour être découvert : il se retourne d'un coup (comme si on l'avait frappé) et, collé à lui, il voit Snake : alerte. Avec l'option, le contact ne compte plus : le soldat est seulement poussé (il peut pivoter un peu, comme d'origine). S'il se retrouve face à Snake, c'est sa vue qui donne l'alerte, comme d'habitude. Les coups, les prises, les bruits et la vue ne changent pas. Tous les stages, VR Missions comprises (les soldats de chaque stage ont leur copie du code : 36 en version USA, 34 en française et anglaise).
+
 Option `--psg1loup` (désactivée par défaut) : après que Sniper Wolf a blessé Meryl dans le passage souterrain, plus besoin de retourner chercher le PSG1 à l'armurerie. Après l'appel de Campbell qui envoie chercher le PSG1, il suffit de ressortir dans la grotte des chiens-loups : le PSG1 attend **là où Meryl attendait avec le chien**. En le ramassant, Campbell rappelle comme à l'armurerie (« Tu as le PSG-1 ? Utilise-le contre Sniper Wolf… »), et au retour dans le passage Meryl n'est plus là : le combat commence, comme dans le jeu d'origine. Détail visible : le PSG1 est déjà dans l'inventaire (vide) en entrant dans la grotte, et la boîte apporte les balles. Le jeu n'a pas le modèle « arme au sol » dans cette salle, seulement celui des boîtes de munitions, qu'il refuse sans l'arme. La boîte apparaît aussi en mode Extreme ; le chemin par l'armurerie reste possible.
 
 ![Avec --psg1loup : appel de Campbell au ramassage dans la grotte, puis combat sans Meryl](docs/previews/psg1loup_on.png)
@@ -149,6 +152,7 @@ Option `--psg1loup` (désactivée par défaut) : après que Sniper Wolf a bless�
 ```bash
 python cartes.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 python psg1loup.py "Metal Gear Solid (VOSTFR) (Disc 1).bin"
+python contact.py "Metal Gear Solid (VOSTFR) (Disc 1).bin" "Metal Gear Solid (VOSTFR) (Disc 2).bin"
 ```
 
 Option `--bandana` (prototype) : dans le jeu d'origine, équiper le BANDANA (munitions infinies, obtenu en finissant le jeu) ne se voit presque pas : le bandeau que Snake porte déjà devient juste un peu plus foncé. Avec l'option, le bandana a un **pan de 1,30 m** noué derrière la tête, comme dans MGS2 : il pend dans le dos quand Snake est immobile, se soulève derrière lui quand il court et ondule. C'est le petit modèle de pan que Konami avait laissé sur le disque sans jamais l'afficher, rallongé et animé. Animation simple : le pan suit la tête et ignore le décor (Snake couché, il peut passer dans le sol).
@@ -314,6 +318,7 @@ Les versions du jeu sont dans `versions/` (un fichier par version : numéros des
 | `tools/fps.py` | Code du mod `fps` : tirer au SOCOM / M9 en vue subjective |
 | `tools/life.py` | Code du mod `life` : texte à la place de « LIFE » dans la barre de vie (+ aperçu) |
 | `tools/cartes.py` | Code du mod `cartes` : portes à carte ouvertes sans équiper la carte, qui s'équipe alors toute seule |
+| `tools/contact.py` | Code du mod `contact` : toucher un garde ne donne plus l'alerte, il faut qu'il voie Snake |
 | `tools/psg1loup.py` | Code du mod `psg1loup` : le PSG1 dans la grotte, là où Meryl attendait, avant Sniper Wolf |
 | `tools/bandana.py` | Code du mod `bandana` : bandana visible, très long pan animé (comme MGS2) |
 | `tools/titre.py` | Code du mod `titre` : écran titre « Shadow Fixes », by Soaresden, v1.0 |

@@ -1,0 +1,30 @@
+{
+  "id": "contact",
+  "ordre": 85,
+  "rang": 85,
+  "type": "option",
+  "cli": "contact",
+  "fichiers": [
+    "stage"
+  ],
+  "aide": "toucher un garde ne donne plus l'alerte : il faut qu'il voie Snake",
+  "versions": [
+    "FR",
+    "UK",
+    "US"
+  ],
+  "fr": "Toucher un garde ne donne plus l'alerte",
+  "en": "Bumping into a guard no longer raises the alarm",
+  "frS": "Il faut qu'il te voie : frôler un soldat, même de dos, ne te fait plus repérer.",
+  "enS": "He has to see you: brushing against a soldier, even from behind, no longer gets you spotted.",
+  "fl": [
+    "Dans le jeu d'origine, il suffit de toucher un soldat (même de dos, même accroupi) pour être découvert : alerte immédiate.",
+    "Avec ce mod, le contact ne compte plus : le soldat est seulement poussé (il peut pivoter). S'il se retrouve face à toi, c'est sa vue qui donne l'alerte, comme d'habitude.",
+    "Les coups, les prises, les bruits et la vue des soldats ne changent pas. Tous les stages, VR Missions comprises."
+  ],
+  "el": [
+    "In the original game, touching a soldier (even from behind, even crouched) is enough to be discovered: instant alert.",
+    "With this mod, contact no longer counts: the soldier is just pushed (he may turn). If he ends up facing you, his sight raises the alert, as usual.",
+    "Punches, holds, noise and the soldiers' sight are unchanged. Every stage, VR Missions included."
+  ]
+}
