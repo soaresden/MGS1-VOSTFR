@@ -9,8 +9,10 @@ donne l'objet s'il n'est pas encore trouvé :
   - la carte au niveau 7 (toutes les portes), 5 rations, 3 médicaments contre le rhume, 3 diazépam :
     remis à ces valeurs à chaque image (une carte ramassée ne la fait pas redescendre ; illimités).
 Pas de table des maximums des objets après GM_Items (contrairement aux armes : GM_WeaponsMax).
-Jamais donnés : la bombe à retardement (elle exploserait sur Snake) et l'appareil photo (pas dans
-cette version). Un objet repris par le jeu (capture : valeur négative autre que -1) n'est pas touché.
+Jamais donnés : la bombe à retardement (elle exploserait sur Snake), l'appareil photo (pas dans
+cette version) et le silencieux : tant que GM_Items[silencieux] > 0, l'Act du SOCOM (et du M9) ne
+fait que lever GM_SilencerFlag et sort (US 0x80067844) : le jeu le remet à zéro en le fixant ;
+redonné à chaque image, il empêchait de tirer. On le ramasse normalement (le M9 est silencieux). Un objet repris par le jeu (capture : valeur négative autre que -1) n'est pas touché.
 
 Code : juste après celui de armes.py, dans la même fonction de débogage jamais appelée
 (0x800852d0 + 0xB0, 0xB0 octets). Crochet : les instructions 3 et 4 de l'Act de Snake (Act + 8,
@@ -36,7 +38,7 @@ SYM = dict(ITEMS=0x800B63CA, ACT16=SNA_ACT + 16)
 # Cigarettes, jumelles, carton A, B, C, lunettes infrarouges, thermiques, masque à gaz, gilet,
 # ketchup, tenue furtive, bandana, appareil photo, rations, médicament, diazépam, clé PAL, carte,
 # bombe à retardement, détecteur de mines, disque, corde, mouchoir, silencieux
-DEFAULTS = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0x85, 0x83, 0x83, 1, 0x87, 0, 1, 1, 1, 1, 1]
+DEFAULTS = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0x85, 0x83, 0x83, 1, 0x87, 0, 1, 1, 1, 1, 0]
 assert len(DEFAULTS) == 24
 
 CAVE_SRC = r"""
