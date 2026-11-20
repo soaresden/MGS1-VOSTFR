@@ -34,6 +34,9 @@ if [ -f "$GAMEDIR/es_features_mgs.cfg" ] && [ -d "$ES_CFG_DIR" ] && \
    ! cmp -s "$GAMEDIR/es_features_mgs.cfg" "$ES_CFG_DIR/es_features_mgs.cfg"; then
     cp "$GAMEDIR/es_features_mgs.cfg" "$ES_CFG_DIR/es_features_mgs.cfg"
 fi
+# The EmulationStation entry in ports/gamelist.xml: English description, the pictures of forgamelist/, developer,
+# date; a field the player filled in stays theirs (gamelist.py). Shown after ES reloads its lists.
+command -v python3 >/dev/null 2>&1 && [ -f "$GAMEDIR/gamelist.py" ] &&     python3 "$GAMEDIR/gamelist.py" "$GAMEDIR" "$(dirname "$GAMEDIR")/gamelist.xml" "./$(basename "$GAMEDIR")"         >> "$GAMEDIR/mgs-stdout.log" 2>&1
 CONF="${MGS_BATOCERA_CONF:-/userdata/system/batocera.conf}"
 conf_get() {
     local v=""

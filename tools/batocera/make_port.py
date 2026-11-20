@@ -182,6 +182,17 @@ def game(root, common, discs):
     return first[2]
 
 
+def forgamelist(root):
+    """forgamelist/ (images de la fiche EmulationStation / RetroBat) depuis work/forgamelist.png (ou .jpg) : image
+    choisie par Denis, gardée hors du dépôt (art du jeu). Sans elle, pas d'images : la fiche a le reste."""
+    src = next((os.path.join(W, "forgamelist" + e) for e in (".png", ".jpg", ".jpeg", ".webp")
+                if os.path.isfile(os.path.join(W, "forgamelist" + e))), None)
+    if src:
+        sys.path.insert(0, HERE)
+        import gamelist
+        gamelist.images(src, os.path.join(root, "forgamelist"))
+
+
 def batocera(out, discs):
     root = os.path.join(out, "batocera", "Metal Gear Solid.sh")
     bins = os.path.join(W, "batocera", "bin")

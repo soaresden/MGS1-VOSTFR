@@ -33,6 +33,9 @@ if exist "%G%\mods\state.toml" powershell -NoProfile -ExecutionPolicy Bypass -Co
   "$f='%G%\mods\state.toml'; $t=[IO.File]::ReadAllText($f); [IO.File]::WriteAllText($f, ($t -replace 'soaresden\.mgs1-mods\.disc[12]','soaresden.mgs1-mods.disc%DISC%'))"
 > "%G%\disc.txt" echo %DISC%
 
+rem the RetroBat entries (roms\windows\gamelist.xml): description, pictures of forgamelist\, developer, date
+if exist "%G%\gamelist.ps1" powershell -NoProfile -ExecutionPolicy Bypass -File "%G%\gamelist.ps1" "%G%" >> "%G%\gamelist.log" 2>&1
+
 rem the underwater / heat-haze filters of the intro, carried into the 16:9 bands
 set "PSX_WS_FEEDBACK_QUADS=1"
 rem the scope and binoculars masks, continued into the 16:9 bands
