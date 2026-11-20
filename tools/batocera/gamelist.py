@@ -75,7 +75,7 @@ def gamelist(port, xml, entry, name=None):
 
 
 def images(src, out):
-    """forgamelist/ from one picture: image.png (4:3, 640 wide), thumbnail.png (square, 512), fanart.png (as is,
+    """forgamelist/ from one picture: image.png (4:3, 640 wide), thumbnail.png (square, 512, shifted right for the title), fanart.png (as is,
     1280 wide at most)."""
     from PIL import Image
     im = Image.open(src).convert('RGB')
@@ -85,7 +85,8 @@ def images(src, out):
     im.crop(((w - cw) // 2, (h - ch) // 2, (w + cw) // 2, (h + ch) // 2)).resize((640, 480), Image.LANCZOS) \
         .save(os.path.join(out, 'image.png'), optimize=True)
     s = min(w, h)
-    im.crop(((w - s) // 2, (h - s) // 2, (w + s) // 2, (h + s) // 2)).resize((512, 512), Image.LANCZOS) \
+    x = (w - s) * 4 // 5   # a bit to the right: the title is in the top right corner of the picture
+    im.crop((x, (h - s) // 2, x + s, (h + s) // 2)).resize((512, 512), Image.LANCZOS) \
         .save(os.path.join(out, 'thumbnail.png'), optimize=True)
     f = im if w <= 1280 else im.resize((1280, h * 1280 // w), Image.LANCZOS)
     f.save(os.path.join(out, 'fanart.png'), optimize=True)
